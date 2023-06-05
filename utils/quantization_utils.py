@@ -170,7 +170,7 @@ def fuse_resnet(model_fp32: nn.Module) -> None:
                         )
 
 
-class QuantModel(nn.Module):
+class QuantizableModel(nn.Module):
     def __init__(self, model: nn.Module):
         super().__init__()
         # QuantStub converts tensors from floating point to quantized

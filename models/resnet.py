@@ -1,5 +1,5 @@
 import copy
-
+from typing import *
 import torch
 import torch.nn as nn
 from torch.utils.model_zoo import load_url as load_state_dict_from_url
@@ -424,39 +424,43 @@ def wide_resnet101_2(pretrained=False, progress=True, **kwargs):
     )
 
 
-def fuse_resnet(model: nn.Module) -> None:
+def fuse_resnet(model: nn.Module, is_qat: Union[bool, None] = None) -> None:
+    if is_qat is not None:
+        is_qat = model.training
+    fuse = torch.ao.quantization.fuse_modules_qat if is_qat else torch.ao.quantization.fuse_modules
+
     # fuse first three layers, conv1-bn1-relu
-    torch.ao.quantization.fuse_modules(model, [["conv1", "bn1", "relu"]], inplace=True)
+    fuse(model, [["conv1", "bn1", "relu"]], inplace=True)
 
     for module_name, module in model.named_children():
         if "layer" in module_name:
             for basic_block_name, block in module.named_children():
                 if isinstance(block, BasicBlock):
-                    torch.ao.quantization.fuse_modules(
+                    fuse(
                         block,
                         [["conv1", "bn1", "relu"], ["conv2", "bn2"]],
                         inplace=True,
                     )
                 elif isinstance(block, Bottleneck):
-                    torch.ao.quantization.fuse_modules(
+                    fuse(
                         block,
                         [["conv1", "bn1", "relu1"], ["conv2", "bn2", "relu2"], ["conv3", "bn3"]],
                         inplace=True,
                     )
                 for sub_block_name, sub_block in block.named_children():
                     if sub_block_name == "downsample":
-                        torch.ao.quantization.fuse_modules(
+                        fuse(
                             sub_block, [["0", "1"]], inplace=True  # fuse conv-bn
                         )
 
 
 if __name__ == "__main__":
-    from utils.quantization_utils import QuantModel
-    model = resnet50().eval()
+    from utils.quantization_utils import QuantizableModel
+    model = wide_resnet101_2().eval()
     model_fp = copy.deepcopy(model)
-    input = torch.randn(10, 3, 224, 224)
+    input = torch.randn(1, 3, 224, 224)
     fuse_resnet(model)
-    model = QuantModel(model)
+    model = QuantizableModel(model)
     model.qconfig = torch.ao.quantization.get_default_qconfig("x86")
     torch.ao.quantization.prepare(model, inplace=True)
     model(input)
