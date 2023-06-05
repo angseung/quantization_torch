@@ -9,9 +9,7 @@ from torch import nn as nn
 from torch.ao.quantization import fuse_modules
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
-from torchvision.models.resnet import BasicBlock, Bottleneck, _resnet
-from torch.ao.quantization import quantize_dynamic
-from models.common import ConvBnReLU, Concat, DetectMultiBackend, DWSConvReLU
+from models.common import ConvBnReLU, Concat, DetectMultiBackend
 from utils.general import non_max_suppression
 from utils.torch_utils import normalizer
 from utils.roi_utils import resize
@@ -21,156 +19,7 @@ FILE = Path(__file__).resolve()
 ROOT = FILE.parent.parent  # root directory
 
 
-class AddModel(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.ff = torch.ao.nn.quantized.FloatFunctional()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = x.clone()
-        out = self.ff.add(x, y)
-
-        return out
-
-
-class M(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv = torch.nn.Conv2d(
-            3, 32, kernel_size=3, stride=1, padding=1, bias=False
-        )
-        self.upsample = torch.nn.Upsample(scale_factor=2, mode="bilinear")  # Success
-        self.bn = torch.nn.BatchNorm2d(32)
-        self.concat = torch.cat  # Success
-        self.relu = torch.nn.ReLU()
-        self.sigmoid = torch.nn.Sigmoid()
-
-    def forward(self, x):
-        x = self.conv(x)
-        x = self.upsample(x)
-        x = self.bn(x)
-        x1 = x.clone()
-        x = self.relu(x)
-        x = self.concat([x, x1], dim=1)
-        x = self.sigmoid(x)
-        return x
-
-
-class QuantBasicBlock(BasicBlock):
-    ff = torch.ao.nn.quantized.FloatFunctional()
-    relu1 = nn.ReLU()
-    relu2 = nn.ReLU()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        identity = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu1(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-
-        if self.downsample is not None:
-            identity = self.downsample(x)
-
-        out = self.ff.add(out, identity)
-        out = self.relu2(out)
-
-        return out
-
-
-class QuantBottleNeck(Bottleneck):
-    # ff = torch.ao.nn.quantized.FloatFunctional()
-    ff = torch.ao.nn.quantized.FloatFunctional()
-    relu1 = nn.ReLU()
-    relu2 = nn.ReLU()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        identity = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu1(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-
-        out = self.conv3(out)
-        out = self.bn3(out)
-
-        if self.downsample is not None:
-            identity = self.downsample(x)
-
-        out = self.ff.add(out, identity)
-        out = self.relu2(out)
-
-        return out
-
-
-def resnet18():
-    return _resnet(QuantBasicBlock, [2, 2, 2, 2], weights=None, progress=False)
-
-
-def resnet152():
-    return _resnet(QuantBottleNeck, [3, 8, 36, 3], weights=None, progress=False)
-
-
-def dynamic_quantizer(
-    model: nn.Module, layers: List[type], dtype: torch.dtype
-) -> nn.Module:
-    model_quant = quantize_dynamic(
-        model,
-        {*layers},
-        dtype=dtype,
-    )
-
-    return model_quant
-
-
-def static_quantizer(
-    model: nn.Module,
-    data_to_calibrate: torch.Tensor,
-    layers_to_fuse: List[List[Union[str, Type[nn.Module]]]],
-    configs: Optional[Union[str, None]] = None,
-) -> nn.Module:
-    """
-    https://pytorch.org/tutorials/advanced/static_quantization_tutorial.html
-    """
-
-    if isinstance(configs, str):
-        model.qconfig = torch.ao.quantization.get_default_qconfig(configs)
-    else:
-        model.qconfig = torch.ao.quantization.default_qconfig
-
-    model = model.to("cpu")
-    torch.ao.quantization.fuse_modules(model, layers_to_fuse, inplace=True)
-    prepare = torch.ao.quantization.prepare(model)
-    prepare(data_to_calibrate)  # calibrates model
-    quantized_model = torch.ao.quantization.convert(prepare)
-    print("Post Training Quantization: Convert done")
-
-    return quantized_model
-
-
-def fuse_resnet(model_fp32: nn.Module) -> None:
-    for module_name, module in model_fp32.named_children():
-        if "layer" in module_name:
-            for basic_block_name, basic_block in module.named_children():
-                torch.ao.quantization.fuse_modules(
-                    basic_block,
-                    [["conv1", "bn1", "relu1"], ["conv2", "bn2"]],
-                    inplace=True,
-                )
-                for sub_block_name, sub_block in basic_block.named_children():
-                    if sub_block_name == "downsample":
-                        torch.ao.quantization.fuse_modules(
-                            sub_block, [["0", "1"]], inplace=True
-                        )
-
-
-class QuantModel(nn.Module):
+class QuantizableModel(nn.Module):
     def __init__(self, model: nn.Module):
         super().__init__()
         # QuantStub converts tensors from floating point to quantized
@@ -359,8 +208,9 @@ class YoloBackboneQuantizer(nn.Module):
 
         return [x17, x20, x23]
 
-    def forward(self, x: Union[torch.Tensor, List[torch.Tensor]]
-                ) -> Union[Tuple[List[torch.Tensor], torch.Tensor], List[torch.Tensor]]:
+    def forward(
+        self, x: Union[torch.Tensor, List[torch.Tensor]]
+    ) -> Union[Tuple[List[torch.Tensor], torch.Tensor], List[torch.Tensor]]:
         if self.yolo_version == 3:
             return self._forward_impl_v3(x)
 
@@ -397,8 +247,9 @@ class YoloHead(nn.Module):
         self.model = copy.deepcopy(yolo_model.model[-1])
         self.model.eval()
 
-    def forward(self, x: List[torch.Tensor]
-                ) -> Union[Tuple[List[torch.Tensor], torch.Tensor], List[torch.Tensor]]:
+    def forward(
+        self, x: List[torch.Tensor]
+    ) -> Union[Tuple[List[torch.Tensor], torch.Tensor], List[torch.Tensor]]:
         return self.model(x) if self.model.training else self.model(x)[0]
 
 
