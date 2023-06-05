@@ -96,9 +96,7 @@ class BasicBlock(nn.Module):
         if self.downsample is not None:
             identity = self.downsample(x)
 
-        # out += identity
-        out = self.ff.add(out, identity)
-        out = self.relu(out)
+        out = self.ff.add_relu(out, identity)
 
         return out
 
@@ -134,7 +132,8 @@ class Bottleneck(nn.Module):
         self.bn2 = norm_layer(width)
         self.conv3 = conv1x1(width, planes * self.expansion)
         self.bn3 = norm_layer(planes * self.expansion)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu1 = nn.ReLU(inplace=True)
+        self.relu2 = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
         self.ff = FloatFunctional()
@@ -144,11 +143,11 @@ class Bottleneck(nn.Module):
 
         out = self.conv1(x)
         out = self.bn1(out)
-        out = self.relu(out)
+        out = self.relu1(out)
 
         out = self.conv2(out)
         out = self.bn2(out)
-        out = self.relu(out)
+        out = self.relu2(out)
 
         out = self.conv3(out)
         out = self.bn3(out)
@@ -156,9 +155,7 @@ class Bottleneck(nn.Module):
         if self.downsample is not None:
             identity = self.downsample(x)
 
-        # out += identity
-        out = self.ff.add(out, identity)
-        out = self.relu(out)
+        out = self.ff.add_relu(out, identity)
 
         return out
 
@@ -433,13 +430,20 @@ def fuse_resnet(model: nn.Module) -> None:
 
     for module_name, module in model.named_children():
         if "layer" in module_name:
-            for basic_block_name, basic_block in module.named_children():
-                torch.ao.quantization.fuse_modules(
-                    basic_block,
-                    [["conv1", "bn1", "relu"], ["conv2", "bn2"]],
-                    inplace=True,
-                )
-                for sub_block_name, sub_block in basic_block.named_children():
+            for basic_block_name, block in module.named_children():
+                if isinstance(block, BasicBlock):
+                    torch.ao.quantization.fuse_modules(
+                        block,
+                        [["conv1", "bn1", "relu"], ["conv2", "bn2"]],
+                        inplace=True,
+                    )
+                elif isinstance(block, Bottleneck):
+                    torch.ao.quantization.fuse_modules(
+                        block,
+                        [["conv1", "bn1", "relu1"], ["conv2", "bn2", "relu2"], ["conv3", "bn3"]],
+                        inplace=True,
+                    )
+                for sub_block_name, sub_block in block.named_children():
                     if sub_block_name == "downsample":
                         torch.ao.quantization.fuse_modules(
                             sub_block, [["0", "1"]], inplace=True  # fuse conv-bn
@@ -448,13 +452,14 @@ def fuse_resnet(model: nn.Module) -> None:
 
 if __name__ == "__main__":
     from utils.quantization_utils import QuantModel
-    model = resnet18()
+    model = resnet50().eval()
     model_fp = copy.deepcopy(model)
-    model.eval()
-    input = torch.randn(1, 3, 224, 224)
+    input = torch.randn(10, 3, 224, 224)
     fuse_resnet(model)
-    model = QuantModel(resnet18())
+    model = QuantModel(model)
     model.qconfig = torch.ao.quantization.get_default_qconfig("x86")
     torch.ao.quantization.prepare(model, inplace=True)
+    model(input)
+    torch.ao.quantization.convert(model, inplace=True)
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
