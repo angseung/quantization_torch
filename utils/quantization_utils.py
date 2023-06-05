@@ -9,9 +9,7 @@ from torch import nn as nn
 from torch.ao.quantization import fuse_modules
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
-from torchvision.models.resnet import BasicBlock, Bottleneck, _resnet
-from torch.ao.quantization import quantize_dynamic
-from models.common import ConvBnReLU, Concat, DetectMultiBackend, DWSConvReLU
+from models.common import ConvBnReLU, Concat, DetectMultiBackend
 from utils.general import non_max_suppression
 from utils.torch_utils import normalizer
 from utils.roi_utils import resize
