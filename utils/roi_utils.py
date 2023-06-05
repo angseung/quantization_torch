@@ -305,7 +305,9 @@ def clip(val: int, lower: int = 0, higher: int = 255) -> int:
         return higher
 
 
-def contour_to_plate_region(matched_result: List[np.ndarray], char_size: int = 25) -> Tuple[List, float]:
+def contour_to_plate_region(
+    matched_result: List[np.ndarray], char_size: int = 25
+) -> Tuple[List, float]:
     plate_infos = []
 
     for i, matched_chars in enumerate(matched_result):

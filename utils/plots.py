@@ -41,6 +41,7 @@ matplotlib.use("Agg")  # for writing to files only
 FILE = Path(__file__).resolve()
 ROOT = FILE.parent.parent  # root directory
 
+
 class Colors:
     # Ultralytics color palette https://ultralytics.com/
     def __init__(self):

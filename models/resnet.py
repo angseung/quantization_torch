@@ -427,7 +427,11 @@ def wide_resnet101_2(pretrained=False, progress=True, **kwargs):
 def fuse_resnet(model: nn.Module, is_qat: Union[bool, None] = None) -> None:
     if is_qat is not None:
         is_qat = model.training
-    fuse = torch.ao.quantization.fuse_modules_qat if is_qat else torch.ao.quantization.fuse_modules
+    fuse = (
+        torch.ao.quantization.fuse_modules_qat
+        if is_qat
+        else torch.ao.quantization.fuse_modules
+    )
 
     # fuse first three layers, conv1-bn1-relu
     fuse(model, [["conv1", "bn1", "relu"]], inplace=True)
@@ -444,18 +448,21 @@ def fuse_resnet(model: nn.Module, is_qat: Union[bool, None] = None) -> None:
                 elif isinstance(block, Bottleneck):
                     fuse(
                         block,
-                        [["conv1", "bn1", "relu1"], ["conv2", "bn2", "relu2"], ["conv3", "bn3"]],
+                        [
+                            ["conv1", "bn1", "relu1"],
+                            ["conv2", "bn2", "relu2"],
+                            ["conv3", "bn3"],
+                        ],
                         inplace=True,
                     )
                 for sub_block_name, sub_block in block.named_children():
                     if sub_block_name == "downsample":
-                        fuse(
-                            sub_block, [["0", "1"]], inplace=True  # fuse conv-bn
-                        )
+                        fuse(sub_block, [["0", "1"]], inplace=True)  # fuse conv-bn
 
 
 if __name__ == "__main__":
     from utils.quantization_utils import QuantizableModel
+
     model = wide_resnet101_2().eval()
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)

@@ -284,7 +284,11 @@ class BottleneckReLU(nn.Module):
         self.skip_add = FloatFunctional()
 
     def forward(self, x):
-        return self.skip_add.add(x, self.cv2(self.cv1(x))) if self.add else self.cv2(self.cv1(x))
+        return (
+            self.skip_add.add(x, self.cv2(self.cv1(x)))
+            if self.add
+            else self.cv2(self.cv1(x))
+        )
 
 
 class DWSBottleneck(nn.Module):
@@ -319,7 +323,11 @@ class DWSBottleneckReLU(nn.Module):
         self.skip_add = FloatFunctional()
 
     def forward(self, x):
-        return self.skip_add.add(x, self.cv2(self.cv1(x))) if self.add else self.cv2(self.cv1(x))
+        return (
+            self.skip_add.add(x, self.cv2(self.cv1(x)))
+            if self.add
+            else self.cv2(self.cv1(x))
+        )
 
 
 class BottleneckCSP(nn.Module):
@@ -638,7 +646,9 @@ class DetectMultiBackend(nn.Module):
         if yaml_file:  # build model from yaml
             # load data.yaml
             with torch_distributed_zero_first(LOCAL_RANK):
-                data_dict = check_dataset(os.path.join(ROOT, "data", "coco128.yaml"))  # check if None
+                data_dict = check_dataset(
+                    os.path.join(ROOT, "data", "coco128.yaml")
+                )  # check if None
             train_path, val_path = data_dict["train"], data_dict["val"]
             nc = int(data_dict["nc"])  # number of classes
             names = data_dict["names"]  # class names
