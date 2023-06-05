@@ -436,6 +436,7 @@ def fuse_resnet(model: nn.Module, is_qat: Union[bool, None] = None) -> None:
     # fuse first three layers, conv1-bn1-relu
     fuse(model, [["conv1", "bn1", "relu"]], inplace=True)
 
+    # fused BasicBlock and BottleneckBlock
     for module_name, module in model.named_children():
         if "layer" in module_name:
             for basic_block_name, block in module.named_children():
