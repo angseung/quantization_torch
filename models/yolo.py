@@ -6,7 +6,6 @@ Usage:
     $ python path/to/models/yolo.py --cfg yolov3.yaml
 """
 
-import argparse
 import sys
 from copy import deepcopy
 from pathlib import Path
@@ -28,7 +27,6 @@ from utils.torch_utils import (
     initialize_weights,
     model_info,
     scale_img,
-    select_device,
     time_sync,
 )
 

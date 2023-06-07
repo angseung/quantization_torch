@@ -76,7 +76,7 @@ class BasicBlock(nn.Module):
         # Both self.conv1 and self.downsample layers downsample the input when stride != 1
         self.conv1 = conv3x3(inplanes, planes, stride)
         self.bn1 = norm_layer(planes)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=True)  # will be converted to nn.Identify()
         self.conv2 = conv3x3(planes, planes)
         self.bn2 = norm_layer(planes)
         self.downsample = downsample
@@ -132,8 +132,8 @@ class Bottleneck(nn.Module):
         self.bn2 = norm_layer(width)
         self.conv3 = conv1x1(width, planes * self.expansion)
         self.bn3 = norm_layer(planes * self.expansion)
-        self.relu1 = nn.ReLU(inplace=True)
-        self.relu2 = nn.ReLU(inplace=True)
+        self.relu1 = nn.ReLU(inplace=True)  # will be converted to nn.Identify()
+        self.relu2 = nn.ReLU(inplace=True)  # will be converted to nn.Identify()
         self.downsample = downsample
         self.stride = stride
         self.ff = FloatFunctional()
@@ -436,6 +436,7 @@ def fuse_resnet(model: nn.Module, is_qat: Union[bool, None] = None) -> None:
     # fuse first three layers, conv1-bn1-relu
     fuse(model, [["conv1", "bn1", "relu"]], inplace=True)
 
+    # fused BasicBlock and BottleneckBlock
     for module_name, module in model.named_children():
         if "layer" in module_name:
             for basic_block_name, block in module.named_children():
