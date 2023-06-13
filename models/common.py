@@ -660,7 +660,7 @@ class DetectMultiBackend(nn.Module):
                     hyp = yaml.safe_load(f)  # load hyps dict
 
             # load model configs
-            cfg = f"models/{weights}"
+            cfg = f"{weights}"
 
             # build model
             from models.yolo import Model
