@@ -17,7 +17,7 @@ ROOT = FILE.parent.parent  # root directory
 
 
 class QuantizableModel(nn.Module):
-    def __init__(self, model: nn.Module):
+    def __init__(self, model: nn.Module, is_qat: bool = False):
         super().__init__()
         # QuantStub converts tensors from floating point to quantized
         self.quant = torch.ao.quantization.QuantStub()
@@ -26,6 +26,30 @@ class QuantizableModel(nn.Module):
 
         # DeQuantStub converts tensors from quantized to floating point
         self.dequant = torch.ao.quantization.DeQuantStub()
+        self.is_qat = is_qat
+        self._set_qconfig()
+
+    def _set_qconfig(self):
+        arch = platform.machine()
+
+        if "AMD64" in arch or "x86_64" in arch:
+            self.arch = "x86"
+        elif "aarch64" in arch or "arm64" in arch:
+            self.arch = "qnnpack"
+
+        self.qconfig = (
+            torch.ao.quantization.get_default_qat_qconfig(self.arch)
+            if self.is_qat
+            else torch.ao.quantization.get_default_qconfig(self.arch)
+        )
+
+    def prepare(self) -> nn.Module:
+        if self.is_qat:
+            torch.ao.quantization.prepare_qat(self.train(), inplace=True)
+        else:
+            torch.ao.quantization.prepare(self.eval(), inplace=True)
+
+        return self
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.quant(x)
@@ -62,11 +86,11 @@ if __name__ == "__main__":
     calibration_dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
     input = torch.randn(1, 3, 320, 320)
-    fname = os.path.join("weights", "yolov5l-qat.pt")
-    # fname = os.path.join("models", "yolov5l-qat.yaml")
+    # fname = os.path.join("weights", "yolov5l-qat.pt")
+    fname = os.path.join("models", "yolov4-qat.yaml")
     yolo_detector = YoloHead(fname)
-    yolo_fp32 = YoloBackboneQuantizer(fname, yolo_version=5)
-    yolo_qint8 = YoloBackboneQuantizer(fname, yolo_version=5)
+    yolo_fp32 = YoloBackboneQuantizer(fname, yolo_version=4)
+    yolo_qint8 = YoloBackboneQuantizer(fname, yolo_version=4)
     yolo_qint8.fuse_model()
 
     if "AMD64" in platform.machine() or "x86_64" in platform.machine():

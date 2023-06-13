@@ -309,16 +309,19 @@ def mobilenet_v2(
 def fuse_model(self):
     for m in self.modules():
         if isinstance(m, Conv2dNormActivation):
-            torch.ao.quantization.fuse_modules(m, ['0', '1', '2'], inplace=True)
+            torch.ao.quantization.fuse_modules(m, ["0", "1", "2"], inplace=True)
         if isinstance(m, InvertedResidual):
             for idx in range(len(m.conv)):
                 if type(m.conv[idx]) == nn.Conv2d:
-                    torch.ao.quantization.fuse_modules(m.conv, [str(idx), str(idx + 1)], inplace=True)
+                    torch.ao.quantization.fuse_modules(
+                        m.conv, [str(idx), str(idx + 1)], inplace=True
+                    )
 
 
 if __name__ == "__main__":
     import copy
     from utils.quantization_utils import QuantizableModel
+
     model = mobilenet_v2().eval()
     model_fp = copy.deepcopy(model)
     fuse_model(model)

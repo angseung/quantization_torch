@@ -1304,7 +1304,6 @@ if __name__ == "__main__":
     input = torch.randn(1, 3, 224, 224)
 
     model = QuantizableModel(model)
-    model.qconfig = torch.ao.quantization.get_default_qconfig("x86")
     torch.ao.quantization.prepare(model, inplace=True)
     model(input)
     torch.ao.quantization.convert(model, inplace=True)
