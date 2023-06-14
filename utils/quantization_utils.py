@@ -10,7 +10,6 @@ from utils.general import non_max_suppression
 from utils.torch_utils import normalizer
 from utils.roi_utils import resize
 from utils.augmentations import wrap_letterbox
-from models.yolo import YoloBackboneQuantizer, YoloHead
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parent.parent  # root directory
@@ -77,50 +76,3 @@ class CalibrationDataLoader(Dataset):
 
     def __len__(self):
         return len(self.img_list)
-
-
-if __name__ == "__main__":
-    # create a model instance
-    architecture = platform.uname().machine
-    dataset = CalibrationDataLoader(os.path.join(ROOT, "data", "cropped"))
-    calibration_dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
-
-    input = torch.randn(1, 3, 320, 320)
-    # fname = os.path.join("weights", "yolov5l-qat.pt")
-    fname = os.path.join("models", "yolov4-qat.yaml")
-    yolo_detector = YoloHead(fname)
-    yolo_fp32 = YoloBackboneQuantizer(fname, yolo_version=4)
-    yolo_qint8 = YoloBackboneQuantizer(fname, yolo_version=4)
-    yolo_qint8.fuse_model()
-
-    if "AMD64" in platform.machine() or "x86_64" in platform.machine():
-        yolo_qint8.qconfig = torch.ao.quantization.get_default_qconfig("x86")
-    elif "aarch64" in platform.machine() or "arm64" in platform.machine():
-        torch.backends.quantized.engine = "qnnpack"
-        yolo_qint8.qconfig = torch.ao.quantization.get_default_qconfig("qnnpack")
-
-    torch.ao.quantization.prepare(yolo_qint8, inplace=True)
-
-    for i, img in enumerate(calibration_dataloader):
-        print(f"\rcalibrating... {i + 1} / {dataset.__len__()}", end="")
-        yolo_qint8(img)
-
-    torch.ao.quantization.convert(yolo_qint8, inplace=True)
-    dummy_output = yolo_qint8(input)
-    pred = yolo_detector(dummy_output)
-
-    pred_fp32 = yolo_detector(yolo_fp32(input))
-
-    pred_qint = non_max_suppression(
-        pred,
-        0.1,
-        0.25,
-    )
-
-    # onnx export test
-    torch.onnx.export(
-        yolo_qint8,
-        input,
-        "../yolov3_backbone_qint8.onnx",
-        opset_version=13,
-    )

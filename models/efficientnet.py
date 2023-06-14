@@ -1303,8 +1303,7 @@ if __name__ == "__main__":
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
 
-    model = QuantizableModel(model)
-    torch.ao.quantization.prepare(model, inplace=True)
+    model = QuantizableModel(model).prepare()
     model(input)
     torch.ao.quantization.convert(model, inplace=True)
     dummy_output = model(input)

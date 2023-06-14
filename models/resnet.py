@@ -17,6 +17,7 @@ __all__ = [
     "resnext101_32x8d",
     "wide_resnet50_2",
     "wide_resnet101_2",
+    "fuse_resnet",
 ]
 
 
@@ -427,6 +428,7 @@ def wide_resnet101_2(pretrained=False, progress=True, **kwargs):
 def fuse_resnet(model: nn.Module, is_qat: Union[bool, None] = None) -> None:
     if is_qat is not None:
         is_qat = model.training
+
     fuse = (
         torch.ao.quantization.fuse_modules_qat
         if is_qat

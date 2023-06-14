@@ -11,6 +11,7 @@ import sys
 from copy import deepcopy
 from pathlib import Path
 from torch.ao.quantization import fuse_modules
+from torch.utils.data import DataLoader
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[1]  # root directory
@@ -31,6 +32,7 @@ from utils.torch_utils import (
     scale_img,
     time_sync,
 )
+from utils.quantization_utils import CalibrationDataLoader
 
 try:
     import thop  # for FLOPs computation
@@ -644,3 +646,36 @@ def fuse_conv_bn_relu(blocks: nn.Module):
             fuse_modules(block, [["conv", "bn", "act"]], inplace=True)
         else:
             fuse_conv_bn_relu(block)
+
+
+if __name__ == "__main__":
+    # create a model instance
+    architecture = platform.uname().machine
+    dataset = CalibrationDataLoader(os.path.join(ROOT, "data", "cropped"))
+    calibration_dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
+
+    input = torch.randn(1, 3, 320, 320)
+    # fname = os.path.join("weights", "yolov5l-qat.pt")
+    fname = os.path.join("models", "yolov4-qat.yaml")
+    yolo_detector = YoloHead(fname)
+    yolo_fp32 = YoloBackboneQuantizer(fname, yolo_version=4)
+    yolo_qint8 = YoloBackboneQuantizer(fname, yolo_version=4)
+    yolo_qint8.fuse_model()
+
+    if "AMD64" in platform.machine() or "x86_64" in platform.machine():
+        yolo_qint8.qconfig = torch.ao.quantization.get_default_qconfig("x86")
+    elif "aarch64" in platform.machine() or "arm64" in platform.machine():
+        torch.backends.quantized.engine = "qnnpack"
+        yolo_qint8.qconfig = torch.ao.quantization.get_default_qconfig("qnnpack")
+
+    torch.ao.quantization.prepare(yolo_qint8, inplace=True)
+
+    for i, img in enumerate(calibration_dataloader):
+        print(f"\rcalibrating... {i + 1} / {dataset.__len__()}", end="")
+        yolo_qint8(img)
+
+    torch.ao.quantization.convert(yolo_qint8, inplace=True)
+    dummy_output = yolo_qint8(input)
+    pred = yolo_detector(dummy_output)
+
+    pred_fp32 = yolo_detector(yolo_fp32(input))

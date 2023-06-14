@@ -260,3 +260,5 @@ torch*/
 outputs
 *.csv
 weights
+cifar-10
+datasets
