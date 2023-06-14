@@ -35,6 +35,7 @@ class QuantizableModel(nn.Module):
             self.arch = "x86"
         elif "aarch64" in arch or "arm64" in arch:
             self.arch = "qnnpack"
+            torch.backends.quantized.engine = self.arch
 
         self.qconfig = (
             torch.ao.quantization.get_default_qat_qconfig(self.arch)
