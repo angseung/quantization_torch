@@ -17,7 +17,7 @@ from torchvision.models._utils import (
 )
 
 
-__all__ = ["MobileNetV2", "MobileNet_V2_Weights", "mobilenet_v2", "fuse_model"]
+__all__ = ["MobileNetV2", "MobileNet_V2_Weights", "mobilenet_v2", "fuse_mbnet_v2"]
 
 
 # necessary for backwards compatibility
@@ -306,7 +306,7 @@ def mobilenet_v2(
 
 # Fuse Conv+BN and Conv+BN+Relu modules prior to quantization
 # This operation does not change the numerics
-def fuse_model(self):
+def fuse_mbnet_v2(self):
     for m in self.modules():
         if isinstance(m, Conv2dNormActivation):
             torch.ao.quantization.fuse_modules(m, ["0", "1", "2"], inplace=True)
@@ -324,7 +324,7 @@ if __name__ == "__main__":
 
     model = mobilenet_v2().eval()
     model_fp = copy.deepcopy(model)
-    fuse_model(model)
+    fuse_mbnet_v2(model)
     input = torch.randn(1, 3, 224, 224)
     model = QuantizableModel(model).prepare()
     model(input)
