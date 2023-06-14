@@ -8,7 +8,7 @@ from torch.ao.nn.quantized import FloatFunctional
 from torchvision.ops.misc import Conv2dNormActivation, SqueezeExcitation as SElayer
 from torchvision.transforms._presets import ImageClassification
 from torchvision.utils import _log_api_usage_once
-from torchvision.models._api import register_model, Weights, WeightsEnum
+from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _make_divisible, _ovewrite_named_param, handle_legacy_interface
 
@@ -364,7 +364,6 @@ class MobileNet_V3_Small_Weights(WeightsEnum):
     DEFAULT = IMAGENET1K_V1
 
 
-@register_model()
 @handle_legacy_interface(weights=("pretrained", MobileNet_V3_Large_Weights.IMAGENET1K_V1))
 def mobilenet_v3_large(
     *, weights: Optional[MobileNet_V3_Large_Weights] = None, progress: bool = True, **kwargs: Any
@@ -395,7 +394,6 @@ def mobilenet_v3_large(
     return _mobilenet_v3(inverted_residual_setting, last_channel, weights, progress, **kwargs)
 
 
-@register_model()
 @handle_legacy_interface(weights=("pretrained", MobileNet_V3_Small_Weights.IMAGENET1K_V1))
 def mobilenet_v3_small(
     *, weights: Optional[MobileNet_V3_Small_Weights] = None, progress: bool = True, **kwargs: Any

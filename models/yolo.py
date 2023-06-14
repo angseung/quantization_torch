@@ -448,7 +448,7 @@ class YoloBackboneQuantizer(nn.Module):
         self.dequant = torch.ao.quantization.DeQuantStub()
 
     def fuse_model(self):
-        fuse_conv_bn_relu(self.model)
+        fuse_yolo(self.model)
         self.is_fused = True
 
     def _forward_impl_v3(self, x: torch.Tensor) -> List[torch.Tensor]:
@@ -632,7 +632,7 @@ class YoloHead(nn.Module):
         return self.model(x) if self.model.training else self.model(x)[0]
 
 
-def fuse_conv_bn_relu(blocks: nn.Module):
+def fuse_yolo(blocks: nn.Module):
     """
     A function for fusing conv-bn-relu layers
     Parameters
@@ -645,7 +645,7 @@ def fuse_conv_bn_relu(blocks: nn.Module):
         if isinstance(block, ConvBnReLU):
             fuse_modules(block, [["conv", "bn", "act"]], inplace=True)
         else:
-            fuse_conv_bn_relu(block)
+            fuse_yolo(block)
 
 
 if __name__ == "__main__":

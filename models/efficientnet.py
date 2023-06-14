@@ -381,6 +381,9 @@ class EfficientNet(nn.Module):
                 nn.init.uniform_(m.weight, -init_range, init_range)
                 nn.init.zeros_(m.bias)
 
+    def fuse_model(self, is_qat: bool = False):
+        fuse_efficientnet(self, is_qat)
+
     def _forward_impl(self, x: Tensor) -> Tensor:
         x = self.features(x)
 
@@ -1275,23 +1278,29 @@ def efficientnet_v2_l(
     )
 
 
-def fuse_conv_bn_relu(blocks: nn.Module):
+def fuse_efficientnet(blocks: nn.Module, is_qat: bool = False):
     """
     A function for fusing conv-bn-relu layers
     Parameters
     ----------
     blocks: A nn.Module type model to be fused
+    is_qat:
     -------
 
     """
+    fuse = (
+        torch.ao.quantization.fuse_modules_qat
+        if is_qat
+        else fuse_modules
+    )
     for _, block in blocks.named_children():
         if isinstance(block, Conv2dNormActivation):
             if len(list(block.named_children())) == 3:
-                fuse_modules(block, [["0", "1", "2"]], inplace=True)
+                fuse(block, [["0", "1", "2"]], inplace=True)
             elif len(list(block.named_children())) == 2:
-                fuse_modules(block, [["0", "1"]], inplace=True)
+                fuse(block, [["0", "1"]], inplace=True)
         else:
-            fuse_conv_bn_relu(block)
+            fuse_efficientnet(block)
 
 
 if __name__ == "__main__":
@@ -1299,7 +1308,7 @@ if __name__ == "__main__":
     import copy
 
     model = efficientnet_b0().eval()
-    fuse_conv_bn_relu(model)
+    model.fuse_model()
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
 

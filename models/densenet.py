@@ -245,6 +245,9 @@ class DenseNet(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.constant_(m.bias, 0)
 
+    def fuse_model(self, is_qat: bool = False):
+        raise NotImplementedError
+
     def forward(self, x: Tensor) -> Tensor:
         features = self.features(x)
         out = F.relu(features, inplace=True)

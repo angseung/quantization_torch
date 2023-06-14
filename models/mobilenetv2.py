@@ -200,6 +200,9 @@ class MobileNetV2(nn.Module):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.zeros_(m.bias)
 
+    def fuse_model(self, is_qat: bool = False):
+        fuse_mbnet_v2(self, is_qat)
+
     def _forward_impl(self, x: Tensor) -> Tensor:
         # This exists since TorchScript doesn't support inheritance, so the superclass method
         # (this one) needs to have a name other than `forward` that can be accessed in a subclass
@@ -306,14 +309,20 @@ def mobilenet_v2(
 
 # Fuse Conv+BN and Conv+BN+Relu modules prior to quantization
 # This operation does not change the numerics
-def fuse_mbnet_v2(self):
-    for m in self.modules():
+def fuse_mbnet_v2(model, is_qat: bool = False):
+    fuse = (
+        torch.ao.quantization.fuse_modules_qat
+        if is_qat
+        else torch.ao.quantization.fuse_modules
+    )
+
+    for m in model.modules():
         if isinstance(m, Conv2dNormActivation):
-            torch.ao.quantization.fuse_modules(m, ["0", "1", "2"], inplace=True)
+            fuse(m, ["0", "1", "2"], inplace=True)
         if isinstance(m, InvertedResidual):
             for idx in range(len(m.conv)):
                 if type(m.conv[idx]) == nn.Conv2d:
-                    torch.ao.quantization.fuse_modules(
+                    fuse(
                         m.conv, [str(idx), str(idx + 1)], inplace=True
                     )
 
@@ -324,7 +333,7 @@ if __name__ == "__main__":
 
     model = mobilenet_v2().eval()
     model_fp = copy.deepcopy(model)
-    fuse_mbnet_v2(model)
+    model.fuse_model()
     input = torch.randn(1, 3, 224, 224)
     model = QuantizableModel(model).prepare()
     model(input)

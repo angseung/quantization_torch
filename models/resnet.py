@@ -268,6 +268,9 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
+    def fuse_model(self, is_qat: bool = False):
+        fuse_resnet(self, is_qat)
+
     def _forward_impl(self, x):
         # See note [TorchScript super()]
         x = self.conv1(x)
@@ -425,10 +428,7 @@ def wide_resnet101_2(pretrained=False, progress=True, **kwargs):
     )
 
 
-def fuse_resnet(model: nn.Module, is_qat: Union[bool, None] = None) -> None:
-    if is_qat is not None:
-        is_qat = model.training
-
+def fuse_resnet(model: nn.Module, is_qat: bool = False) -> None:
     fuse = (
         torch.ao.quantization.fuse_modules_qat
         if is_qat
@@ -469,7 +469,7 @@ if __name__ == "__main__":
     model = wide_resnet101_2().eval()
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
-    fuse_resnet(model)
+    model.fuse_model()
     model = QuantizableModel(model, is_qat=False).prepare()
     model(input)
     torch.ao.quantization.convert(model, inplace=True)
