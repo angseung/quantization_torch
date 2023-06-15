@@ -2,6 +2,7 @@ import re
 from collections import OrderedDict
 from functools import partial
 from typing import Any, List, Optional, Tuple
+import platform
 
 import torch
 import torch.nn as nn
@@ -16,7 +17,7 @@ from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
 
 __all__ = [
-    "DenseNet",
+    "QuantizableDenseNet",
     "DenseNet121_Weights",
     "DenseNet161_Weights",
     "DenseNet169_Weights",
@@ -157,7 +158,7 @@ class _Transition(nn.Sequential):
         self.pool = nn.AvgPool2d(kernel_size=2, stride=2)
 
 
-class DenseNet(nn.Module):
+class QuantizableDenseNet(nn.Module):
     r"""Densenet-BC model class, based on
     `"Densely Connected Convolutional Networks" <https://arxiv.org/pdf/1608.06993.pdf>`_.
 
@@ -235,6 +236,10 @@ class DenseNet(nn.Module):
         # Linear layer
         self.classifier = nn.Linear(num_features, num_classes)
 
+        # Quantizer and DeQuantizer
+        self.quant = torch.ao.quantization.QuantStub()
+        self.dequant = torch.ao.quantization.DeQuantStub()
+
         # Official init from torch repo.
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -249,11 +254,13 @@ class DenseNet(nn.Module):
         raise NotImplementedError
 
     def forward(self, x: Tensor) -> Tensor:
+        x = self.quant(x)
         features = self.features(x)
         out = F.relu(features, inplace=True)
         out = F.adaptive_avg_pool2d(out, (1, 1))
         out = torch.flatten(out, 1)
         out = self.classifier(out)
+        out = self.dequant(out)
         return out
 
 
@@ -282,15 +289,24 @@ def _densenet(
     num_init_features: int,
     weights: Optional[WeightsEnum],
     progress: bool,
+    quantize: bool,
     **kwargs: Any,
-) -> DenseNet:
+) -> QuantizableDenseNet:
     if weights is not None:
         _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
 
-    model = DenseNet(growth_rate, block_config, num_init_features, **kwargs)
+    model = QuantizableDenseNet(growth_rate, block_config, num_init_features, **kwargs)
+
+    if quantize:
+        # model.fuse_model(is_qat=True)
+        torch.ao.quantization.prepare_qat(model.train(), inplace=True)
 
     if weights is not None:
         _load_state_dict(model=model, weights=weights, progress=progress)
+
+    if quantize:
+        torch.ao.quantization.convert(model, inplace=True)
+        model.eval()
 
     return model
 
@@ -388,8 +404,9 @@ def densenet121(
     *,
     weights: Optional[DenseNet121_Weights] = None,
     progress: bool = True,
+    quantize: bool = False,
     **kwargs: Any,
-) -> DenseNet:
+) -> QuantizableDenseNet:
     r"""Densenet-121 model from
     `Densely Connected Convolutional Networks <https://arxiv.org/abs/1608.06993>`_.
 
@@ -410,7 +427,7 @@ def densenet121(
     """
     weights = DenseNet121_Weights.verify(weights)
 
-    return _densenet(32, (6, 12, 24, 16), 64, weights, progress, **kwargs)
+    return _densenet(32, (6, 12, 24, 16), 64, weights, progress, quantize, **kwargs)
 
 
 @handle_legacy_interface(weights=("pretrained", DenseNet161_Weights.IMAGENET1K_V1))
@@ -418,8 +435,9 @@ def densenet161(
     *,
     weights: Optional[DenseNet161_Weights] = None,
     progress: bool = True,
+    quantize: bool = False,
     **kwargs: Any,
-) -> DenseNet:
+) -> QuantizableDenseNet:
     r"""Densenet-161 model from
     `Densely Connected Convolutional Networks <https://arxiv.org/abs/1608.06993>`_.
 
@@ -440,7 +458,7 @@ def densenet161(
     """
     weights = DenseNet161_Weights.verify(weights)
 
-    return _densenet(48, (6, 12, 36, 24), 96, weights, progress, **kwargs)
+    return _densenet(48, (6, 12, 36, 24), 96, weights, progress, quantize, **kwargs)
 
 
 @handle_legacy_interface(weights=("pretrained", DenseNet169_Weights.IMAGENET1K_V1))
@@ -448,8 +466,9 @@ def densenet169(
     *,
     weights: Optional[DenseNet169_Weights] = None,
     progress: bool = True,
+    quantize: bool = False,
     **kwargs: Any,
-) -> DenseNet:
+) -> QuantizableDenseNet:
     r"""Densenet-169 model from
     `Densely Connected Convolutional Networks <https://arxiv.org/abs/1608.06993>`_.
 
@@ -470,7 +489,7 @@ def densenet169(
     """
     weights = DenseNet169_Weights.verify(weights)
 
-    return _densenet(32, (6, 12, 32, 32), 64, weights, progress, **kwargs)
+    return _densenet(32, (6, 12, 32, 32), 64, weights, progress, quantize, **kwargs)
 
 
 @handle_legacy_interface(weights=("pretrained", DenseNet201_Weights.IMAGENET1K_V1))
@@ -478,8 +497,9 @@ def densenet201(
     *,
     weights: Optional[DenseNet201_Weights] = None,
     progress: bool = True,
+    quantize: bool = False,
     **kwargs: Any,
-) -> DenseNet:
+) -> QuantizableDenseNet:
     r"""Densenet-201 model from
     `Densely Connected Convolutional Networks <https://arxiv.org/abs/1608.06993>`_.
 
@@ -490,6 +510,7 @@ def densenet201(
             more details, and possible values. By default, no pre-trained
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the download to stderr. Default is True.
+        quantize:
         **kwargs: parameters passed to the ``torchvision.models.densenet.DenseNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/densenet.py>`_
@@ -500,20 +521,20 @@ def densenet201(
     """
     weights = DenseNet201_Weights.verify(weights)
 
-    return _densenet(32, (6, 12, 48, 32), 64, weights, progress, **kwargs)
+    return _densenet(32, (6, 12, 48, 32), 64, weights, progress, quantize, **kwargs)
 
 
 if __name__ == "__main__":
     from utils.quantization_utils import QuantizableModel
     import copy
 
-    # model = densenet121(DenseNet121_Weights.DEFAULT).eval()
-    # model = densenet161(DenseNet161_Weights.DEFAULT).eval()
-    # model = densenet169(DenseNet169_Weights.DEFAULT).eval()
-    model = densenet201(DenseNet201_Weights.DEFAULT).eval()
+    # model = densenet121(quantize=True).eval()
+    # model = densenet161(quantize=True).eval()
+    # model = densenet169(quantize=True).eval()
+    model = densenet201(quantize=True).eval()
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
-    model = QuantizableModel(model).prepare()
+    # model = QuantizableModel(model).prepare()
     model(input)
     torch.ao.quantization.convert(model, inplace=True)
     dummy_output = model(input)
