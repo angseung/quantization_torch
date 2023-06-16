@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 from torch.utils.model_zoo import load_url as load_state_dict_from_url
 from torch.ao.nn.quantized import FloatFunctional
+from torchvision.models.quantization.utils import _fuse_modules
 
 
 __all__ = [
@@ -429,38 +430,34 @@ def wide_resnet101_2(pretrained=False, progress=True, **kwargs):
 
 
 def fuse_resnet(model: nn.Module, is_qat: bool = False) -> None:
-    fuse = (
-        torch.ao.quantization.fuse_modules_qat
-        if is_qat
-        else torch.ao.quantization.fuse_modules
-    )
-
     # fuse first three layers, conv1-bn1-relu
-    fuse(model, [["conv1", "bn1", "relu"]], inplace=True)
+    _fuse_modules(model, [["conv1", "bn1", "relu"]], is_qat=is_qat, inplace=True)
 
     # fused BasicBlock and BottleneckBlock
     for module_name, module in model.named_children():
         if "layer" in module_name:
             for basic_block_name, block in module.named_children():
                 if isinstance(block, BasicBlock):
-                    fuse(
+                    _fuse_modules(
                         block,
                         [["conv1", "bn1", "relu"], ["conv2", "bn2"]],
+                        is_qat=is_qat,
                         inplace=True,
                     )
                 elif isinstance(block, Bottleneck):
-                    fuse(
+                    _fuse_modules(
                         block,
                         [
                             ["conv1", "bn1", "relu1"],
                             ["conv2", "bn2", "relu2"],
                             ["conv3", "bn3"],
                         ],
+                        is_qat=is_qat,
                         inplace=True,
                     )
                 for sub_block_name, sub_block in block.named_children():
                     if sub_block_name == "downsample":
-                        fuse(sub_block, [["0", "1"]], inplace=True)  # fuse conv-bn
+                        _fuse_modules(sub_block, [["0", "1"]], is_qat=is_qat, inplace=True)  # fuse conv-bn
 
 
 if __name__ == "__main__":
