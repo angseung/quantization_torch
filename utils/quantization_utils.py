@@ -87,4 +87,9 @@ def get_platform_aware_qconfig() -> str:
     elif "aarch64" in arch or "arm64" in arch:
         arch = "qnnpack"
 
+    else:
+        raise RuntimeError(
+            f"Quantization Not Available on this platform, {arch}. It supports only AArch64 and x86-64 system."
+        )
+
     return arch
