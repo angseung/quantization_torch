@@ -7,7 +7,7 @@ from torch.ao.quantization import DeQuantStub, QuantStub
 
 from torchvision.ops.misc import Conv2dNormActivation, SqueezeExcitation
 from torchvision.transforms._presets import ImageClassification
-from torchvision.models._api import register_model, Weights, WeightsEnum
+from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
 from torchvision.models.quantization.mobilenetv3 import (
@@ -18,6 +18,7 @@ from torchvision.models.quantization.mobilenetv3 import (
     MobileNetV3,
 )
 from torchvision.models.quantization.utils import _fuse_modules, _replace_relu
+from utils.quantization_utils import get_platform_aware_qconfig
 
 
 __all__ = [
@@ -56,13 +57,21 @@ class QuantizableSqueezeExcitation(SqueezeExcitation):
         if hasattr(self, "qconfig") and (version is None or version < 2):
             default_state_dict = {
                 "scale_activation.activation_post_process.scale": torch.tensor([1.0]),
-                "scale_activation.activation_post_process.activation_post_process.scale": torch.tensor([1.0]),
-                "scale_activation.activation_post_process.zero_point": torch.tensor([0], dtype=torch.int32),
+                "scale_activation.activation_post_process.activation_post_process.scale": torch.tensor(
+                    [1.0]
+                ),
+                "scale_activation.activation_post_process.zero_point": torch.tensor(
+                    [0], dtype=torch.int32
+                ),
                 "scale_activation.activation_post_process.activation_post_process.zero_point": torch.tensor(
                     [0], dtype=torch.int32
                 ),
-                "scale_activation.activation_post_process.fake_quant_enabled": torch.tensor([1]),
-                "scale_activation.activation_post_process.observer_enabled": torch.tensor([1]),
+                "scale_activation.activation_post_process.fake_quant_enabled": torch.tensor(
+                    [1]
+                ),
+                "scale_activation.activation_post_process.observer_enabled": torch.tensor(
+                    [1]
+                ),
             }
             for k, v in default_state_dict.items():
                 full_key = prefix + k
@@ -128,32 +137,44 @@ def _mobilenet_v3_model(
     weights: Optional[WeightsEnum],
     progress: bool,
     quantize: bool,
+    is_qat: bool,
     **kwargs: Any,
 ) -> QuantizableMobileNetV3:
     if weights is not None:
         _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
         if "backend" in weights.meta:
             _ovewrite_named_param(kwargs, "backend", weights.meta["backend"])
-    backend = kwargs.pop("backend", "qnnpack")
 
-    model = QuantizableMobileNetV3(inverted_residual_setting, last_channel, block=QuantizableInvertedResidual, **kwargs)
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
+    model = QuantizableMobileNetV3(
+        inverted_residual_setting,
+        last_channel,
+        block=QuantizableInvertedResidual,
+        **kwargs,
+    )
     _replace_relu(model)
+    model.eval()
 
     if quantize:
-        # Instead of quantizing the model and then loading the quantized weights we take a different approach.
-        # We prepare the QAT model, load the QAT weights from training and then convert it.
-        # This is done to avoid extremely low accuracies observed on the specific model. This is rather a workaround
-        # for an unresolved bug on the eager quantization API detailed at: https://github.com/pytorch/vision/issues/5890
-        model.fuse_model(is_qat=True)
-        model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
-        torch.ao.quantization.prepare_qat(model, inplace=True)
+        if is_qat:
+            model.fuse_model(is_qat=True)
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+        else:
+            model.fuse_model(is_qat=False)
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress))
 
-    if quantize:
-        torch.ao.quantization.convert(model, inplace=True)
-        model.eval()
+    # if quantize:
+    #     torch.ao.quantization.convert(model, inplace=True)
+    #     model.eval()
 
     return model
 
@@ -196,9 +217,12 @@ class MobileNet_V3_Large_QuantizedWeights(WeightsEnum):
 )
 def mobilenet_v3_large(
     *,
-    weights: Optional[Union[MobileNet_V3_Large_QuantizedWeights, MobileNet_V3_Large_Weights]] = None,
+    weights: Optional[
+        Union[MobileNet_V3_Large_QuantizedWeights, MobileNet_V3_Large_Weights]
+    ] = None,
     progress: bool = True,
     quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> QuantizableMobileNetV3:
     """
@@ -219,6 +243,7 @@ def mobilenet_v3_large(
         progress (bool): If True, displays a progress bar of the
             download to stderr. Default is True.
         quantize (bool): If True, return a quantized version of the model. Default is False.
+        is_qat:
         **kwargs: parameters passed to the ``torchvision.models.quantization.MobileNet_V3_Large_QuantizedWeights``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/quantization/mobilenetv3.py>`_
@@ -230,17 +255,31 @@ def mobilenet_v3_large(
         :members:
         :noindex:
     """
-    weights = (MobileNet_V3_Large_QuantizedWeights if quantize else MobileNet_V3_Large_Weights).verify(weights)
+    weights = (
+        MobileNet_V3_Large_QuantizedWeights if quantize else MobileNet_V3_Large_Weights
+    ).verify(weights)
 
-    inverted_residual_setting, last_channel = _mobilenet_v3_conf("mobilenet_v3_large", **kwargs)
-    return _mobilenet_v3_model(inverted_residual_setting, last_channel, weights, progress, quantize, **kwargs)
+    inverted_residual_setting, last_channel = _mobilenet_v3_conf(
+        "mobilenet_v3_large", **kwargs
+    )
+    return _mobilenet_v3_model(
+        inverted_residual_setting,
+        last_channel,
+        weights,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs,
+    )
 
 
 if __name__ == "__main__":
-    from torchvision.models.mobilenetv3 import mobilenet_v3_large as mobilenet_v3_large_fp
-    model = mobilenet_v3_large(quantize=True)
-    model_fp = mobilenet_v3_large_fp()
+    import copy
+
+    model = mobilenet_v3_large(quantize=True, is_qat=True)
+    model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
-    model(input)
+    model(input)  # Calibration codes here...
+    # torch.ao.quantization.convert(model, inplace=True)
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)

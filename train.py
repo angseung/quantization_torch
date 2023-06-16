@@ -291,7 +291,9 @@ for netkey in nets.keys():
     if config["train_resume"]:
         # Load checkpoint.
         print("==> Resuming from checkpoint..")
-        checkpoint = torch.load(log_path + "/ckpt.pth", map_location=torch.device("cpu"))
+        checkpoint = torch.load(
+            log_path + "/ckpt.pth", map_location=torch.device("cpu")
+        )
         net.load_state_dict(checkpoint["net"])
         scheduler.load_state_dict(checkpoint["scheduler"])
         optimizer.load_state_dict(checkpoint["optimizer"])

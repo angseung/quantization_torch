@@ -1288,11 +1288,7 @@ def fuse_efficientnet(blocks: nn.Module, is_qat: bool = False):
     -------
 
     """
-    fuse = (
-        torch.ao.quantization.fuse_modules_qat
-        if is_qat
-        else fuse_modules
-    )
+    fuse = torch.ao.quantization.fuse_modules_qat if is_qat else fuse_modules
     for _, block in blocks.named_children():
         if isinstance(block, Conv2dNormActivation):
             if len(list(block.named_children())) == 3:

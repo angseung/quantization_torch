@@ -322,9 +322,7 @@ def fuse_mbnet_v2(model, is_qat: bool = False):
         if isinstance(m, InvertedResidual):
             for idx in range(len(m.conv)):
                 if type(m.conv[idx]) == nn.Conv2d:
-                    fuse(
-                        m.conv, [str(idx), str(idx + 1)], inplace=True
-                    )
+                    fuse(m.conv, [str(idx), str(idx + 1)], inplace=True)
 
 
 if __name__ == "__main__":

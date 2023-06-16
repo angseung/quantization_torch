@@ -77,3 +77,14 @@ class CalibrationDataLoader(Dataset):
 
     def __len__(self):
         return len(self.img_list)
+
+
+def get_platform_aware_qconfig() -> str:
+    arch = platform.machine()
+
+    if "AMD64" in arch or "x86_64" in arch:
+        arch = "x86"
+    elif "aarch64" in arch or "arm64" in arch:
+        arch = "qnnpack"
+
+    return arch
