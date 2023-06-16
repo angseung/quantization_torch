@@ -93,7 +93,7 @@ class QuantizableInvertedResidual(InvertedResidual):
     # TODO https://github.com/pytorch/vision/pull/4232#pullrequestreview-730461659
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, se_layer=QuantizableSqueezeExcitation, **kwargs)  # type: ignore[misc]
-        self.skip_add = nn.quantized.FloatFunctional()
+        self.skip_add = torch.ao.nn.quantized.FloatFunctional()
 
     def forward(self, x: Tensor) -> Tensor:
         if self.use_res_connect:
@@ -171,10 +171,6 @@ def _mobilenet_v3_model(
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress))
-
-    # if quantize:
-    #     torch.ao.quantization.convert(model, inplace=True)
-    #     model.eval()
 
     return model
 
