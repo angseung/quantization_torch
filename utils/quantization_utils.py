@@ -4,9 +4,8 @@ from pathlib import Path
 import cv2
 import torch
 from torch import nn as nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from torchvision import transforms
-from utils.general import non_max_suppression
 from utils.torch_utils import normalizer
 from utils.roi_utils import resize
 from utils.augmentations import wrap_letterbox

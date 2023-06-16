@@ -280,6 +280,6 @@ if __name__ == "__main__":
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
     model(input)  # Calibration codes here...
-    # torch.ao.quantization.convert(model, inplace=True)
+    torch.ao.quantization.convert(model, inplace=True)
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
