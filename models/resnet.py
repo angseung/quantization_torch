@@ -457,7 +457,9 @@ def fuse_resnet(model: nn.Module, is_qat: bool = False) -> None:
                     )
                 for sub_block_name, sub_block in block.named_children():
                     if sub_block_name == "downsample":
-                        _fuse_modules(sub_block, [["0", "1"]], is_qat=is_qat, inplace=True)  # fuse conv-bn
+                        _fuse_modules(
+                            sub_block, [["0", "1"]], is_qat=is_qat, inplace=True
+                        )  # fuse conv-bn
 
 
 if __name__ == "__main__":
