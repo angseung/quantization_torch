@@ -19,6 +19,7 @@ from torchvision.models._utils import (
     _ovewrite_named_param,
     handle_legacy_interface,
 )
+from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
 
 
 __all__ = [
@@ -404,14 +405,33 @@ def _efficientnet(
     last_channel: Optional[int],
     weights: Optional[WeightsEnum],
     progress: bool,
+    quantize: bool,
+    is_qat: bool,
     **kwargs: Any,
 ) -> EfficientNet:
     if weights is not None:
         _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
 
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     model = EfficientNet(
         inverted_residual_setting, dropout, last_channel=last_channel, **kwargs
     )
+
+    model.eval()
+
+    if quantize:
+        if is_qat:
+            model.fuse_model(is_qat=True)
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+        else:
+            model.fuse_model(is_qat=False)
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress))
@@ -834,6 +854,8 @@ def efficientnet_b0(
     *,
     weights: Optional[EfficientNet_B0_Weights] = None,
     progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> EfficientNet:
     """EfficientNet B0 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
@@ -847,6 +869,8 @@ def efficientnet_b0(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.efficientnet.EfficientNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/efficientnet.py>`_
@@ -865,6 +889,8 @@ def efficientnet_b0(
         last_channel,
         weights,
         progress,
+        quantize,
+        is_qat,
         **kwargs,
     )
 
@@ -874,6 +900,8 @@ def efficientnet_b1(
     *,
     weights: Optional[EfficientNet_B1_Weights] = None,
     progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> EfficientNet:
     """EfficientNet B1 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
@@ -887,6 +915,8 @@ def efficientnet_b1(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.efficientnet.EfficientNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/efficientnet.py>`_
@@ -905,6 +935,8 @@ def efficientnet_b1(
         last_channel,
         weights,
         progress,
+        quantize,
+        is_qat,
         **kwargs,
     )
 
@@ -914,6 +946,8 @@ def efficientnet_b2(
     *,
     weights: Optional[EfficientNet_B2_Weights] = None,
     progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> EfficientNet:
     """EfficientNet B2 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
@@ -927,6 +961,8 @@ def efficientnet_b2(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.efficientnet.EfficientNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/efficientnet.py>`_
@@ -945,6 +981,8 @@ def efficientnet_b2(
         last_channel,
         weights,
         progress,
+        quantize,
+        is_qat,
         **kwargs,
     )
 
@@ -954,6 +992,8 @@ def efficientnet_b3(
     *,
     weights: Optional[EfficientNet_B3_Weights] = None,
     progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> EfficientNet:
     """EfficientNet B3 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
@@ -967,6 +1007,8 @@ def efficientnet_b3(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.efficientnet.EfficientNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/efficientnet.py>`_
@@ -985,6 +1027,8 @@ def efficientnet_b3(
         last_channel,
         weights,
         progress,
+        quantize,
+        is_qat,
         **kwargs,
     )
 
@@ -994,6 +1038,8 @@ def efficientnet_b4(
     *,
     weights: Optional[EfficientNet_B4_Weights] = None,
     progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> EfficientNet:
     """EfficientNet B4 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
@@ -1007,6 +1053,8 @@ def efficientnet_b4(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.efficientnet.EfficientNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/efficientnet.py>`_
@@ -1025,6 +1073,8 @@ def efficientnet_b4(
         last_channel,
         weights,
         progress,
+        quantize,
+        is_qat,
         **kwargs,
     )
 
@@ -1034,6 +1084,8 @@ def efficientnet_b5(
     *,
     weights: Optional[EfficientNet_B5_Weights] = None,
     progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> EfficientNet:
     """EfficientNet B5 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
@@ -1047,6 +1099,8 @@ def efficientnet_b5(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.efficientnet.EfficientNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/efficientnet.py>`_
@@ -1065,6 +1119,8 @@ def efficientnet_b5(
         last_channel,
         weights,
         progress,
+        quantize,
+        is_qat,
         norm_layer=partial(nn.BatchNorm2d, eps=0.001, momentum=0.01),
         **kwargs,
     )
@@ -1075,6 +1131,8 @@ def efficientnet_b6(
     *,
     weights: Optional[EfficientNet_B6_Weights] = None,
     progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> EfficientNet:
     """EfficientNet B6 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
@@ -1088,6 +1146,8 @@ def efficientnet_b6(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.efficientnet.EfficientNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/efficientnet.py>`_
@@ -1106,6 +1166,8 @@ def efficientnet_b6(
         last_channel,
         weights,
         progress,
+        quantize,
+        is_qat,
         norm_layer=partial(nn.BatchNorm2d, eps=0.001, momentum=0.01),
         **kwargs,
     )
@@ -1116,6 +1178,8 @@ def efficientnet_b7(
     *,
     weights: Optional[EfficientNet_B7_Weights] = None,
     progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> EfficientNet:
     """EfficientNet B7 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
@@ -1129,6 +1193,8 @@ def efficientnet_b7(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.efficientnet.EfficientNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/efficientnet.py>`_
@@ -1147,6 +1213,8 @@ def efficientnet_b7(
         last_channel,
         weights,
         progress,
+        quantize,
+        is_qat,
         norm_layer=partial(nn.BatchNorm2d, eps=0.001, momentum=0.01),
         **kwargs,
     )
@@ -1159,6 +1227,8 @@ def efficientnet_v2_s(
     *,
     weights: Optional[EfficientNet_V2_S_Weights] = None,
     progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> EfficientNet:
     """
@@ -1173,6 +1243,8 @@ def efficientnet_v2_s(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.efficientnet.EfficientNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/efficientnet.py>`_
@@ -1189,6 +1261,8 @@ def efficientnet_v2_s(
         last_channel,
         weights,
         progress,
+        quantize,
+        is_qat,
         norm_layer=partial(nn.BatchNorm2d, eps=1e-03),
         **kwargs,
     )
@@ -1201,6 +1275,8 @@ def efficientnet_v2_m(
     *,
     weights: Optional[EfficientNet_V2_M_Weights] = None,
     progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> EfficientNet:
     """
@@ -1215,6 +1291,8 @@ def efficientnet_v2_m(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.efficientnet.EfficientNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/efficientnet.py>`_
@@ -1231,6 +1309,8 @@ def efficientnet_v2_m(
         last_channel,
         weights,
         progress,
+        quantize,
+        is_qat,
         norm_layer=partial(nn.BatchNorm2d, eps=1e-03),
         **kwargs,
     )
@@ -1243,6 +1323,8 @@ def efficientnet_v2_l(
     *,
     weights: Optional[EfficientNet_V2_L_Weights] = None,
     progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> EfficientNet:
     """
@@ -1257,6 +1339,8 @@ def efficientnet_v2_l(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.efficientnet.EfficientNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/efficientnet.py>`_
@@ -1273,6 +1357,8 @@ def efficientnet_v2_l(
         last_channel,
         weights,
         progress,
+        quantize,
+        is_qat,
         norm_layer=partial(nn.BatchNorm2d, eps=1e-03),
         **kwargs,
     )
@@ -1300,16 +1386,12 @@ def fuse_efficientnet(blocks: nn.Module, is_qat: bool = False):
 
 
 if __name__ == "__main__":
-    from utils.quantization_utils import QuantizableModel
     import copy
 
-    model = efficientnet_b0().eval()
-    model.fuse_model()
+    model = efficientnet_b0(quantize=True, is_qat=False)
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
-
-    model = QuantizableModel(model).prepare()
-    model(input)
+    model(input)  # Calibration codes here...
     torch.ao.quantization.convert(model, inplace=True)
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
