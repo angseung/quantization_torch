@@ -299,14 +299,10 @@ def _densenet(
 
     if quantize:
         # model.fuse_model(is_qat=True)
-        torch.ao.quantization.prepare_qat(model.train(), inplace=True)
+        torch.ao.quantization.prepare(model.train(), inplace=True)
 
     if weights is not None:
         _load_state_dict(model=model, weights=weights, progress=progress)
-
-    if quantize:
-        torch.ao.quantization.convert(model, inplace=True)
-        model.eval()
 
     return model
 
@@ -532,6 +528,7 @@ if __name__ == "__main__":
     # model = densenet161(quantize=True).eval()
     # model = densenet169(quantize=True).eval()
     model = densenet201(quantize=True).eval()
+    model.qconfig = torch.ao.quantization.get_default_qconfig("x86")
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
     # model = QuantizableModel(model).prepare()

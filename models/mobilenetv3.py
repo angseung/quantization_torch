@@ -1,3 +1,7 @@
+"""
+it overrides torchvision.models.quantization.mobilenetv3
+"""
+
 from functools import partial
 from typing import Any, List, Optional, Union
 
@@ -19,7 +23,6 @@ from torchvision.models.quantization.mobilenetv3 import (
 )
 from torchvision.models.quantization.utils import _fuse_modules, _replace_relu
 from utils.quantization_utils import get_platform_aware_qconfig
-
 
 __all__ = [
     "QuantizableMobileNetV3",
