@@ -167,6 +167,7 @@ def mobilenet_v2(
 
     model = QuantizableMobileNetV2(block=QuantizableInvertedResidual, **kwargs)
     _replace_relu(model)
+    model.eval()
 
     if quantize:
         if is_qat:

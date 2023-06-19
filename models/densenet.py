@@ -15,6 +15,7 @@ from torchvision.utils import _log_api_usage_once
 from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
+from utils.quantization_utils import get_platform_aware_qconfig
 
 __all__ = [
     "QuantizableDenseNet",
@@ -290,16 +291,27 @@ def _densenet(
     weights: Optional[WeightsEnum],
     progress: bool,
     quantize: bool,
+    is_qat: bool,
     **kwargs: Any,
 ) -> QuantizableDenseNet:
     if weights is not None:
         _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
 
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     model = QuantizableDenseNet(growth_rate, block_config, num_init_features, **kwargs)
+    model.eval()
 
     if quantize:
-        # model.fuse_model(is_qat=True)
-        torch.ao.quantization.prepare(model.train(), inplace=True)
+        if is_qat:
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+        else:
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     if weights is not None:
         _load_state_dict(model=model, weights=weights, progress=progress)
@@ -401,6 +413,7 @@ def densenet121(
     weights: Optional[DenseNet121_Weights] = None,
     progress: bool = True,
     quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> QuantizableDenseNet:
     r"""Densenet-121 model from
@@ -413,6 +426,8 @@ def densenet121(
             more details, and possible values. By default, no pre-trained
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the download to stderr. Default is True.
+        quantize:
+        is_qat:
         **kwargs: parameters passed to the ``torchvision.models.densenet.DenseNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/densenet.py>`_
@@ -423,7 +438,7 @@ def densenet121(
     """
     weights = DenseNet121_Weights.verify(weights)
 
-    return _densenet(32, (6, 12, 24, 16), 64, weights, progress, quantize, **kwargs)
+    return _densenet(32, (6, 12, 24, 16), 64, weights, progress, quantize, is_qat, **kwargs)
 
 
 @handle_legacy_interface(weights=("pretrained", DenseNet161_Weights.IMAGENET1K_V1))
@@ -432,6 +447,7 @@ def densenet161(
     weights: Optional[DenseNet161_Weights] = None,
     progress: bool = True,
     quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> QuantizableDenseNet:
     r"""Densenet-161 model from
@@ -454,7 +470,7 @@ def densenet161(
     """
     weights = DenseNet161_Weights.verify(weights)
 
-    return _densenet(48, (6, 12, 36, 24), 96, weights, progress, quantize, **kwargs)
+    return _densenet(48, (6, 12, 36, 24), 96, weights, progress, quantize, is_qat, **kwargs)
 
 
 @handle_legacy_interface(weights=("pretrained", DenseNet169_Weights.IMAGENET1K_V1))
@@ -463,6 +479,7 @@ def densenet169(
     weights: Optional[DenseNet169_Weights] = None,
     progress: bool = True,
     quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> QuantizableDenseNet:
     r"""Densenet-169 model from
@@ -475,6 +492,8 @@ def densenet169(
             more details, and possible values. By default, no pre-trained
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the download to stderr. Default is True.
+        quantize:
+        is_qat:
         **kwargs: parameters passed to the ``torchvision.models.densenet.DenseNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/densenet.py>`_
@@ -485,7 +504,7 @@ def densenet169(
     """
     weights = DenseNet169_Weights.verify(weights)
 
-    return _densenet(32, (6, 12, 32, 32), 64, weights, progress, quantize, **kwargs)
+    return _densenet(32, (6, 12, 32, 32), 64, weights, progress, quantize, is_qat, **kwargs)
 
 
 @handle_legacy_interface(weights=("pretrained", DenseNet201_Weights.IMAGENET1K_V1))
@@ -494,6 +513,7 @@ def densenet201(
     weights: Optional[DenseNet201_Weights] = None,
     progress: bool = True,
     quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> QuantizableDenseNet:
     r"""Densenet-201 model from
@@ -507,6 +527,7 @@ def densenet201(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the download to stderr. Default is True.
         quantize:
+        is_qat:
         **kwargs: parameters passed to the ``torchvision.models.densenet.DenseNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/densenet.py>`_
@@ -517,21 +538,18 @@ def densenet201(
     """
     weights = DenseNet201_Weights.verify(weights)
 
-    return _densenet(32, (6, 12, 48, 32), 64, weights, progress, quantize, **kwargs)
+    return _densenet(32, (6, 12, 48, 32), 64, weights, progress, quantize, is_qat, **kwargs)
 
 
 if __name__ == "__main__":
-    from utils.quantization_utils import QuantizableModel
     import copy
 
-    # model = densenet121(quantize=True).eval()
-    # model = densenet161(quantize=True).eval()
-    # model = densenet169(quantize=True).eval()
-    model = densenet201(quantize=True).eval()
-    model.qconfig = torch.ao.quantization.get_default_qconfig("x86")
+    # model = densenet121(quantize=True, is_qat=False)
+    # model = densenet161(quantize=True, is_qat=False)
+    # model = densenet169(quantize=True, is_qat=False)
+    model = densenet201(quantize=True, is_qat=False)
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
-    # model = QuantizableModel(model).prepare()
     model(input)
     torch.ao.quantization.convert(model, inplace=True)
     dummy_output = model(input)
