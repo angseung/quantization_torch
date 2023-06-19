@@ -15,7 +15,7 @@ from torchvision.utils import _log_api_usage_once
 from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
-from utils.quantization_utils import get_platform_aware_qconfig
+from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
 
 __all__ = [
     "QuantizableDenseNet",
@@ -438,7 +438,9 @@ def densenet121(
     """
     weights = DenseNet121_Weights.verify(weights)
 
-    return _densenet(32, (6, 12, 24, 16), 64, weights, progress, quantize, is_qat, **kwargs)
+    return _densenet(
+        32, (6, 12, 24, 16), 64, weights, progress, quantize, is_qat, **kwargs
+    )
 
 
 @handle_legacy_interface(weights=("pretrained", DenseNet161_Weights.IMAGENET1K_V1))
@@ -470,7 +472,9 @@ def densenet161(
     """
     weights = DenseNet161_Weights.verify(weights)
 
-    return _densenet(48, (6, 12, 36, 24), 96, weights, progress, quantize, is_qat, **kwargs)
+    return _densenet(
+        48, (6, 12, 36, 24), 96, weights, progress, quantize, is_qat, **kwargs
+    )
 
 
 @handle_legacy_interface(weights=("pretrained", DenseNet169_Weights.IMAGENET1K_V1))
@@ -504,7 +508,9 @@ def densenet169(
     """
     weights = DenseNet169_Weights.verify(weights)
 
-    return _densenet(32, (6, 12, 32, 32), 64, weights, progress, quantize, is_qat, **kwargs)
+    return _densenet(
+        32, (6, 12, 32, 32), 64, weights, progress, quantize, is_qat, **kwargs
+    )
 
 
 @handle_legacy_interface(weights=("pretrained", DenseNet201_Weights.IMAGENET1K_V1))
@@ -538,7 +544,9 @@ def densenet201(
     """
     weights = DenseNet201_Weights.verify(weights)
 
-    return _densenet(32, (6, 12, 48, 32), 64, weights, progress, quantize, is_qat, **kwargs)
+    return _densenet(
+        32, (6, 12, 48, 32), 64, weights, progress, quantize, is_qat, **kwargs
+    )
 
 
 if __name__ == "__main__":
@@ -554,3 +562,4 @@ if __name__ == "__main__":
     torch.ao.quantization.convert(model, inplace=True)
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
+    nmse = cal_mse(dummy_output, dummy_output_fp, norm=False)

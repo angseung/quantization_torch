@@ -5,6 +5,7 @@ import cv2
 import torch
 from torch import nn as nn
 from torch.utils.data import Dataset
+from torch.nn.functional import mse_loss
 from torchvision import transforms
 from utils.torch_utils import normalizer
 from utils.roi_utils import resize
@@ -92,3 +93,13 @@ def get_platform_aware_qconfig() -> str:
         )
 
     return arch
+
+
+def cal_mse(
+    pred: torch.Tensor, target: torch.Tensor, norm: bool = False
+) -> torch.Tensor:
+    return (
+        mse_loss(target, pred) / mse_loss(target, torch.zeros_like(target))
+        if norm
+        else mse_loss(target, pred)
+    )

@@ -22,9 +22,8 @@ from torchvision.models._utils import _ovewrite_named_param, handle_legacy_inter
 from torchvision.models.quantization.utils import (
     _fuse_modules,
     _replace_relu,
-    quantize_model,
 )
-from utils.quantization_utils import get_platform_aware_qconfig
+from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
 
 
 __all__ = [
@@ -189,10 +188,11 @@ def mobilenet_v2(
 if __name__ == "__main__":
     import copy
 
-    model = mobilenet_v2(quantize=True, is_qat=True)
+    model = mobilenet_v2(quantize=True, is_qat=False)
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
     model(input)  # Calibration codes here...
     torch.ao.quantization.convert(model, inplace=True)
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
+    nmse = cal_mse(dummy_output, dummy_output_fp, norm=False)
