@@ -5,6 +5,7 @@ it overrides torchvision.models.quantization.mobilenetv3
 from functools import partial
 from typing import Any, Optional, Union
 
+import torch
 from torch import nn, Tensor
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torchvision.models.mobilenetv2 import (
@@ -23,6 +24,7 @@ from torchvision.models.quantization.utils import (
     _replace_relu,
     quantize_model,
 )
+from utils.quantization_utils import get_platform_aware_qconfig
 
 
 __all__ = [
@@ -118,6 +120,7 @@ def mobilenet_v2(
     ] = None,
     progress: bool = True,
     quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> QuantizableMobileNetV2:
     """
@@ -138,6 +141,7 @@ def mobilenet_v2(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the download to stderr. Default is True.
         quantize (bool, optional): If True, returns a quantized version of the model. Default is False.
+        is_qat:
         **kwargs: parameters passed to the ``torchvision.models.quantization.QuantizableMobileNetV2``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/quantization/mobilenetv2.py>`_
@@ -156,14 +160,38 @@ def mobilenet_v2(
         _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
         if "backend" in weights.meta:
             _ovewrite_named_param(kwargs, "backend", weights.meta["backend"])
-    backend = kwargs.pop("backend", "qnnpack")
+
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
 
     model = QuantizableMobileNetV2(block=QuantizableInvertedResidual, **kwargs)
     _replace_relu(model)
+
     if quantize:
-        quantize_model(model, backend)
+        if is_qat:
+            model.fuse_model(is_qat=True)
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+        else:
+            model.fuse_model(is_qat=False)
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress))
 
     return model
+
+
+if __name__ == "__main__":
+    import copy
+
+    model = mobilenet_v2(quantize=True, is_qat=True)
+    model_fp = copy.deepcopy(model)
+    input = torch.randn(1, 3, 224, 224)
+    model(input)  # Calibration codes here...
+    torch.ao.quantization.convert(model, inplace=True)
+    dummy_output = model(input)
+    dummy_output_fp = model_fp(input)
