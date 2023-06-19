@@ -563,3 +563,18 @@ if __name__ == "__main__":
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
     nmse = cal_mse(dummy_output, dummy_output_fp, norm=False)
+
+    # onnx export test
+    # ALL FAILED
+    for i in range(1, 19):
+        try:
+            torch.onnx.export(
+                model,
+                input,
+                "../onnx/densenet201_qint8.onnx",
+                opset_version=i,  # failed...
+            )
+            print(f"successfully exported with opset version {i}...")
+
+        except:
+            print(f"opset version {i} failed...")

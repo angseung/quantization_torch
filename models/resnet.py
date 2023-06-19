@@ -597,3 +597,11 @@ if __name__ == "__main__":
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
     mse = cal_mse(dummy_output, dummy_output_fp, norm=True)
+
+    # onnx export test
+    torch.onnx.export(
+        model,
+        input,
+        "../onnx/resnet18_qint8.onnx",
+        opset_version=13,
+    )

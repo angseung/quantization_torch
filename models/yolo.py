@@ -22,7 +22,7 @@ if str(ROOT) not in sys.path:
 from models.common import *
 from models.experimental import *
 from utils.autoanchor import check_anchor_order
-from utils.general import LOGGER, check_version, check_yaml, make_divisible, print_args
+from utils.general import LOGGER, check_version, make_divisible
 from utils.plots import feature_visualization
 from utils.torch_utils import (
     copy_attr,
@@ -697,3 +697,11 @@ if __name__ == "__main__":
     pred = yolo_detector(dummy_output)
     pred_fp32 = yolo_detector(yolo_fp32(input))
     nmse = cal_mse(pred, pred_fp32, norm=True)
+
+    # onnx export test
+    torch.onnx.export(
+        yolo_qint8,
+        input,
+        "../onnx/yolov3_backbone_qint8.onnx",
+        opset_version=13,
+    )

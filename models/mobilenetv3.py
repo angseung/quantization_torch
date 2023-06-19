@@ -283,3 +283,11 @@ if __name__ == "__main__":
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
     nmse = cal_mse(dummy_output, dummy_output_fp, norm=False)
+
+    # onnx export test
+    torch.onnx.export(
+        model,
+        input,
+        "../onnx/mobilenetv3_large_qint8.onnx",
+        opset_version=13,
+    )
