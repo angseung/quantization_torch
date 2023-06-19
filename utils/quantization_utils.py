@@ -98,8 +98,10 @@ def get_platform_aware_qconfig() -> str:
 def cal_mse(
     pred: torch.Tensor, target: torch.Tensor, norm: bool = False
 ) -> torch.Tensor:
-    return (
-        mse_loss(target, pred) / mse_loss(target, torch.zeros_like(target))
-        if norm
-        else mse_loss(target, pred)
-    )
+    if norm:
+        mse = mse_loss(target, pred) / mse_loss(target, torch.zeros_like(target))
+
+    else:
+        mse = mse_loss(target, pred)
+
+    return mse.cpu().detach()
