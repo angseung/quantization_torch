@@ -19,7 +19,6 @@ __all__ = [
     "resnext101_32x8d",
     "wide_resnet50_2",
     "wide_resnet101_2",
-    "fuse_resnet",
 ]
 
 
@@ -336,7 +335,16 @@ def resnet18(pretrained=False, progress=True, quantize=False, is_qat=False, **kw
         quantize
         is_qat
     """
-    return _resnet("resnet18", BasicBlock, [2, 2, 2, 2], pretrained, progress, quantize, is_qat, **kwargs)
+    return _resnet(
+        "resnet18",
+        BasicBlock,
+        [2, 2, 2, 2],
+        pretrained,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs
+    )
 
 
 def resnet34(pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs):
@@ -349,7 +357,16 @@ def resnet34(pretrained=False, progress=True, quantize=False, is_qat=False, **kw
         quantize
         is_qat
     """
-    return _resnet("resnet34", BasicBlock, [3, 4, 6, 3], pretrained, progress, quantize, is_qat, **kwargs)
+    return _resnet(
+        "resnet34",
+        BasicBlock,
+        [3, 4, 6, 3],
+        pretrained,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs
+    )
 
 
 def resnet50(pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs):
@@ -362,7 +379,16 @@ def resnet50(pretrained=False, progress=True, quantize=False, is_qat=False, **kw
         quantize
         is_qat
     """
-    return _resnet("resnet50", Bottleneck, [3, 4, 6, 3], pretrained, progress, quantize, is_qat, **kwargs)
+    return _resnet(
+        "resnet50",
+        Bottleneck,
+        [3, 4, 6, 3],
+        pretrained,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs
+    )
 
 
 def resnet101(pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs):
@@ -376,7 +402,14 @@ def resnet101(pretrained=False, progress=True, quantize=False, is_qat=False, **k
         is_qat
     """
     return _resnet(
-        "resnet101", Bottleneck, [3, 4, 23, 3], pretrained, progress, quantize, is_qat, **kwargs
+        "resnet101",
+        Bottleneck,
+        [3, 4, 23, 3],
+        pretrained,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs
     )
 
 
@@ -391,11 +424,20 @@ def resnet152(pretrained=False, progress=True, quantize=False, is_qat=False, **k
         is_qat
     """
     return _resnet(
-        "resnet152", Bottleneck, [3, 8, 36, 3], pretrained, progress, quantize, is_qat, **kwargs
+        "resnet152",
+        Bottleneck,
+        [3, 8, 36, 3],
+        pretrained,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs
     )
 
 
-def resnext50_32x4d(pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs):
+def resnext50_32x4d(
+    pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs
+):
     r"""ResNeXt-50 32x4d model from
     `"Aggregated Residual Transformation for Deep Neural Networks" <https://arxiv.org/pdf/1611.05431.pdf>`_
 
@@ -408,11 +450,20 @@ def resnext50_32x4d(pretrained=False, progress=True, quantize=False, is_qat=Fals
     kwargs["groups"] = 32
     kwargs["width_per_group"] = 4
     return _resnet(
-        "resnext50_32x4d", Bottleneck, [3, 4, 6, 3], pretrained, progress, quantize, is_qat, **kwargs
+        "resnext50_32x4d",
+        Bottleneck,
+        [3, 4, 6, 3],
+        pretrained,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs
     )
 
 
-def resnext101_32x8d(pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs):
+def resnext101_32x8d(
+    pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs
+):
     r"""ResNeXt-101 32x8d model from
     `"Aggregated Residual Transformation for Deep Neural Networks" <https://arxiv.org/pdf/1611.05431.pdf>`_
 
@@ -425,11 +476,20 @@ def resnext101_32x8d(pretrained=False, progress=True, quantize=False, is_qat=Fal
     kwargs["groups"] = 32
     kwargs["width_per_group"] = 8
     return _resnet(
-        "resnext101_32x8d", Bottleneck, [3, 4, 23, 3], pretrained, progress, quantize, is_qat, **kwargs
+        "resnext101_32x8d",
+        Bottleneck,
+        [3, 4, 23, 3],
+        pretrained,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs
     )
 
 
-def wide_resnet50_2(pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs):
+def wide_resnet50_2(
+    pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs
+):
     r"""Wide ResNet-50-2 model from
     `"Wide Residual Networks" <https://arxiv.org/pdf/1605.07146.pdf>`_
 
@@ -446,11 +506,20 @@ def wide_resnet50_2(pretrained=False, progress=True, quantize=False, is_qat=Fals
     """
     kwargs["width_per_group"] = 64 * 2
     return _resnet(
-        "wide_resnet50_2", Bottleneck, [3, 4, 6, 3], pretrained, progress, quantize, is_qat, **kwargs
+        "wide_resnet50_2",
+        Bottleneck,
+        [3, 4, 6, 3],
+        pretrained,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs
     )
 
 
-def wide_resnet101_2(pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs):
+def wide_resnet101_2(
+    pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs
+):
     r"""Wide ResNet-101-2 model from
     `"Wide Residual Networks" <https://arxiv.org/pdf/1605.07146.pdf>`_
 
@@ -467,7 +536,14 @@ def wide_resnet101_2(pretrained=False, progress=True, quantize=False, is_qat=Fal
     """
     kwargs["width_per_group"] = 64 * 2
     return _resnet(
-        "wide_resnet101_2", Bottleneck, [3, 4, 23, 3], pretrained, progress, quantize, is_qat, **kwargs
+        "wide_resnet101_2",
+        Bottleneck,
+        [3, 4, 23, 3],
+        pretrained,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs
     )
 
 
@@ -505,8 +581,7 @@ def fuse_resnet(model: nn.Module, is_qat: bool = False) -> None:
 
 
 if __name__ == "__main__":
-
-    model = resnet18(quantize=True, is_qat=True)
+    model = resnet18(quantize=True, is_qat=False)
     # model = resnet34(quantize=True, is_qat=True)
     # model = resnet50(quantize=True, is_qat=True)
     # model = resnet101(quantize=True, is_qat=True)
@@ -518,7 +593,7 @@ if __name__ == "__main__":
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
     model(input)
-    # torch.ao.quantization.convert(model, inplace=True)
+    torch.ao.quantization.convert(model, inplace=True)
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
     mse = cal_mse(dummy_output, dummy_output_fp, norm=True)
