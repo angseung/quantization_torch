@@ -22,7 +22,7 @@ from torchvision.models.quantization.mobilenetv3 import (
     MobileNetV3,
 )
 from torchvision.models.quantization.utils import _fuse_modules, _replace_relu
-from utils.quantization_utils import get_platform_aware_qconfig
+from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
 
 __all__ = [
     "QuantizableMobileNetV3",
@@ -282,3 +282,4 @@ if __name__ == "__main__":
     torch.ao.quantization.convert(model, inplace=True)
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
+    nmse = cal_mse(dummy_output, dummy_output_fp, norm=False)
