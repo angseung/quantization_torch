@@ -9,7 +9,7 @@ from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
 
 
 __all__ = [
-    "ResNet",
+    "QuantizableResNet",
     "resnet18",
     "resnet34",
     "resnet50",
@@ -162,7 +162,7 @@ class Bottleneck(nn.Module):
         return out
 
 
-class ResNet(nn.Module):
+class QuantizableResNet(nn.Module):
     def __init__(
         self,
         block,
@@ -174,7 +174,7 @@ class ResNet(nn.Module):
         replace_stride_with_dilation=None,
         norm_layer=None,
     ):
-        super(ResNet, self).__init__()
+        super(QuantizableResNet, self).__init__()
         self.quant = QuantStub()
         self.dequant = DeQuantStub()
         if norm_layer is None:
@@ -304,7 +304,7 @@ def _resnet(arch, block, layers, pretrained, progress, quantize, is_qat, **kwarg
     if backend == "qnnpack":
         torch.backends.quantized.engine = "qnnpack"
 
-    model = ResNet(block, layers, **kwargs)
+    model = QuantizableResNet(block, layers, **kwargs)
     model.eval()
 
     if quantize:

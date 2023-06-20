@@ -666,7 +666,9 @@ def yolo_model(
     if quantize:
         if is_qat:
             yolo_backbone.fuse_model(is_qat=True)
-            yolo_backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            yolo_backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
             yolo_backbone.train()
             torch.ao.quantization.prepare_qat(yolo_backbone, inplace=True)
         else:
