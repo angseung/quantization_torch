@@ -259,3 +259,7 @@ fabric.properties
 torch*/
 outputs
 *.csv
+weights
+cifar-10
+datasets
+onnx
