@@ -3,7 +3,7 @@
 Train a  model on a custom dataset
 
 Usage:
-    $ python path/to/train.py --data coco128.yaml --weights yolov3.pt --img 640
+    $ python yolo_train.py --weights "" --cfg yolov5m-qat.yaml --imgsz 320 --normalize --data data/coco128.yaml --epochs 10
 """
 import argparse
 import math

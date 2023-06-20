@@ -3,7 +3,7 @@
 Validate a trained  model accuracy on a custom dataset
 
 Usage:
-    $ python path/to/yolo_val.py --data coco128.yaml --weights yolov3.pt --img 640
+    $ python yolo_val.py --data coco128.yaml --weights weights/yolov5m-qat.pt --img 320 --normalize
 """
 
 import argparse
