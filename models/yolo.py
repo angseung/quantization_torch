@@ -37,6 +37,7 @@ from utils.quantization_utils import (
     get_platform_aware_qconfig,
     cal_mse,
 )
+from utils.onnx_utils import convert_onnx
 
 try:
     import thop  # for FLOPs computation
@@ -701,9 +702,4 @@ if __name__ == "__main__":
     nmse = cal_mse(pred, pred_fp32, norm=True)
 
     # onnx export test
-    torch.onnx.export(
-        yolo_qint8,
-        input,
-        "../onnx/yolov3_backbone_qint8.onnx",
-        opset_version=13,
-    )
+    convert_onnx(yolo_qint8, "../onnx/yolov3_backbone_qint8.onnx")

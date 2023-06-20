@@ -15,7 +15,7 @@ def convert_onnx(
     opset: Union[int, None] = None,
     input_size: Optional[Union[None, Tuple[int, int, int, int]]] = None,
 ):
-    if opset is not None:
+    if opset is None:
         opset = check_optimized_opset(model)
 
     if input_size is not None:
@@ -30,7 +30,7 @@ def convert_onnx(
     torch.onnx.export(
         model,
         dummy_input,
-        f"{fname}.onnx",
+        f"{fname}",
         opset_version=opset,
     )
 

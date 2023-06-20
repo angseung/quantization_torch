@@ -24,6 +24,7 @@ from torchvision.models.quantization.utils import (
     _replace_relu,
 )
 from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
+from utils.onnx_utils import convert_onnx
 
 
 __all__ = [
@@ -198,9 +199,4 @@ if __name__ == "__main__":
     nmse = cal_mse(dummy_output, dummy_output_fp, norm=False)
 
     # onnx export test
-    torch.onnx.export(
-        model,
-        input,
-        "../onnx/mobilenetv2_qint8.onnx",
-        opset_version=13,
-    )
+    convert_onnx(model, "../onnx/mobilenetv2_qint8.onnx")

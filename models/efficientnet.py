@@ -20,6 +20,7 @@ from torchvision.models._utils import (
     handle_legacy_interface,
 )
 from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
+from utils.onnx_utils import convert_onnx
 
 
 __all__ = [
@@ -1396,3 +1397,4 @@ if __name__ == "__main__":
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
     nmse = cal_mse(dummy_output, dummy_output_fp, norm=False)
+    convert_onnx(model, "../onnx/efficientnet_qint8.onnx")
