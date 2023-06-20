@@ -597,3 +597,6 @@ if __name__ == "__main__":
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
     mse = cal_mse(dummy_output, dummy_output_fp, norm=True)
+
+    from utils.onnx_utils import convert_onnx
+    convert_onnx(model, "../onnx/resnet_qint8.onnx", opset=13)
