@@ -29,6 +29,47 @@
 | YoloV4 | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
 | YoloV5 | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
 
+# 양자화 대상 모델 추론시간 비교 (on Raspberry Pi 4B 2GB Model)
+
+- DenseNet 계열
+    - Fusing이 불가능하며, AArch64에서는 양자화 이후에도 추론시간이 오히려 증가할 수 있음
+    - DenseNet은 양자화를 적용하면 ONNX Export가 불가능함
+
+| model | before (s) | after (s) | ratio |
+| --- | --- | --- | --- |
+| densenet121 | 1.78 | 1.39 | 0.78 |
+| densenet161 | 2.87 | 2.74 | 0.95 |
+| densenet169 | 2.37 | 1.71 | 0.72 |
+| densenet201 | 2.84 | 2.19 | 0.77 |
+- ResNet 계열
+
+| model | before (s) | after (s) | ratio |
+| --- | --- | --- | --- |
+| resnet18 | 0.58 | 0.35 | 0.61 |
+| resnet34 | 1.07 | 0.52 | 0.49 |
+| resnet50 | 1.27 | 0.6 | 0.47 |
+| resnet101 | 2.19 | 1.05 | 0.48 |
+| resnet152 | 3.02 | 1.38 | 0.46 |
+| resnext50_32x4d | 1.6 | 0.58 | 0.36 |
+| resnext101_32x8d | 4.58 | 1.56 | 0.34 |
+| wide_resnet50_2 | 2.56 | 1.02 | 0.4 |
+| wide_resnet101_2 | 4.81 | 1.91 | 0.4 |
+- MobileNet 계열
+
+| model | before (s) | after (s) | ratio |
+| --- | --- | --- | --- |
+| mobilenet_v2 | 1.42 | 0.75 | 0.53 |
+| mobilenet_v3 | 1.67 | 0.75 | 0.44 |
+
+- Yolo 계열
+
+| Model | before (s) | after (s) | ratio |
+| --- | --- | --- | --- |
+| YoloV3 | 2.111 | 1.010 | 0.48  |
+| YoloV4 | 4.367 | 1.433 | 0.33  |
+| YoloV5m | 0.777 | 0.332 | 0.43  |
+| Yolov5l | 1.617 | 0.677 | 0.42  |
+
 # Design Principle for Standard Wrapper Class of Quantizable Model
 
 # 1. Quantizable Model Class
