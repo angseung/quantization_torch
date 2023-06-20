@@ -1,4 +1,4 @@
-# Scope of Model Quantization & ONNX Exporting
+# Models which Support Quantization & ONNX Exporting
 
 | Model | Quantization Support | FP32 model ONNX Export Support | Quantized model ONNX Export Support | ONNX opset |
 | --- | --- | --- | --- | --- |
