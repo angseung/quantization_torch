@@ -60,7 +60,7 @@ from models.yolo import yolo_model
 
 @torch.no_grad()
 def run(
-    weights=ROOT / "yolov3.pt",  # model.pt path(s)
+    weights="weights/yolov5m-qat.pt",  # model.pt path(s)
     source=ROOT / "data/images",  # file/dir/URL/glob, 0 for webcam
     imgsz=320,  # inference size (pixels)
     conf_thres=0.25,  # confidence threshold
@@ -89,7 +89,6 @@ def run(
     gray=False,
     use_soft=False,
     edge=False,
-    print_string=False,
     compile_model=False,
     quantize=False,
     nocal=False,
@@ -384,7 +383,7 @@ def parse_opt():
     parser.add_argument(
         "--weights",
         type=str,
-        default=ROOT / "yolov3-nano.yaml",
+        default="weights/yolov5m-qat.pt",
         help="model path(s)",
     )
     parser.add_argument(
