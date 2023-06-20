@@ -12,8 +12,7 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 from tqdm import tqdm
 import numpy as np
-from models.resnet import resnet152, fuse_resnet
-from utils.quantization_utils import QuantizableModel
+from models.resnet import resnet152
 
 
 def seed_worker(worker_id: None) -> None:
@@ -234,9 +233,7 @@ def test(epoch, dir_path=None) -> Tuple[float, float]:
 # Model
 print("==> Building model..")
 
-resnet = resnet152()
-fuse_resnet(resnet, is_qat=True)
-resnet = QuantizableModel(resnet, is_qat=True).prepare()
+resnet = resnet152(quantize=True, is_qat=True)
 nets = {"resnet152": resnet}
 
 for netkey in nets.keys():
