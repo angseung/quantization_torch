@@ -37,7 +37,6 @@ from utils.quantization_utils import (
     get_platform_aware_qconfig,
     cal_mse,
 )
-from utils.onnx_utils import convert_onnx
 
 try:
     import thop  # for FLOPs computation
@@ -700,6 +699,3 @@ if __name__ == "__main__":
     pred = yolo_detector(dummy_output)
     pred_fp32 = yolo_detector(yolo_fp32(input))
     nmse = cal_mse(pred, pred_fp32, norm=True)
-
-    # onnx export test
-    convert_onnx(yolo_qint8, "../onnx/yolov3_backbone_qint8.onnx")
