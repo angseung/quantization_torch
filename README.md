@@ -98,7 +98,7 @@ class QuantizableSomeModel(SomeModel):
                 m.fuse_model(is_qat)
 ```
 
-- 양자화 가능한 네트워크인 SomeModel의 양자화를 위한 모델 클래스명은 QuantizableSomeModel 으로 하고, SomeModel을 상속한다.
+- 양자화 가능한 네트워크인 SomeModel의 양자화를 위한 모델 클래스명은 QuantizableSomeModel로 하고, SomeModel을 상속한다.
     - QuantizableSomeModel 인스턴스라 할지라도, torch.ao.quantization.convert 함수를 통해 양자화를 수행하지 않으면 실수형 모델이다.
     - QuantStub, DeQuantStub이 forward를 감싸고 있어도, convert를 하지 않으면 양자화 하지 않은 SomeModel과 완전히 동등한 결과를 얻는다.
 - forward 메서드에서 quant, dequant를 포함한다.
