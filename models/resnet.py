@@ -6,10 +6,11 @@ from torch.ao.quantization import DeQuantStub, QuantStub
 from torch.ao.nn.quantized import FloatFunctional
 from torchvision.models.quantization.utils import _fuse_modules
 from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
+from utils.onnx_utils import convert_onnx
 
 
 __all__ = [
-    "ResNet",
+    "QuantizableResNet",
     "resnet18",
     "resnet34",
     "resnet50",
@@ -162,7 +163,7 @@ class Bottleneck(nn.Module):
         return out
 
 
-class ResNet(nn.Module):
+class QuantizableResNet(nn.Module):
     def __init__(
         self,
         block,
@@ -174,7 +175,7 @@ class ResNet(nn.Module):
         replace_stride_with_dilation=None,
         norm_layer=None,
     ):
-        super(ResNet, self).__init__()
+        super(QuantizableResNet, self).__init__()
         self.quant = QuantStub()
         self.dequant = DeQuantStub()
         if norm_layer is None:
@@ -304,7 +305,7 @@ def _resnet(arch, block, layers, pretrained, progress, quantize, is_qat, **kwarg
     if backend == "qnnpack":
         torch.backends.quantized.engine = "qnnpack"
 
-    model = ResNet(block, layers, **kwargs)
+    model = QuantizableResNet(block, layers, **kwargs)
     model.eval()
 
     if quantize:
@@ -599,9 +600,4 @@ if __name__ == "__main__":
     mse = cal_mse(dummy_output, dummy_output_fp, norm=True)
 
     # onnx export test
-    torch.onnx.export(
-        model,
-        input,
-        "../onnx/resnet18_qint8.onnx",
-        opset_version=13,
-    )
+    convert_onnx(model, "../onnx/resnet18_qint8.onnx")

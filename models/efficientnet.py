@@ -20,10 +20,11 @@ from torchvision.models._utils import (
     handle_legacy_interface,
 )
 from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
+from utils.onnx_utils import convert_onnx
 
 
 __all__ = [
-    "EfficientNet",
+    "QuantizableEfficientNet",
     "EfficientNet_B0_Weights",
     "EfficientNet_B1_Weights",
     "EfficientNet_B2_Weights",
@@ -271,7 +272,7 @@ class FusedMBConv(nn.Module):
         return result
 
 
-class EfficientNet(nn.Module):
+class QuantizableEfficientNet(nn.Module):
     def __init__(
         self,
         inverted_residual_setting: Sequence[Union[MBConvConfig, FusedMBConvConfig]],
@@ -408,7 +409,7 @@ def _efficientnet(
     quantize: bool,
     is_qat: bool,
     **kwargs: Any,
-) -> EfficientNet:
+) -> QuantizableEfficientNet:
     if weights is not None:
         _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
 
@@ -416,7 +417,7 @@ def _efficientnet(
     if backend == "qnnpack":
         torch.backends.quantized.engine = "qnnpack"
 
-    model = EfficientNet(
+    model = QuantizableEfficientNet(
         inverted_residual_setting, dropout, last_channel=last_channel, **kwargs
     )
 
@@ -857,7 +858,7 @@ def efficientnet_b0(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> EfficientNet:
+) -> QuantizableEfficientNet:
     """EfficientNet B0 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
     Neural Networks <https://arxiv.org/abs/1905.11946>`_ paper.
 
@@ -903,7 +904,7 @@ def efficientnet_b1(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> EfficientNet:
+) -> QuantizableEfficientNet:
     """EfficientNet B1 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
     Neural Networks <https://arxiv.org/abs/1905.11946>`_ paper.
 
@@ -949,7 +950,7 @@ def efficientnet_b2(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> EfficientNet:
+) -> QuantizableEfficientNet:
     """EfficientNet B2 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
     Neural Networks <https://arxiv.org/abs/1905.11946>`_ paper.
 
@@ -995,7 +996,7 @@ def efficientnet_b3(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> EfficientNet:
+) -> QuantizableEfficientNet:
     """EfficientNet B3 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
     Neural Networks <https://arxiv.org/abs/1905.11946>`_ paper.
 
@@ -1041,7 +1042,7 @@ def efficientnet_b4(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> EfficientNet:
+) -> QuantizableEfficientNet:
     """EfficientNet B4 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
     Neural Networks <https://arxiv.org/abs/1905.11946>`_ paper.
 
@@ -1087,7 +1088,7 @@ def efficientnet_b5(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> EfficientNet:
+) -> QuantizableEfficientNet:
     """EfficientNet B5 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
     Neural Networks <https://arxiv.org/abs/1905.11946>`_ paper.
 
@@ -1134,7 +1135,7 @@ def efficientnet_b6(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> EfficientNet:
+) -> QuantizableEfficientNet:
     """EfficientNet B6 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
     Neural Networks <https://arxiv.org/abs/1905.11946>`_ paper.
 
@@ -1181,7 +1182,7 @@ def efficientnet_b7(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> EfficientNet:
+) -> QuantizableEfficientNet:
     """EfficientNet B7 model architecture from the `EfficientNet: Rethinking Model Scaling for Convolutional
     Neural Networks <https://arxiv.org/abs/1905.11946>`_ paper.
 
@@ -1230,7 +1231,7 @@ def efficientnet_v2_s(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> EfficientNet:
+) -> QuantizableEfficientNet:
     """
     Constructs an EfficientNetV2-S architecture from
     `EfficientNetV2: Smaller Models and Faster Training <https://arxiv.org/abs/2104.00298>`_.
@@ -1278,7 +1279,7 @@ def efficientnet_v2_m(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> EfficientNet:
+) -> QuantizableEfficientNet:
     """
     Constructs an EfficientNetV2-M architecture from
     `EfficientNetV2: Smaller Models and Faster Training <https://arxiv.org/abs/2104.00298>`_.
@@ -1326,7 +1327,7 @@ def efficientnet_v2_l(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> EfficientNet:
+) -> QuantizableEfficientNet:
     """
     Constructs an EfficientNetV2-L architecture from
     `EfficientNetV2: Smaller Models and Faster Training <https://arxiv.org/abs/2104.00298>`_.
@@ -1396,3 +1397,4 @@ if __name__ == "__main__":
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
     nmse = cal_mse(dummy_output, dummy_output_fp, norm=False)
+    convert_onnx(model, "../onnx/efficientnet_qint8.onnx")
