@@ -284,6 +284,3 @@ if __name__ == "__main__":
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
     nmse = cal_mse(dummy_output, dummy_output_fp, norm=False)
-
-    # onnx export test
-    convert_onnx(model, "../onnx/mobilenetv3_qint8.onnx")

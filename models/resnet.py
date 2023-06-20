@@ -6,7 +6,6 @@ from torch.ao.quantization import DeQuantStub, QuantStub
 from torch.ao.nn.quantized import FloatFunctional
 from torchvision.models.quantization.utils import _fuse_modules
 from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
-from utils.onnx_utils import convert_onnx
 
 
 __all__ = [
@@ -598,6 +597,3 @@ if __name__ == "__main__":
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
     mse = cal_mse(dummy_output, dummy_output_fp, norm=True)
-
-    # onnx export test
-    convert_onnx(model, "../onnx/resnet18_qint8.onnx")

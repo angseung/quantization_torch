@@ -564,13 +564,3 @@ if __name__ == "__main__":
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
     nmse = cal_mse(dummy_output, dummy_output_fp, norm=False)
-
-    # onnx export test
-    # ALL FAILED
-    for i in range(1, 19):
-        try:
-            convert_onnx(model, "../onnx/densenet_qint8.onnx", opset=i)
-            print(f"successfully exported with opset version {i}...")
-
-        except:
-            print(f"opset version {i} failed...")

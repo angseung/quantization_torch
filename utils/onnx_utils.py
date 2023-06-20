@@ -45,4 +45,7 @@ def check_optimized_opset(model: nn.Module) -> int:
         return 13
 
     elif model in [QuantizableEfficientNet, QuantizableDenseNet]:
-        raise AttributeError(f"{type(model)} can not be exported to onnx format. ")
+        raise TypeError(f"{type(model)} can not be exported to onnx format. ")
+
+    else:
+        raise TypeError(f"An optimal opset for {type(model)} is not yet defined in this function. ")

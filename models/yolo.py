@@ -700,6 +700,3 @@ if __name__ == "__main__":
     pred = yolo_detector(dummy_output)
     pred_fp32 = yolo_detector(yolo_fp32(input))
     nmse = cal_mse(pred, pred_fp32, norm=True)
-
-    # onnx export test
-    convert_onnx(yolo_qint8, "../onnx/yolov3_backbone_qint8.onnx")

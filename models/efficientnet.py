@@ -1397,4 +1397,3 @@ if __name__ == "__main__":
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
     nmse = cal_mse(dummy_output, dummy_output_fp, norm=False)
-    convert_onnx(model, "../onnx/efficientnet_qint8.onnx")

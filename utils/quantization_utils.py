@@ -16,6 +16,10 @@ ROOT = FILE.parent.parent  # root directory
 
 
 class QuantizableModel(nn.Module):
+    """
+    Deprecated
+    Wrapper Class for Quantizable Model
+    """
     def __init__(self, model: nn.Module, is_qat: bool = False):
         super().__init__()
         # QuantStub converts tensors from floating point to quantized
