@@ -20,7 +20,6 @@ from torchvision.models._utils import (
     handle_legacy_interface,
 )
 from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
-from utils.onnx_utils import convert_onnx
 
 
 __all__ = [

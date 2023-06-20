@@ -24,7 +24,6 @@ from torchvision.models.quantization.utils import (
     _replace_relu,
 )
 from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
-from utils.onnx_utils import convert_onnx
 
 
 __all__ = [
