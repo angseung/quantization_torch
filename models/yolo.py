@@ -665,14 +665,14 @@ def yolo_model(
 
     if quantize:
         if is_qat:
-            model.fuse_model(is_qat=True)
-            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
-            model.train()
-            torch.ao.quantization.prepare_qat(model, inplace=True)
+            yolo_backbone.fuse_model(is_qat=True)
+            yolo_backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            yolo_backbone.train()
+            torch.ao.quantization.prepare_qat(yolo_backbone, inplace=True)
         else:
-            model.fuse_model(is_qat=False)
-            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
-            torch.ao.quantization.prepare(model, inplace=True)
+            yolo_backbone.fuse_model(is_qat=False)
+            yolo_backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            torch.ao.quantization.prepare(yolo_backbone, inplace=True)
 
     return yolo_backbone, yolo_head
 
