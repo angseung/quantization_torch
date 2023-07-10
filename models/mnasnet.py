@@ -38,7 +38,13 @@ _BN_MOMENTUM = 1 - 0.9997
 
 class _InvertedResidual(nn.Module):
     def __init__(
-        self, in_ch: int, out_ch: int, kernel_size: int, stride: int, expansion_factor: int, bn_momentum: float = 0.1
+        self,
+        in_ch: int,
+        out_ch: int,
+        kernel_size: int,
+        stride: int,
+        expansion_factor: int,
+        bn_momentum: float = 0.1,
     ) -> None:
         super().__init__()
         if stride not in [1, 2]:
@@ -53,7 +59,15 @@ class _InvertedResidual(nn.Module):
             nn.BatchNorm2d(mid_ch, momentum=bn_momentum),
             nn.ReLU(inplace=True),
             # Depthwise
-            nn.Conv2d(mid_ch, mid_ch, kernel_size, padding=kernel_size // 2, stride=stride, groups=mid_ch, bias=False),
+            nn.Conv2d(
+                mid_ch,
+                mid_ch,
+                kernel_size,
+                padding=kernel_size // 2,
+                stride=stride,
+                groups=mid_ch,
+                bias=False,
+            ),
             nn.BatchNorm2d(mid_ch, momentum=bn_momentum),
             nn.ReLU(inplace=True),
             # Linear pointwise. Note that there's no activation.
@@ -70,16 +84,28 @@ class _InvertedResidual(nn.Module):
 
 
 def _stack(
-    in_ch: int, out_ch: int, kernel_size: int, stride: int, exp_factor: int, repeats: int, bn_momentum: float
+    in_ch: int,
+    out_ch: int,
+    kernel_size: int,
+    stride: int,
+    exp_factor: int,
+    repeats: int,
+    bn_momentum: float,
 ) -> nn.Sequential:
     """Creates a stack of inverted residuals."""
     if repeats < 1:
         raise ValueError(f"repeats should be >= 1, instead got {repeats}")
     # First one has no skip, because feature map size changes.
-    first = _InvertedResidual(in_ch, out_ch, kernel_size, stride, exp_factor, bn_momentum=bn_momentum)
+    first = _InvertedResidual(
+        in_ch, out_ch, kernel_size, stride, exp_factor, bn_momentum=bn_momentum
+    )
     remaining = []
     for _ in range(1, repeats):
-        remaining.append(_InvertedResidual(out_ch, out_ch, kernel_size, 1, exp_factor, bn_momentum=bn_momentum))
+        remaining.append(
+            _InvertedResidual(
+                out_ch, out_ch, kernel_size, 1, exp_factor, bn_momentum=bn_momentum
+            )
+        )
     return nn.Sequential(first, *remaining)
 
 
@@ -88,7 +114,9 @@ def _round_to_multiple_of(val: float, divisor: int, round_up_bias: float = 0.9) 
     bias, will round up, unless the number is no more than 10% greater than the
     smaller divisible value, i.e. (83, 8) -> 80, but (84, 8) -> 88."""
     if not 0.0 < round_up_bias < 1.0:
-        raise ValueError(f"round_up_bias should be greater than 0.0 and smaller than 1.0 instead of {round_up_bias}")
+        raise ValueError(
+            f"round_up_bias should be greater than 0.0 and smaller than 1.0 instead of {round_up_bias}"
+        )
     new_val = max(divisor, int(val + divisor / 2) // divisor * divisor)
     return new_val if new_val >= round_up_bias * val else new_val + divisor
 
@@ -115,7 +143,9 @@ class QuantizableMNASNet(torch.nn.Module):
     # Version 2 adds depth scaling in the initial stages of the network.
     _version = 2
 
-    def __init__(self, alpha: float, num_classes: int = 1000, dropout: float = 0.2) -> None:
+    def __init__(
+        self, alpha: float, num_classes: int = 1000, dropout: float = 0.2
+    ) -> None:
         super().__init__()
         _log_api_usage_once(self)
         if alpha <= 0.0:
@@ -129,7 +159,15 @@ class QuantizableMNASNet(torch.nn.Module):
             nn.BatchNorm2d(depths[0], momentum=_BN_MOMENTUM),
             nn.ReLU(inplace=True),
             # Depthwise separable, no skip.
-            nn.Conv2d(depths[0], depths[0], 3, padding=1, stride=1, groups=depths[0], bias=False),
+            nn.Conv2d(
+                depths[0],
+                depths[0],
+                3,
+                padding=1,
+                stride=1,
+                groups=depths[0],
+                bias=False,
+            ),
             nn.BatchNorm2d(depths[0], momentum=_BN_MOMENTUM),
             nn.ReLU(inplace=True),
             nn.Conv2d(depths[0], depths[1], 1, padding=0, stride=1, bias=False),
@@ -147,7 +185,9 @@ class QuantizableMNASNet(torch.nn.Module):
             nn.ReLU(inplace=True),
         ]
         self.layers = nn.Sequential(*layers)
-        self.classifier = nn.Sequential(nn.Dropout(p=dropout, inplace=True), nn.Linear(1280, num_classes))
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=dropout, inplace=True), nn.Linear(1280, num_classes)
+        )
 
         self.quant = QuantStub()
         self.dequant = DeQuantStub()
@@ -161,7 +201,9 @@ class QuantizableMNASNet(torch.nn.Module):
                 nn.init.ones_(m.weight)
                 nn.init.zeros_(m.bias)
             elif isinstance(m, nn.Linear):
-                nn.init.kaiming_uniform_(m.weight, mode="fan_out", nonlinearity="sigmoid")
+                nn.init.kaiming_uniform_(
+                    m.weight, mode="fan_out", nonlinearity="sigmoid"
+                )
                 nn.init.zeros_(m.bias)
 
     def _forward_impl(self, x: Tensor) -> Tensor:
@@ -225,7 +267,13 @@ class QuantizableMNASNet(torch.nn.Module):
             )
 
         super()._load_from_state_dict(
-            state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
         )
 
 
@@ -328,7 +376,14 @@ class MNASNet1_3_Weights(WeightsEnum):
     DEFAULT = IMAGENET1K_V1
 
 
-def _mnasnet(alpha: float, weights: Optional[WeightsEnum], progress: bool, quantize: bool, is_qat: bool, **kwargs: Any) -> QuantizableMNASNet:
+def _mnasnet(
+    alpha: float,
+    weights: Optional[WeightsEnum],
+    progress: bool,
+    quantize: bool,
+    is_qat: bool,
+    **kwargs: Any,
+) -> QuantizableMNASNet:
     backend = get_platform_aware_qconfig()
     if backend == "qnnpack":
         torch.backends.quantized.engine = "qnnpack"
@@ -357,7 +412,14 @@ def _mnasnet(alpha: float, weights: Optional[WeightsEnum], progress: bool, quant
 
 
 @handle_legacy_interface(weights=("pretrained", MNASNet0_5_Weights.IMAGENET1K_V1))
-def mnasnet0_5(*, weights: Optional[MNASNet0_5_Weights] = None, progress: bool = True, quantize: bool, is_qat: bool, **kwargs: Any) -> QuantizableMNASNet:
+def mnasnet0_5(
+    *,
+    weights: Optional[MNASNet0_5_Weights] = None,
+    progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
+    **kwargs: Any,
+) -> QuantizableMNASNet:
     """MNASNet with depth multiplier of 0.5 from
     `MnasNet: Platform-Aware Neural Architecture Search for Mobile
     <https://arxiv.org/pdf/1807.11626.pdf>`_ paper.
@@ -386,7 +448,14 @@ def mnasnet0_5(*, weights: Optional[MNASNet0_5_Weights] = None, progress: bool =
 
 
 @handle_legacy_interface(weights=("pretrained", MNASNet0_75_Weights.IMAGENET1K_V1))
-def mnasnet0_75(*, weights: Optional[MNASNet0_75_Weights] = None, progress: bool = True, quantize: bool, is_qat: bool, **kwargs: Any) -> QuantizableMNASNet:
+def mnasnet0_75(
+    *,
+    weights: Optional[MNASNet0_75_Weights] = None,
+    progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
+    **kwargs: Any,
+) -> QuantizableMNASNet:
     """MNASNet with depth multiplier of 0.75 from
     `MnasNet: Platform-Aware Neural Architecture Search for Mobile
     <https://arxiv.org/pdf/1807.11626.pdf>`_ paper.
@@ -415,7 +484,14 @@ def mnasnet0_75(*, weights: Optional[MNASNet0_75_Weights] = None, progress: bool
 
 
 @handle_legacy_interface(weights=("pretrained", MNASNet1_0_Weights.IMAGENET1K_V1))
-def mnasnet1_0(*, weights: Optional[MNASNet1_0_Weights] = None, progress: bool = True, quantize: bool, is_qat: bool, **kwargs: Any) -> QuantizableMNASNet:
+def mnasnet1_0(
+    *,
+    weights: Optional[MNASNet1_0_Weights] = None,
+    progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
+    **kwargs: Any,
+) -> QuantizableMNASNet:
     """MNASNet with depth multiplier of 1.0 from
     `MnasNet: Platform-Aware Neural Architecture Search for Mobile
     <https://arxiv.org/pdf/1807.11626.pdf>`_ paper.
@@ -444,7 +520,14 @@ def mnasnet1_0(*, weights: Optional[MNASNet1_0_Weights] = None, progress: bool =
 
 
 @handle_legacy_interface(weights=("pretrained", MNASNet1_3_Weights.IMAGENET1K_V1))
-def mnasnet1_3(*, weights: Optional[MNASNet1_3_Weights] = None, progress: bool = True, quantize: bool, is_qat: bool, **kwargs: Any) -> QuantizableMNASNet:
+def mnasnet1_3(
+    *,
+    weights: Optional[MNASNet1_3_Weights] = None,
+    progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
+    **kwargs: Any,
+) -> QuantizableMNASNet:
     """MNASNet with depth multiplier of 1.3 from
     `MnasNet: Platform-Aware Neural Architecture Search for Mobile
     <https://arxiv.org/pdf/1807.11626.pdf>`_ paper.
@@ -474,7 +557,22 @@ def mnasnet1_3(*, weights: Optional[MNASNet1_3_Weights] = None, progress: bool =
 
 def fuse_mnasnet(model: nn.Module, is_qat: bool = False) -> None:
     for module_name, module in model.named_children():
-        pass
+        if module_name == "layers":
+            _fuse_modules(
+                model,
+                is_qat=is_qat,
+                modules_to_fuse=[["0", "1", "2"], ["3", "4", "5"], ["6", "7"]],
+                inplace=True,
+            )
+
+        for block_name, block in module.named_children():
+            if isinstance(block, _InvertedResidual):
+                _fuse_modules(
+                    model,
+                    is_qat=is_qat,
+                    modules_to_fuse=[["0", "1", "2"], ["3", "4", "5"], ["6", "7"], ["14", "15", "16"]],
+                    inplace=True,
+                )
 
 
 if __name__ == "__main__":
