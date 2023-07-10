@@ -17,7 +17,6 @@ from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
 from utils.quantization_utils import cal_mse, get_platform_aware_qconfig
 
-
 __all__ = [
     "QuantizableMNASNet",
     "MNASNet0_5_Weights",

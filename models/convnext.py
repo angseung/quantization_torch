@@ -109,7 +109,10 @@ class QuantizableConvNeXt(nn.Module):
 
         if not block_setting:
             raise ValueError("The block_setting should not be empty")
-        elif not (isinstance(block_setting, Sequence) and all([isinstance(s, CNBlockConfig) for s in block_setting])):
+        elif not (
+            isinstance(block_setting, Sequence)
+            and all([isinstance(s, CNBlockConfig) for s in block_setting])
+        ):
             raise TypeError("The block_setting should be List[CNBlockConfig]")
 
         if block is None:
@@ -142,7 +145,9 @@ class QuantizableConvNeXt(nn.Module):
             stage: List[nn.Module] = []
             for _ in range(cnf.num_layers):
                 # adjust stochastic depth probability based on the depth of the stage block
-                sd_prob = stochastic_depth_prob * stage_block_id / (total_stage_blocks - 1.0)
+                sd_prob = (
+                    stochastic_depth_prob * stage_block_id / (total_stage_blocks - 1.0)
+                )
                 stage.append(block(cnf.input_channels, layer_scale, sd_prob))
                 stage_block_id += 1
             layers.append(nn.Sequential(*stage))
@@ -151,7 +156,12 @@ class QuantizableConvNeXt(nn.Module):
                 layers.append(
                     nn.Sequential(
                         norm_layer(cnf.input_channels),
-                        nn.Conv2d(cnf.input_channels, cnf.out_channels, kernel_size=2, stride=2),
+                        nn.Conv2d(
+                            cnf.input_channels,
+                            cnf.out_channels,
+                            kernel_size=2,
+                            stride=2,
+                        ),
                     )
                 )
 
@@ -160,10 +170,14 @@ class QuantizableConvNeXt(nn.Module):
 
         lastblock = block_setting[-1]
         lastconv_output_channels = (
-            lastblock.out_channels if lastblock.out_channels is not None else lastblock.input_channels
+            lastblock.out_channels
+            if lastblock.out_channels is not None
+            else lastblock.input_channels
         )
         self.classifier = nn.Sequential(
-            norm_layer(lastconv_output_channels), nn.Flatten(1), nn.Linear(lastconv_output_channels, num_classes)
+            norm_layer(lastconv_output_channels),
+            nn.Flatten(1),
+            nn.Linear(lastconv_output_channels, num_classes),
         )
 
         self.quant = QuantStub()
@@ -207,7 +221,9 @@ def _convnext(
     if weights is not None:
         _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
 
-    model = QuantizableConvNeXt(block_setting, stochastic_depth_prob=stochastic_depth_prob, **kwargs)
+    model = QuantizableConvNeXt(
+        block_setting, stochastic_depth_prob=stochastic_depth_prob, **kwargs
+    )
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress))
@@ -321,7 +337,12 @@ class ConvNeXt_Large_Weights(WeightsEnum):
 
 
 @handle_legacy_interface(weights=("pretrained", ConvNeXt_Tiny_Weights.IMAGENET1K_V1))
-def convnext_tiny(*, weights: Optional[ConvNeXt_Tiny_Weights] = None, progress: bool = True, **kwargs: Any) -> QuantizableConvNeXt:
+def convnext_tiny(
+    *,
+    weights: Optional[ConvNeXt_Tiny_Weights] = None,
+    progress: bool = True,
+    **kwargs: Any,
+) -> QuantizableConvNeXt:
     """ConvNeXt Tiny model architecture from the
     `A ConvNet for the 2020s <https://arxiv.org/abs/2201.03545>`_ paper.
 
@@ -352,7 +373,10 @@ def convnext_tiny(*, weights: Optional[ConvNeXt_Tiny_Weights] = None, progress: 
 
 @handle_legacy_interface(weights=("pretrained", ConvNeXt_Small_Weights.IMAGENET1K_V1))
 def convnext_small(
-    *, weights: Optional[ConvNeXt_Small_Weights] = None, progress: bool = True, **kwargs: Any
+    *,
+    weights: Optional[ConvNeXt_Small_Weights] = None,
+    progress: bool = True,
+    **kwargs: Any,
 ) -> QuantizableConvNeXt:
     """ConvNeXt Small model architecture from the
     `A ConvNet for the 2020s <https://arxiv.org/abs/2201.03545>`_ paper.
@@ -383,7 +407,12 @@ def convnext_small(
 
 
 @handle_legacy_interface(weights=("pretrained", ConvNeXt_Base_Weights.IMAGENET1K_V1))
-def convnext_base(*, weights: Optional[ConvNeXt_Base_Weights] = None, progress: bool = True, **kwargs: Any) -> QuantizableConvNeXt:
+def convnext_base(
+    *,
+    weights: Optional[ConvNeXt_Base_Weights] = None,
+    progress: bool = True,
+    **kwargs: Any,
+) -> QuantizableConvNeXt:
     """ConvNeXt Base model architecture from the
     `A ConvNet for the 2020s <https://arxiv.org/abs/2201.03545>`_ paper.
 
@@ -414,7 +443,10 @@ def convnext_base(*, weights: Optional[ConvNeXt_Base_Weights] = None, progress: 
 
 @handle_legacy_interface(weights=("pretrained", ConvNeXt_Large_Weights.IMAGENET1K_V1))
 def convnext_large(
-    *, weights: Optional[ConvNeXt_Large_Weights] = None, progress: bool = True, **kwargs: Any
+    *,
+    weights: Optional[ConvNeXt_Large_Weights] = None,
+    progress: bool = True,
+    **kwargs: Any,
 ) -> QuantizableConvNeXt:
     """ConvNeXt Large model architecture from the
     `A ConvNet for the 2020s <https://arxiv.org/abs/2201.03545>`_ paper.
