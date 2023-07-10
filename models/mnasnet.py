@@ -559,31 +559,45 @@ def fuse_mnasnet(model: nn.Module, is_qat: bool = False) -> None:
     for module_name, module in model.named_children():
         if module_name == "layers":
             _fuse_modules(
-                model,
+                module,
                 is_qat=is_qat,
-                modules_to_fuse=[["0", "1", "2"], ["3", "4", "5"], ["6", "7"]],
+                modules_to_fuse=[
+                    ["0", "1", "2"],  # Conv-BN-ReLU
+                    ["3", "4", "5"],  # Conv-BN-ReLU
+                    ["6", "7"],  # Conv-BN
+                    ["14", "15", "16"],  # Conv-BN-ReLU
+                ],
                 inplace=True,
             )
 
-        for block_name, block in module.named_children():
-            if isinstance(block, _InvertedResidual):
-                _fuse_modules(
-                    model,
-                    is_qat=is_qat,
-                    modules_to_fuse=[["0", "1", "2"], ["3", "4", "5"], ["6", "7"], ["14", "15", "16"]],
-                    inplace=True,
-                )
+            for block_name, block in module.named_children():
+                if isinstance(block, nn.Sequential):
+                    for sub_block_name, sub_block in block.named_children():
+                        if isinstance(sub_block, _InvertedResidual):
+                            _fuse_modules(
+                                sub_block.layers,
+                                is_qat=is_qat,
+                                modules_to_fuse=[
+                                    ["0", "1", "2"],  # Conv-BN-ReLU
+                                    ["3", "4", "5"],  # Conv-BN-ReLU
+                                    ["6", "7"],  # Conv-BN
+                                ],
+                                inplace=True,
+                            )
 
 
 if __name__ == "__main__":
-    model = mnasnet1_0(quantize=True, is_qat=False)
+    # model = mnasnet0_5(quantize=True, is_qat=False)
+    # model = mnasnet0_75(quantize=True, is_qat=False)
+    # model = mnasnet1_0(quantize=True, is_qat=False)
+    model = mnasnet1_3(quantize=True, is_qat=True)
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
     model(input)
     torch.ao.quantization.convert(model, inplace=True)
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
-    mse = cal_mse(dummy_output, dummy_output_fp, norm=True)
+    mse = cal_mse(dummy_output, dummy_output_fp, norm=False)
 
     from utils.onnx_utils import convert_onnx
 
