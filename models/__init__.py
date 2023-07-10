@@ -6,3 +6,4 @@ from .efficientnet import *
 from .mobilenetv2 import *
 from .mobilenetv3 import *
 from .experimental import *
+from .squeezenet import *

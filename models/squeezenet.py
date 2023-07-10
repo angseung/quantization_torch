@@ -8,13 +8,16 @@ import torch.nn.init as init
 
 from torchvision.transforms._presets import ImageClassification
 from torchvision.utils import _log_api_usage_once
+from torch.ao.quantization import DeQuantStub, QuantStub
+from torch.ao.nn.quantized import FloatFunctional
+from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
-from utils.quantization_utils import cal_mse
+from utils.quantization_utils import cal_mse, get_platform_aware_qconfig
 
 
-__all__ = ["SqueezeNet", "SqueezeNet1_0_Weights", "SqueezeNet1_1_Weights", "squeezenet1_0", "squeezenet1_1"]
+__all__ = ["QuantizableSqueezeNet", "SqueezeNet1_0_Weights", "SqueezeNet1_1_Weights", "squeezenet1_0", "squeezenet1_1"]
 
 
 class Fire(nn.Module):
@@ -35,11 +38,15 @@ class Fire(nn.Module):
         )
 
 
-class SqueezeNet(nn.Module):
+class QuantizableSqueezeNet(nn.Module):
     def __init__(self, version: str = "1_0", num_classes: int = 1000, dropout: float = 0.5) -> None:
         super().__init__()
         _log_api_usage_once(self)
         self.num_classes = num_classes
+
+        self.quant = QuantStub()
+        self.dequant = DeQuantStub()
+
         if version == "1_0":
             self.features = nn.Sequential(
                 nn.Conv2d(3, 96, kernel_size=7, stride=2),
@@ -93,22 +100,49 @@ class SqueezeNet(nn.Module):
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def fuse_model(self, is_qat: bool):
+        fuse_squeezenet(self, is_qat)
+
+    def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:
         x = self.features(x)
         x = self.classifier(x)
         return torch.flatten(x, 1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.quant(x)
+        x = self._forward_impl(x)
+        x = self.dequant(x)
+        return x
 
 
 def _squeezenet(
     version: str,
     weights: Optional[WeightsEnum],
     progress: bool,
+    quantize: bool,
+    is_qat: bool,
     **kwargs: Any,
-) -> SqueezeNet:
+) -> QuantizableSqueezeNet:
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     if weights is not None:
         _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
 
-    model = SqueezeNet(version, **kwargs)
+    model = QuantizableSqueezeNet(version, **kwargs)
+    model.eval()
+
+    if quantize:
+        if is_qat:
+            model.fuse_model(is_qat=True)
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+        else:
+            model.fuse_model(is_qat=False)
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress))
@@ -167,8 +201,8 @@ class SqueezeNet1_1_Weights(WeightsEnum):
 
 @handle_legacy_interface(weights=("pretrained", SqueezeNet1_0_Weights.IMAGENET1K_V1))
 def squeezenet1_0(
-    *, weights: Optional[SqueezeNet1_0_Weights] = None, progress: bool = True, **kwargs: Any
-) -> SqueezeNet:
+    *, weights: Optional[SqueezeNet1_0_Weights] = None, progress: bool = True, quantize=False, is_qat=False, **kwargs: Any
+) -> QuantizableSqueezeNet:
     """SqueezeNet model architecture from the `SqueezeNet: AlexNet-level
     accuracy with 50x fewer parameters and <0.5MB model size
     <https://arxiv.org/abs/1602.07360>`_ paper.
@@ -181,6 +215,8 @@ def squeezenet1_0(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.squeezenet.SqueezeNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/squeezenet.py>`_
@@ -190,13 +226,13 @@ def squeezenet1_0(
         :members:
     """
     weights = SqueezeNet1_0_Weights.verify(weights)
-    return _squeezenet("1_0", weights, progress, **kwargs)
+    return _squeezenet("1_0", weights, progress, quantize, is_qat, **kwargs)
 
 
 @handle_legacy_interface(weights=("pretrained", SqueezeNet1_1_Weights.IMAGENET1K_V1))
 def squeezenet1_1(
-    *, weights: Optional[SqueezeNet1_1_Weights] = None, progress: bool = True, **kwargs: Any
-) -> SqueezeNet:
+    *, weights: Optional[SqueezeNet1_1_Weights] = None, progress: bool = True, quantize: bool, is_qat: bool, **kwargs: Any
+) -> QuantizableSqueezeNet:
     """SqueezeNet 1.1 model from the `official SqueezeNet repo
     <https://github.com/DeepScale/SqueezeNet/tree/master/SqueezeNet_v1.1>`_.
 
@@ -211,6 +247,8 @@ def squeezenet1_1(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.squeezenet.SqueezeNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/squeezenet.py>`_
@@ -220,15 +258,45 @@ def squeezenet1_1(
         :members:
     """
     weights = SqueezeNet1_1_Weights.verify(weights)
-    return _squeezenet("1_1", weights, progress, **kwargs)
+    return _squeezenet("1_1", weights, progress, quantize, is_qat, **kwargs)
 
 
 def fuse_squeezenet(model: nn.Module, is_qat: bool = False) -> None:
-    pass
+    for module_name, module in model.named_children():
+        if isinstance(module, nn.Sequential):
+            if module_name == "features":
+                _fuse_modules(
+                    module,
+                    [["0", "1"]],
+                    is_qat=is_qat,
+                    inplace=True,
+                )
+
+                for _, block in module.named_children():
+                    if isinstance(block, Fire):
+                        _fuse_modules(
+                            block,
+                            [
+                                ["squeeze", "squeeze_activation"],
+                                ["expand1x1", "expand1x1_activation"],
+                                ["expand3x3", "expand3x3_activation"],
+                            ],
+                            is_qat=is_qat,
+                            inplace=True,
+                        )
+
+            elif module_name == "classifier":
+                _fuse_modules(
+                    module,
+                    [["1", "2"]],
+                    is_qat=is_qat,
+                    inplace=True,
+                )
 
 
 if __name__ == "__main__":
-    model = squeezenet1_0(quantize=True, is_qat=False)
+    # model = squeezenet1_0(quantize=True, is_qat=False)
+    model = squeezenet1_1(quantize=True, is_qat=False)
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
     model(input)
@@ -238,4 +306,4 @@ if __name__ == "__main__":
     mse = cal_mse(dummy_output, dummy_output_fp, norm=True)
 
     from utils.onnx_utils import convert_onnx
-    convert_onnx(model, "../onnx/squeezenet_qint8.onnx", opset=13)
+    convert_onnx(model, "../onnx/squeezenet1_1_qint8.onnx", opset=13)

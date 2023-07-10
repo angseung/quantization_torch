@@ -8,6 +8,7 @@ from models.__init__ import (
     QuantizableMobileNetV2,
     QuantizableMobileNetV3,
     QuantizableEfficientNet,
+    QuantizableSqueezeNet,
 )
 
 
@@ -43,6 +44,7 @@ def check_optimized_opset(model: nn.Module) -> int:
         QuantizableMobileNetV2,
         QuantizableMobileNetV3,
         QuantizableYoloBackbone,
+        QuantizableSqueezeNet,
     ]:
         return 13
 
