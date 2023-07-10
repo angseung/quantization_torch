@@ -420,6 +420,9 @@ def _efficientnet(
         inverted_residual_setting, dropout, last_channel=last_channel, **kwargs
     )
 
+    if weights is not None:
+        model.load_state_dict(weights.get_state_dict(progress=progress))
+
     model.eval()
 
     if quantize:
@@ -432,9 +435,6 @@ def _efficientnet(
             model.fuse_model(is_qat=False)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model, inplace=True)
-
-    if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
 
     return model
 

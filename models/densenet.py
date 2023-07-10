@@ -302,6 +302,10 @@ def _densenet(
         torch.backends.quantized.engine = "qnnpack"
 
     model = QuantizableDenseNet(growth_rate, block_config, num_init_features, **kwargs)
+
+    if weights is not None:
+        _load_state_dict(model=model, weights=weights, progress=progress)
+
     model.eval()
 
     if quantize:
@@ -312,9 +316,6 @@ def _densenet(
         else:
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model, inplace=True)
-
-    if weights is not None:
-        _load_state_dict(model=model, weights=weights, progress=progress)
 
     return model
 
