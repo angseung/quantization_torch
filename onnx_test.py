@@ -46,14 +46,20 @@ if __name__ == "__main__":
             model=model,
             fname=f"./onnx/{model.__class__.__name__}_test.onnx",
             input_size=input_shape,
-            opset=13
+            opset=13,
         )
         onnx.checker.check_model(f"./onnx/{model.__class__.__name__}_test.onnx", True)
 
-        onnx_model = onnxruntime.InferenceSession(f"./onnx/{model.__class__.__name__}_test.onnx")
-        onnx_inputs = {onnx_model.get_inputs()[0].name: dummy_input.detach().cpu().numpy()}
+        onnx_model = onnxruntime.InferenceSession(
+            f"./onnx/{model.__class__.__name__}_test.onnx"
+        )
+        onnx_inputs = {
+            onnx_model.get_inputs()[0].name: dummy_input.detach().cpu().numpy()
+        }
         onnx_output = onnx_model.run(None, onnx_inputs)[0]
-        nmse = cal_mse(torch.from_numpy(onnx_output), torch.from_numpy(torch_output), norm=False)
+        nmse = cal_mse(
+            torch.from_numpy(onnx_output), torch.from_numpy(torch_output), norm=False
+        )
 
         if nmse >= 1e-3:
             print(f"{model.__class__.__name__} failed, mse: {nmse: .6f}")

@@ -16,29 +16,49 @@ from torchvision.models._utils import _ovewrite_named_param, handle_legacy_inter
 from utils.quantization_utils import cal_mse, get_platform_aware_qconfig
 
 
-__all__ = ["QuantizableSqueezeNet", "SqueezeNet1_0_Weights", "SqueezeNet1_1_Weights", "squeezenet1_0", "squeezenet1_1"]
+__all__ = [
+    "QuantizableSqueezeNet",
+    "SqueezeNet1_0_Weights",
+    "SqueezeNet1_1_Weights",
+    "squeezenet1_0",
+    "squeezenet1_1",
+]
 
 
 class Fire(nn.Module):
-    def __init__(self, inplanes: int, squeeze_planes: int, expand1x1_planes: int, expand3x3_planes: int) -> None:
+    def __init__(
+        self,
+        inplanes: int,
+        squeeze_planes: int,
+        expand1x1_planes: int,
+        expand3x3_planes: int,
+    ) -> None:
         super().__init__()
         self.inplanes = inplanes
         self.squeeze = nn.Conv2d(inplanes, squeeze_planes, kernel_size=1)
         self.squeeze_activation = nn.ReLU(inplace=True)
         self.expand1x1 = nn.Conv2d(squeeze_planes, expand1x1_planes, kernel_size=1)
         self.expand1x1_activation = nn.ReLU(inplace=True)
-        self.expand3x3 = nn.Conv2d(squeeze_planes, expand3x3_planes, kernel_size=3, padding=1)
+        self.expand3x3 = nn.Conv2d(
+            squeeze_planes, expand3x3_planes, kernel_size=3, padding=1
+        )
         self.expand3x3_activation = nn.ReLU(inplace=True)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.squeeze_activation(self.squeeze(x))
         return torch.cat(
-            [self.expand1x1_activation(self.expand1x1(x)), self.expand3x3_activation(self.expand3x3(x))], 1
+            [
+                self.expand1x1_activation(self.expand1x1(x)),
+                self.expand3x3_activation(self.expand3x3(x)),
+            ],
+            1,
         )
 
 
 class QuantizableSqueezeNet(nn.Module):
-    def __init__(self, version: str = "1_0", num_classes: int = 1000, dropout: float = 0.5) -> None:
+    def __init__(
+        self, version: str = "1_0", num_classes: int = 1000, dropout: float = 0.5
+    ) -> None:
         super().__init__()
         _log_api_usage_once(self)
         self.num_classes = num_classes
@@ -82,12 +102,17 @@ class QuantizableSqueezeNet(nn.Module):
             # FIXME: Is this needed? SqueezeNet should only be called from the
             # FIXME: squeezenet1_x() functions
             # FIXME: This checking is not done for the other models
-            raise ValueError(f"Unsupported SqueezeNet version {version}: 1_0 or 1_1 expected")
+            raise ValueError(
+                f"Unsupported SqueezeNet version {version}: 1_0 or 1_1 expected"
+            )
 
         # Final convolution is initialized differently from the rest
         final_conv = nn.Conv2d(512, self.num_classes, kernel_size=1)
         self.classifier = nn.Sequential(
-            nn.Dropout(p=dropout), final_conv, nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1))
+            nn.Dropout(p=dropout),
+            final_conv,
+            nn.ReLU(inplace=True),
+            nn.AdaptiveAvgPool2d((1, 1)),
         )
 
         for m in self.modules():
@@ -200,7 +225,12 @@ class SqueezeNet1_1_Weights(WeightsEnum):
 
 @handle_legacy_interface(weights=("pretrained", SqueezeNet1_0_Weights.IMAGENET1K_V1))
 def squeezenet1_0(
-    *, weights: Optional[SqueezeNet1_0_Weights] = None, progress: bool = True, quantize=False, is_qat=False, **kwargs: Any
+    *,
+    weights: Optional[SqueezeNet1_0_Weights] = None,
+    progress: bool = True,
+    quantize=False,
+    is_qat=False,
+    **kwargs: Any,
 ) -> QuantizableSqueezeNet:
     """SqueezeNet model architecture from the `SqueezeNet: AlexNet-level
     accuracy with 50x fewer parameters and <0.5MB model size
@@ -230,7 +260,12 @@ def squeezenet1_0(
 
 @handle_legacy_interface(weights=("pretrained", SqueezeNet1_1_Weights.IMAGENET1K_V1))
 def squeezenet1_1(
-    *, weights: Optional[SqueezeNet1_1_Weights] = None, progress: bool = True, quantize: bool, is_qat: bool, **kwargs: Any
+    *,
+    weights: Optional[SqueezeNet1_1_Weights] = None,
+    progress: bool = True,
+    quantize: bool,
+    is_qat: bool,
+    **kwargs: Any,
 ) -> QuantizableSqueezeNet:
     """SqueezeNet 1.1 model from the `official SqueezeNet repo
     <https://github.com/DeepScale/SqueezeNet/tree/master/SqueezeNet_v1.1>`_.
@@ -305,4 +340,5 @@ if __name__ == "__main__":
     mse = cal_mse(dummy_output, dummy_output_fp, norm=True)
 
     from utils.onnx_utils import convert_onnx
+
     convert_onnx(model, "../onnx/squeezenet1_1_qint8.onnx", opset=13)
