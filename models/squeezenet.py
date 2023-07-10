@@ -9,7 +9,6 @@ import torch.nn.init as init
 from torchvision.transforms._presets import ImageClassification
 from torchvision.utils import _log_api_usage_once
 from torch.ao.quantization import DeQuantStub, QuantStub
-from torch.ao.nn.quantized import FloatFunctional
 from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _IMAGENET_CATEGORIES
