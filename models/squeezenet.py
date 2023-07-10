@@ -266,7 +266,7 @@ def fuse_squeezenet(model: nn.Module, is_qat: bool = False) -> None:
             if module_name == "features":
                 _fuse_modules(
                     module,
-                    [["0", "1"]],
+                    [["0", "1"]],  # Conv-ReLU
                     is_qat=is_qat,
                     inplace=True,
                 )
@@ -276,9 +276,9 @@ def fuse_squeezenet(model: nn.Module, is_qat: bool = False) -> None:
                         _fuse_modules(
                             block,
                             [
-                                ["squeeze", "squeeze_activation"],
-                                ["expand1x1", "expand1x1_activation"],
-                                ["expand3x3", "expand3x3_activation"],
+                                ["squeeze", "squeeze_activation"],  # Conv-ReLU
+                                ["expand1x1", "expand1x1_activation"],  # Conv-ReLU
+                                ["expand3x3", "expand3x3_activation"],  # Conv-ReLU
                             ],
                             is_qat=is_qat,
                             inplace=True,
@@ -287,7 +287,7 @@ def fuse_squeezenet(model: nn.Module, is_qat: bool = False) -> None:
             elif module_name == "classifier":
                 _fuse_modules(
                     module,
-                    [["1", "2"]],
+                    [["1", "2"]],  # Conv-ReLU
                     is_qat=is_qat,
                     inplace=True,
                 )
