@@ -590,7 +590,7 @@ if __name__ == "__main__":
     # model = mnasnet0_5(quantize=True, is_qat=False)
     # model = mnasnet0_75(quantize=True, is_qat=False)
     # model = mnasnet1_0(quantize=True, is_qat=False)
-    model = mnasnet1_3(quantize=True, is_qat=True)
+    model = mnasnet1_3(quantize=True, is_qat=False)
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
     model(input)
@@ -602,3 +602,4 @@ if __name__ == "__main__":
     from utils.onnx_utils import convert_onnx
 
     convert_onnx(model, "../onnx/mnasnet_qint8.onnx", opset=13)
+    convert_onnx(model_fp, "../onnx/mnasnet_fp32.onnx", opset=13)

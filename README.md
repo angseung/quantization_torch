@@ -6,17 +6,17 @@
 
 ### 1.1.1. Classification
 
-| Model | Quantized version is available in torchvision | Implemented Manually |
-| --- | --- | --- |
-| ResNet18 | Y | Y |
-| ResNet34 | N | Y |
-| ResNet50 | Y | Y |
-| ResNet101 | N | Y |
-| ResNet152 | N | Y |
-| DenseNet121 | N | Y |
-| DenseNet161 | N | Y |
-| DenseNet169 | N | Y |
-| DenseNet201 | N | Y |
+| Model          | Quantized version is available in torchvision | Implemented Manually |
+|----------------| --- | --- |
+| ResNet18       | Y | Y |
+| ResNet34       | N | Y |
+| ResNet50       | Y | Y |
+| ResNet101      | N | Y |
+| ResNet152      | N | Y |
+| DenseNet121    | N | Y |
+| DenseNet161    | N | Y |
+| DenseNet169    | N | Y |
+| DenseNet201    | N | Y |
 | EfficientNetB0 | N | 양자화 미지원 |
 | EfficientNetB1 | N | 양자화 미지원 |
 | EfficientNetB2 | N | 양자화 미지원 |
@@ -25,17 +25,20 @@
 | EfficientNetB5 | N | 양자화 미지원 |
 | EfficientNetB6 | N | 양자화 미지원 |
 | EfficientNetB7 | N | 양자화 미지원 |
-| MobileNetV2 | Y | Y |
-| MobileNetV3 | Y | Y |
-| WideResNet50 | N | Y |
-| WideResNet101 | N | Y |
-| ResNext50 | N | Y |
-| ResNext101 | N | Y |
+| MobileNetV2    | Y | Y |
+| MobileNetV3    | Y | Y |
+| WideResNet50   | N | Y |
+| WideResNet101  | N | Y |
+| ResNext50      | N | Y |
+| ResNext101     | N | Y |
 | SqueezeNet 1.0 | N | Y |
 | SqueezeNet 1.1 | N | Y |
-| MNASNet |  |  |
-| ConvNeXt |  |  |
-| RegNet |  |  |
+| MNASNet 0.5    | N | Y |
+| MNASNet 0.75   | N | Y |
+| MNASNet 1.0    | N | Y |
+| MNASNet 1.3    | N | Y |
+| ConvNeXt       |  |  |
+| RegNet         |  |  |
 
 ### 1.1.2. Detection
 
@@ -144,18 +147,21 @@
 
 - 2차 지원 모델군
 
-| Model | Quantization Support | FP32 model ONNX Export Support | Quantized model ONNX Export Support | ONNX opset |
-| --- | --- | --- | --- | --- |
+| Model          | Quantization Support | FP32 model ONNX Export Support | Quantized model ONNX Export Support | ONNX opset |
+|----------------| --- | --- | --- | --- |
 | SqueezeNet 1.0 | PTQ, QAT | Y | Y | 13 |
 | SqueezeNet 1.1 | PTQ, QAT | Y | Y | 13 |
-| MNASNet |  |  |  |  |
-| ConvNeXt |  |  |  |  |
-| RegNet |  |  |  |  |
-| RetinaNet |  |  |  |  |
-| SSD |  |  |  |  |
-| SSDLite |  |  |  |  |
-| FCOS |  |  |  |  |
-| FPN |  |  |  |  |
-| DeepLabV3 |  |  |  |  |
-| LRASPP |  |  |  |  |
-| Mask R-CNN |  |  |  |  |
+| MNASNet_0,5    | PTQ, QAT | Y | Y | 13 |
+| MNASNet_0,75   | PTQ, QAT | Y | Y | 13 |
+| MNASNet_1.0    | PTQ, QAT | Y | Y | 13 |
+| MNASNet_1.3    | PTQ, QAT | Y | Y | 13 |
+| ConvNeXt       |  |  |  |  |
+| RegNet         |  |  |  |  |
+| RetinaNet      |  |  |  |  |
+| SSD            |  |  |  |  |
+| SSDLite        |  |  |  |  |
+| FCOS           |  |  |  |  |
+| FPN            |  |  |  |  |
+| DeepLabV3      |  |  |  |  |
+| LRASPP         |  |  |  |  |
+| Mask R-CNN     |  |  |  |  |

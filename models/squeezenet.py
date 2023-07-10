@@ -342,3 +342,4 @@ if __name__ == "__main__":
     from utils.onnx_utils import convert_onnx
 
     convert_onnx(model, "../onnx/squeezenet1_1_qint8.onnx", opset=13)
+    convert_onnx(model_fp, "../onnx/squeezenet1_1_fp32.onnx", opset=13)
