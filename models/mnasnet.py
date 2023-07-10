@@ -392,6 +392,10 @@ def _mnasnet(
         _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
 
     model = QuantizableMNASNet(alpha, **kwargs)
+
+    if weights:
+        model.load_state_dict(weights.get_state_dict(progress=progress))
+
     model.eval()
 
     if quantize:
@@ -404,9 +408,6 @@ def _mnasnet(
             model.fuse_model(is_qat=False)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model, inplace=True)
-
-    if weights:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
 
     return model
 

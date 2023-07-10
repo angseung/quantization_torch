@@ -305,6 +305,11 @@ def _resnet(arch, block, layers, pretrained, progress, quantize, is_qat, **kwarg
         torch.backends.quantized.engine = "qnnpack"
 
     model = QuantizableResNet(block, layers, **kwargs)
+
+    if pretrained:
+        state_dict = load_state_dict_from_url(model_urls[arch], progress=progress)
+        model.load_state_dict(state_dict)
+
     model.eval()
 
     if quantize:
@@ -317,10 +322,6 @@ def _resnet(arch, block, layers, pretrained, progress, quantize, is_qat, **kwarg
             model.fuse_model(is_qat=False)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model, inplace=True)
-
-    if pretrained:
-        state_dict = load_state_dict_from_url(model_urls[arch], progress=progress)
-        model.load_state_dict(state_dict)
 
     return model
 

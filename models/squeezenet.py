@@ -155,6 +155,10 @@ def _squeezenet(
         _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
 
     model = QuantizableSqueezeNet(version, **kwargs)
+
+    if weights is not None:
+        model.load_state_dict(weights.get_state_dict(progress=progress))
+
     model.eval()
 
     if quantize:
@@ -167,9 +171,6 @@ def _squeezenet(
             model.fuse_model(is_qat=False)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model, inplace=True)
-
-    if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
 
     return model
 
