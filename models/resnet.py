@@ -300,32 +300,14 @@ class QuantizableResNet(nn.Module):
         return x
 
 
-class QuantizableResNetBackbone(QuantizableResNet):
-    def _forward_impl(self, x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
-
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-
-        return x
-
-
 def _resnet(
-    arch, block, layers, pretrained, progress, quantize, is_qat, backbone_only, **kwargs
+    arch, block, layers, pretrained, progress, quantize, is_qat, **kwargs
 ):
     backend = get_platform_aware_qconfig()
     if backend == "qnnpack":
         torch.backends.quantized.engine = "qnnpack"
 
-    if backbone_only:
-        model = QuantizableResNetBackbone(block, layers, **kwargs)
-    else:
-        model = QuantizableResNet(block, layers, **kwargs)
+    model = QuantizableResNet(block, layers, **kwargs)
 
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch], progress=progress)
@@ -426,7 +408,6 @@ def resnet50(
         progress,
         quantize,
         is_qat,
-        backbone_only,
         **kwargs
     )
 

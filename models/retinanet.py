@@ -84,38 +84,22 @@ class RetinaNetHead(nn.Module):
         num_anchors,
         num_classes,
         norm_layer: Optional[Callable[..., nn.Module]] = None,
-        quantize=False,
-        is_qat=False,
     ):
         super().__init__()
-
-        backend = get_platform_aware_qconfig()
-        if backend == "qnnpack":
-            torch.backends.quantized.engine = "qnnpack"
-
-        if quantize:
-            if is_qat:
-                self.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
-            else:
-                self.qconfig = torch.ao.quantization.get_default_qconfig(backend)
 
         self.classification_head = RetinaNetClassificationHead(
             in_channels,
             num_anchors,
             num_classes,
             norm_layer=norm_layer,
-            quantize=quantize,
-            is_qat=is_qat,
         )
         self.regression_head = RetinaNetRegressionHead(
             in_channels,
             num_anchors,
             norm_layer=norm_layer,
-            quantize=quantize,
-            is_qat=is_qat,
         )
-        self.quant = QuantStub(self.qconfig)
-        self.dequant = DeQuantStub(self.qconfig)
+        self.quant = QuantStub()
+        self.dequant = DeQuantStub()
 
     def compute_loss(self, targets, head_outputs, anchors, matched_idxs):
         # type: (List[Dict[str, Tensor]], Dict[str, Tensor], List[Tensor], List[Tensor]) -> Dict[str, Tensor]
@@ -160,8 +144,6 @@ class RetinaNetClassificationHead(nn.Module):
         num_classes,
         prior_probability=0.01,
         norm_layer: Optional[Callable[..., nn.Module]] = None,
-        quantize=False,
-        is_qat=False,
     ):
         super().__init__()
 
@@ -298,8 +280,6 @@ class RetinaNetRegressionHead(nn.Module):
         in_channels,
         num_anchors,
         norm_layer: Optional[Callable[..., nn.Module]] = None,
-        quantize=False,
-        is_qat=False,
     ):
         super().__init__()
 
@@ -519,8 +499,6 @@ class RetinaNet(nn.Module):
         fg_iou_thresh=0.5,
         bg_iou_thresh=0.4,
         topk_candidates=1000,
-        quantize=False,
-        is_qat=False,
         **kwargs,
     ):
         super().__init__()
@@ -533,16 +511,6 @@ class RetinaNet(nn.Module):
                 "same for all the levels)"
             )
         self.backbone = backbone
-
-        backend = get_platform_aware_qconfig()
-        if backend == "qnnpack":
-            torch.backends.quantized.engine = "qnnpack"
-
-        if quantize:
-            if is_qat:
-                self.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
-            else:
-                self.qconfig = torch.ao.quantization.get_default_qconfig(backend)
 
         if not isinstance(anchor_generator, (AnchorGenerator, type(None))):
             raise TypeError(
@@ -558,12 +526,8 @@ class RetinaNet(nn.Module):
                 backbone.out_channels,
                 anchor_generator.num_anchors_per_location()[0],
                 num_classes,
-                quantize=quantize,
-                is_qat=is_qat,
             )
         self.head = head
-        # self.quant = QuantStub(self.qconfig)
-        # self.dequant = DeQuantStub(self.qconfig)
 
         if proposal_matcher is None:
             proposal_matcher = det_utils.Matcher(
@@ -970,10 +934,8 @@ def retinanet_resnet50_fpn(
         trainable_backbone_layers,
         returned_layers=[2, 3, 4],
         extra_blocks=LastLevelP6P7(256, 256),
-        quantize=quantize,
-        is_qat=is_qat,
     )
-    model = RetinaNet(backbone, num_classes, quantize=quantize, is_qat=is_qat, **kwargs)
+    model = RetinaNet(backbone, num_classes, quantize=quantize, **kwargs)
     model.eval()
 
     if quantize:
@@ -1082,8 +1044,6 @@ def retinanet_resnet50_fpn_v2(
         trainable_backbone_layers,
         returned_layers=[2, 3, 4],
         extra_blocks=LastLevelP6P7(2048, 256),
-        quantize=quantize,
-        is_qat=is_qat,
     )
     anchor_generator = _default_anchorgen()
     head = RetinaNetHead(
@@ -1091,8 +1051,6 @@ def retinanet_resnet50_fpn_v2(
         anchor_generator.num_anchors_per_location()[0],
         num_classes,
         norm_layer=partial(nn.GroupNorm, 32),
-        quantize=quantize,
-        is_qat=is_qat,
     )
     head.regression_head._loss_type = "giou"
     model = RetinaNet(
@@ -1115,15 +1073,20 @@ def retinanet_resnet50_fpn_v2(
             model.backbone.fpn.qconfig = torch.ao.quantization.get_default_qat_qconfig(
                 backend
             )
+            model.head.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
             model.train()
             torch.ao.quantization.prepare_qat(model.backbone, inplace=True)
             torch.ao.quantization.prepare_qat(model.head, inplace=True)
+
         else:
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.backbone.fpn.qconfig = torch.ao.quantization.get_default_qconfig(
                 backend
             )
+            model.head.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model.backbone, inplace=True)
             torch.ao.quantization.prepare(model.head, inplace=True)
 
@@ -1147,8 +1110,8 @@ def fuse_retinanet_head(model: nn.Module, is_qat: bool) -> None:
 if __name__ == "__main__":
     import time
 
-    model = retinanet_resnet50_fpn(quantize=True, is_qat=True)
-    # model = retinanet_resnet50_fpn_v2(quantize=True, is_qat=True)
+    model = retinanet_resnet50_fpn(quantize=True, is_qat=False)
+    # model = retinanet_resnet50_fpn_v2(quantize=True, is_qat=False)
     model.eval()
     model_fp = copy.deepcopy(model)
     x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
