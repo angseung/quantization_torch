@@ -1,4 +1,5 @@
 import copy
+from typing import Tuple
 import torch
 import torch.nn as nn
 from torch.utils.model_zoo import load_url as load_state_dict_from_url
@@ -299,12 +300,30 @@ class QuantizableResNet(nn.Module):
         return x
 
 
-def _resnet(arch, block, layers, pretrained, progress, quantize, is_qat, **kwargs):
+class QuantizableResNetBackbone(QuantizableResNet):
+    def _forward_impl(self, x):
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+
+        return x
+
+
+def _resnet(arch, block, layers, pretrained, progress, quantize, is_qat, backbone_only, **kwargs):
     backend = get_platform_aware_qconfig()
     if backend == "qnnpack":
         torch.backends.quantized.engine = "qnnpack"
 
-    model = QuantizableResNet(block, layers, **kwargs)
+    if backbone_only:
+        model = QuantizableResNetBackbone(block, layers, **kwargs)
+    else:
+        model = QuantizableResNet(block, layers, **kwargs)
 
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch], progress=progress)
@@ -326,7 +345,7 @@ def _resnet(arch, block, layers, pretrained, progress, quantize, is_qat, **kwarg
     return model
 
 
-def resnet18(pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs):
+def resnet18(pretrained=False, progress=True, quantize=False, is_qat=False, backbone_only=False, **kwargs):
     r"""ResNet-18 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_
 
@@ -335,6 +354,7 @@ def resnet18(pretrained=False, progress=True, quantize=False, is_qat=False, **kw
         progress (bool): If True, displays a progress bar of the download to stderr
         quantize
         is_qat
+        backbone_only
     """
     return _resnet(
         "resnet18",
@@ -344,6 +364,7 @@ def resnet18(pretrained=False, progress=True, quantize=False, is_qat=False, **kw
         progress,
         quantize,
         is_qat,
+        backbone_only,
         **kwargs
     )
 
@@ -370,7 +391,7 @@ def resnet34(pretrained=False, progress=True, quantize=False, is_qat=False, **kw
     )
 
 
-def resnet50(pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs):
+def resnet50(pretrained=False, progress=True, quantize=False, is_qat=False, backbone_only=False, **kwargs):
     r"""ResNet-50 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_
 
@@ -379,6 +400,7 @@ def resnet50(pretrained=False, progress=True, quantize=False, is_qat=False, **kw
         progress (bool): If True, displays a progress bar of the download to stderr
         quantize
         is_qat
+        backbone_only
     """
     return _resnet(
         "resnet50",
@@ -388,6 +410,7 @@ def resnet50(pretrained=False, progress=True, quantize=False, is_qat=False, **kw
         progress,
         quantize,
         is_qat,
+        backbone_only,
         **kwargs
     )
 

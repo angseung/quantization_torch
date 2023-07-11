@@ -15,6 +15,7 @@ from torchvision.ops.feature_pyramid_network import LastLevelP6P7
 from torchvision.transforms._presets import ObjectDetection
 from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.utils import _log_api_usage_once
+from torchvision.ops import Conv2dNormActivation
 from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _COCO_CATEGORIES
 from torchvision.models._utils import _ovewrite_value_param, handle_legacy_interface
@@ -513,6 +514,8 @@ class RetinaNet(nn.Module):
                 num_classes,
             )
         self.head = head
+        self.quant = QuantStub()
+        self.dequant = DeQuantStub()
 
         if proposal_matcher is None:
             proposal_matcher = det_utils.Matcher(
@@ -706,7 +709,9 @@ class RetinaNet(nn.Module):
         features = list(features.values())
 
         # compute the retinanet heads outputs using the features
+        features = self.quant(features)
         head_outputs = self.head(features)
+        head_outputs = self.dequant(head_outputs)
 
         # create the set of anchors
         anchors = self.anchor_generator(images, features)
@@ -753,6 +758,10 @@ class RetinaNet(nn.Module):
                 self._has_warned = True
             return losses, detections
         return self.eager_outputs(losses, detections)
+
+    def fuse_model(self, is_qat: bool = False):
+        # self.backbone.fuse_model(is_qat)
+        fuse_retinanet_head(self.head, is_qat=is_qat)
 
 
 _COMMON_META = {
@@ -997,3 +1006,39 @@ def retinanet_resnet50_fpn_v2(
         model.load_state_dict(weights.get_state_dict(progress=progress))
 
     return model
+
+
+def fuse_retinanet_head(model: nn.Module, is_qat: bool) -> None:
+    for module_name, module in model.named_children():
+        if isinstance(module, Conv2dNormActivation):
+            _fuse_modules(module, modules_to_fuse=[["0", "1"]], is_qat=is_qat, inplace=True)
+
+        else:
+            fuse_retinanet_head(module, is_qat=is_qat)
+
+
+if __name__ == "__main__":
+    from models.resnet import resnet50
+    backbone = resnet50(quantize=True, is_qat=False, backbone_only=True)
+    backbone.out_channels = 2048
+    anchor_generator = AnchorGenerator(
+        sizes=((32, 64, 128, 256, 512),), aspect_ratios=((0.5, 1.0, 2.0),)
+    )
+
+    # put the pieces together inside a RetinaNet model
+    model = RetinaNet(backbone, num_classes=2, anchor_generator=anchor_generator)
+    model.eval()
+    model_fp = copy.deepcopy(model)
+    model.fuse_model()
+    x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
+
+    model(x)
+    torch.ao.quantization.convert(model.backbone, inplace=True)
+    torch.ao.quantization.convert(model.head, inplace=True)
+    dummy_output = model(x)
+    dummy_output_fp = model_fp(x)
+    mse = cal_mse(dummy_output, dummy_output_fp, norm=True)
+
+    from utils.onnx_utils import convert_onnx
+
+    convert_onnx(model, "../onnx/retinanet_qint8.onnx", opset=13)
