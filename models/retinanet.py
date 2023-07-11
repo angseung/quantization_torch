@@ -924,6 +924,7 @@ def retinanet_resnet50_fpn(
     )
 
     backbone = resnet50(
+        pretrained=False,
         progress=progress,
         quantize=quantize,
         is_qat=is_qat,
@@ -1038,7 +1039,7 @@ def retinanet_resnet50_fpn_v2(
         is_trained, trainable_backbone_layers, 5, 3
     )
 
-    backbone = resnet50(progress=progress, quantize=quantize, is_qat=is_qat)
+    backbone = resnet50(pretrained=False, progress=progress, quantize=quantize, is_qat=is_qat)
     backbone = _resnet_fpn_extractor(
         backbone,
         trainable_backbone_layers,
