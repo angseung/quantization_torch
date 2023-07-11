@@ -4,6 +4,7 @@ it overrides torchvision.models.detection.backbone_utils
 import warnings
 from typing import Callable, Dict, List, Optional, Union
 
+import torch
 from torch import nn, Tensor
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torchvision.ops import misc as misc_nn_ops
@@ -13,6 +14,7 @@ from torchvision.models import mobilenet, resnet
 from torchvision.models._api import _get_enum_from_fn, WeightsEnum
 from torchvision.models._utils import handle_legacy_interface, IntermediateLayerGetter
 from ops.feature_pyramid_network import ExtraFPNBlock, FeaturePyramidNetwork, LastLevelMaxPool
+from utils.quantization_utils import get_platform_aware_qconfig
 
 
 class BackboneWithFPN(nn.Module):
@@ -49,6 +51,12 @@ class BackboneWithFPN(nn.Module):
         if extra_blocks is None:
             extra_blocks = LastLevelMaxPool()
 
+        backend = get_platform_aware_qconfig()
+        if backend == "qnnpack":
+            torch.backends.quantized.engine = "qnnpack"
+
+        self.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+
         self.body = IntermediateLayerGetter(backbone, return_layers=return_layers)
         self.body.quant = nn.Identity()
         self.body.dequant = nn.Identity()
@@ -59,14 +67,14 @@ class BackboneWithFPN(nn.Module):
             norm_layer=norm_layer,
         )
         self.out_channels = out_channels
-        self.quant = QuantStub()
-        self.dequant = [DeQuantStub()] * 5
+        self.quant = QuantStub(self.qconfig)
+        self.dequant = DeQuantStub(self.qconfig)
 
     def forward(self, x: Tensor) -> Dict[str, Tensor]:
         x = self.quant(x)
         x = self.body(x)
         x = self.fpn(x)
-        x = {x_key: destub(x_val) for destub, x_key, x_val in zip(self.dequant, x.keys(), x.values())}
+        x = {key: self.dequant(val) for key, val in x.items()}
 
         return x
 

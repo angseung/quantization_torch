@@ -516,8 +516,7 @@ class RetinaNet(nn.Module):
                 num_classes,
             )
         self.head = head
-        self.quant = [QuantStub()] * 5
-        # self.dequant = [DeQuantStub()] * 5
+        self.quant = QuantStub()
         self.dequant = DeQuantStub()
 
         if proposal_matcher is None:
@@ -930,12 +929,15 @@ def retinanet_resnet50_fpn(
         if is_qat:
             # model.fuse_model(is_qat=True)
             model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.backbone.fpn.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.train()
             torch.ao.quantization.prepare_qat(model.backbone, inplace=True)
         else:
             # model.fuse_model(is_qat=False)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.backbone.fpn.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model.backbone, inplace=True)
 
     if weights is not None:
@@ -1044,31 +1046,6 @@ if __name__ == "__main__":
     model = retinanet_resnet50_fpn(quantize=True, is_qat=False)
     model.eval()
     x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
-    # model(x)
-    torch.ao.quantization.convert(model.backbone, inplace=True)
-    torch.ao.quantization.convert(model.backbone.fpn, inplace=True)
-    model(x)
-
-    backbone = resnet50(quantize=True, is_qat=False, backbone_only=False)
-    backbone.out_channels = 2048
-    anchor_generator = AnchorGenerator(
-        sizes=((32, 64, 128, 256, 512),), aspect_ratios=((0.5, 1.0, 2.0),)
-    )
-
-    # put the pieces together inside a RetinaNet model
-    model = RetinaNet(backbone, num_classes=2, anchor_generator=anchor_generator)
-    model.eval()
-    model_fp = copy.deepcopy(model)
-    model.fuse_model()
-    x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
-
     model(x)
     torch.ao.quantization.convert(model.backbone, inplace=True)
-    torch.ao.quantization.convert(model.head, inplace=True)
-    dummy_output = model(x)
-    dummy_output_fp = model_fp(x)
-    mse = cal_mse(dummy_output, dummy_output_fp, norm=True)
-
-    from utils.onnx_utils import convert_onnx
-
-    convert_onnx(model, "../onnx/retinanet_qint8.onnx", opset=13)
+    predictions = model(x)
