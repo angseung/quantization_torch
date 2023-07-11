@@ -45,6 +45,8 @@ class BackboneWithFPN(nn.Module):
         out_channels: int,
         extra_blocks: Optional[ExtraFPNBlock] = None,
         norm_layer: Optional[Callable[..., nn.Module]] = None,
+        quantize: bool = False,
+        is_qat: bool = False,
     ) -> None:
         super().__init__()
 
@@ -55,7 +57,11 @@ class BackboneWithFPN(nn.Module):
         if backend == "qnnpack":
             torch.backends.quantized.engine = "qnnpack"
 
-        self.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+        if quantize:
+            if is_qat:
+                self.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            else:
+                self.qconfig = torch.ao.quantization.get_default_qconfig(backend)
 
         self.body = IntermediateLayerGetter(backbone, return_layers=return_layers)
         self.body.quant = nn.Identity()
@@ -139,6 +145,8 @@ def _resnet_fpn_extractor(
     returned_layers: Optional[List[int]] = None,
     extra_blocks: Optional[ExtraFPNBlock] = None,
     norm_layer: Optional[Callable[..., nn.Module]] = None,
+    quantize: bool = False,
+    is_qat: bool = False,
 ) -> BackboneWithFPN:
 
     # select layers that won't be frozen
@@ -164,7 +172,7 @@ def _resnet_fpn_extractor(
     in_channels_list = [in_channels_stage2 * 2 ** (i - 1) for i in returned_layers]
     out_channels = 256
     return BackboneWithFPN(
-        backbone, return_layers, in_channels_list, out_channels, extra_blocks=extra_blocks, norm_layer=norm_layer
+        backbone, return_layers, in_channels_list, out_channels, extra_blocks=extra_blocks, norm_layer=norm_layer, quantize=quantize, is_qat=is_qat,
     )
 
 

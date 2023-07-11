@@ -921,6 +921,8 @@ def retinanet_resnet50_fpn(
         trainable_backbone_layers,
         returned_layers=[2, 3, 4],
         extra_blocks=LastLevelP6P7(256, 256),
+        quantize=quantize,
+        is_qat=is_qat,
     )
     model = RetinaNet(backbone, num_classes, **kwargs)
     model.eval()
@@ -1043,7 +1045,7 @@ def fuse_retinanet_head(model: nn.Module, is_qat: bool) -> None:
 
 
 if __name__ == "__main__":
-    model = retinanet_resnet50_fpn(quantize=True, is_qat=False)
+    model = retinanet_resnet50_fpn(quantize=True, is_qat=True)
     model.eval()
     x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
     model(x)
