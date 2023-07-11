@@ -1086,10 +1086,21 @@ def fuse_retinanet_head(model: nn.Module, is_qat: bool) -> None:
 
 
 if __name__ == "__main__":
-    # model = retinanet_resnet50_fpn(quantize=True, is_qat=True)
-    model = retinanet_resnet50_fpn_v2(quantize=True, is_qat=False)
+    import time
+    model = retinanet_resnet50_fpn(quantize=True, is_qat=False)
+    # model = retinanet_resnet50_fpn_v2(quantize=True, is_qat=False)
     model.eval()
+    model_fp = copy.deepcopy(model)
     x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
     model(x)
     torch.ao.quantization.convert(model.backbone, inplace=True)
+
+    start = time.time()
     predictions = model(x)
+    elapsed_quant = time.time() - start
+
+    start = time.time()
+    predictions_fp = model_fp(x)
+    elapsed_fp = time.time() - start
+
+    print(f"latency_quant: {elapsed_quant: .2f}, latency_fp: {elapsed_fp: .2f}")
