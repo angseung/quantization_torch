@@ -1,4 +1,5 @@
 import copy
+from typing import Tuple
 import torch
 import torch.nn as nn
 from torch.utils.model_zoo import load_url as load_state_dict_from_url
@@ -326,7 +327,14 @@ def _resnet(arch, block, layers, pretrained, progress, quantize, is_qat, **kwarg
     return model
 
 
-def resnet18(pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs):
+def resnet18(
+    pretrained=False,
+    progress=True,
+    quantize=False,
+    is_qat=False,
+    backbone_only=False,
+    **kwargs
+):
     r"""ResNet-18 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_
 
@@ -335,6 +343,7 @@ def resnet18(pretrained=False, progress=True, quantize=False, is_qat=False, **kw
         progress (bool): If True, displays a progress bar of the download to stderr
         quantize
         is_qat
+        backbone_only
     """
     return _resnet(
         "resnet18",
@@ -344,6 +353,7 @@ def resnet18(pretrained=False, progress=True, quantize=False, is_qat=False, **kw
         progress,
         quantize,
         is_qat,
+        backbone_only,
         **kwargs
     )
 
@@ -370,7 +380,14 @@ def resnet34(pretrained=False, progress=True, quantize=False, is_qat=False, **kw
     )
 
 
-def resnet50(pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs):
+def resnet50(
+    pretrained=False,
+    progress=True,
+    quantize=False,
+    is_qat=False,
+    backbone_only=False,
+    **kwargs
+):
     r"""ResNet-50 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_
 
@@ -379,6 +396,7 @@ def resnet50(pretrained=False, progress=True, quantize=False, is_qat=False, **kw
         progress (bool): If True, displays a progress bar of the download to stderr
         quantize
         is_qat
+        backbone_only
     """
     return _resnet(
         "resnet50",

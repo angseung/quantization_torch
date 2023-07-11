@@ -1865,7 +1865,9 @@ if __name__ == "__main__":
         # regnet_y_16gf(quantize=True, is_qat=False),
         # regnet_y_32gf(quantize=True, is_qat=False),
         # regnet_y_128gf(quantize=True, is_qat=False),
-        regnet_x_400mf(quantize=True, is_qat=False),  # it can load weight, but advanced calibration is needed
+        regnet_x_400mf(
+            quantize=True, is_qat=False
+        ),  # it can load weight, but advanced calibration is needed
         regnet_x_800mf(quantize=True, is_qat=False),
         regnet_x_1_6gf(quantize=True, is_qat=False),
         regnet_x_3_2gf(quantize=True, is_qat=False),
