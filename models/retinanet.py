@@ -19,16 +19,18 @@ from torchvision.ops import Conv2dNormActivation
 from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _COCO_CATEGORIES
 from torchvision.models._utils import _ovewrite_value_param, handle_legacy_interface
-from torchvision.models.resnet import resnet50, ResNet50_Weights
+from torchvision.models.resnet import ResNet50_Weights
 from torchvision.models.detection import _utils as det_utils
 from torchvision.models.detection._utils import _box_loss, overwrite_eps
 from torchvision.models.detection.anchor_utils import AnchorGenerator
-from torchvision.models.detection.backbone_utils import (
+from torchvision.models.detection.transform import GeneralizedRCNNTransform
+
+from utils.backbone_utils import (
     _resnet_fpn_extractor,
     _validate_trainable_layers,
 )
-from torchvision.models.detection.transform import GeneralizedRCNNTransform
 from utils.quantization_utils import cal_mse, get_platform_aware_qconfig
+from models.resnet import resnet50
 
 __all__ = [
     "RetinaNet",
@@ -514,8 +516,8 @@ class RetinaNet(nn.Module):
                 num_classes,
             )
         self.head = head
-        self.quant = QuantStub()
-        self.dequant = DeQuantStub()
+        self.quant = [QuantStub()] * 5
+        self.dequant = [DeQuantStub()] * 2
 
         if proposal_matcher is None:
             proposal_matcher = det_utils.Matcher(
@@ -709,9 +711,12 @@ class RetinaNet(nn.Module):
         features = list(features.values())
 
         # compute the retinanet heads outputs using the features
-        features = self.quant(features)
+
+        # features = self.quant(features)
+        features = [stub(feat) for stub, feat in zip(self.quant, features)]
         head_outputs = self.head(features)
-        head_outputs = self.dequant(head_outputs)
+        # head_outputs = self.dequant(head_outputs)
+        head_outputs = {head_key: destub(head_val) for destub, head_key, head_val in zip(self.dequant, head_outputs.keys(), head_outputs.values())}
 
         # create the set of anchors
         anchors = self.anchor_generator(images, features)
@@ -823,6 +828,8 @@ def retinanet_resnet50_fpn(
     num_classes: Optional[int] = None,
     weights_backbone: Optional[ResNet50_Weights] = ResNet50_Weights.IMAGENET1K_V1,
     trainable_backbone_layers: Optional[int] = None,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> RetinaNet:
     """
@@ -878,6 +885,8 @@ def retinanet_resnet50_fpn(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) layers starting from final block.
             Valid values are between 0 and 5, with 5 meaning all backbone layers are trainable. If ``None`` is
             passed (the default) this value is set to 3.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.detection.RetinaNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/retinanet.py>`_
@@ -886,6 +895,10 @@ def retinanet_resnet50_fpn(
     .. autoclass:: torchvision.models.detection.RetinaNet_ResNet50_FPN_Weights
         :members:
     """
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     weights = RetinaNet_ResNet50_FPN_Weights.verify(weights)
     weights_backbone = ResNet50_Weights.verify(weights_backbone)
 
@@ -901,10 +914,10 @@ def retinanet_resnet50_fpn(
     trainable_backbone_layers = _validate_trainable_layers(
         is_trained, trainable_backbone_layers, 5, 3
     )
-    norm_layer = misc_nn_ops.FrozenBatchNorm2d if is_trained else nn.BatchNorm2d
 
     backbone = resnet50(
-        weights=weights_backbone, progress=progress, norm_layer=norm_layer
+        # weights=weights_backbone, progress=progress, norm_layer=norm_layer
+        progress=progress, quantize=quantize, is_qat=is_qat, backbone_only=False,
     )
     # skip P2 because it generates too many anchors (according to their paper)
     backbone = _resnet_fpn_extractor(
@@ -914,6 +927,18 @@ def retinanet_resnet50_fpn(
         extra_blocks=LastLevelP6P7(256, 256),
     )
     model = RetinaNet(backbone, num_classes, **kwargs)
+    model.eval()
+
+    if quantize:
+        if is_qat:
+            model.fuse_model(is_qat=True)
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+        else:
+            model.fuse_model(is_qat=False)
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress))
@@ -1018,8 +1043,18 @@ def fuse_retinanet_head(model: nn.Module, is_qat: bool) -> None:
 
 
 if __name__ == "__main__":
-    from models.resnet import resnet50
-    backbone = resnet50(quantize=True, is_qat=False, backbone_only=True)
+    from torchvision.models.detection.retinanet import retinanet_resnet50_fpn as retinanet_resnet50_fpn_ori
+    model_ori = retinanet_resnet50_fpn_ori()
+    model_ori.eval()
+    model = retinanet_resnet50_fpn(quantize=True, is_qat=False)
+    model.eval()
+    x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
+    model(x)
+    torch.ao.quantization.convert(model.backbone, inplace=True)
+    torch.ao.quantization.convert(model.head, inplace=True)
+    model(x)
+
+    backbone = resnet50(quantize=True, is_qat=False, backbone_only=False)
     backbone.out_channels = 2048
     anchor_generator = AnchorGenerator(
         sizes=((32, 64, 128, 256, 512),), aspect_ratios=((0.5, 1.0, 2.0),)
