@@ -90,10 +90,19 @@ class FeaturePyramidNetwork(nn.Module):
             if in_channels == 0:
                 raise ValueError("in_channels=0 is currently not supported")
             inner_block_module = Conv2dNormActivation(
-                in_channels, out_channels, kernel_size=1, padding=0, norm_layer=norm_layer, activation_layer=None
+                in_channels,
+                out_channels,
+                kernel_size=1,
+                padding=0,
+                norm_layer=norm_layer,
+                activation_layer=None,
             )
             layer_block_module = Conv2dNormActivation(
-                out_channels, out_channels, kernel_size=3, norm_layer=norm_layer, activation_layer=None
+                out_channels,
+                out_channels,
+                kernel_size=3,
+                norm_layer=norm_layer,
+                activation_layer=None,
             )
             self.inner_blocks.append(inner_block_module)
             self.layer_blocks.append(layer_block_module)
@@ -107,7 +116,9 @@ class FeaturePyramidNetwork(nn.Module):
 
         if extra_blocks is not None:
             if not isinstance(extra_blocks, ExtraFPNBlock):
-                raise TypeError(f"extra_blocks should be of type ExtraFPNBlock not {type(extra_blocks)}")
+                raise TypeError(
+                    f"extra_blocks should be of type ExtraFPNBlock not {type(extra_blocks)}"
+                )
         self.extra_blocks = extra_blocks
         self.skip_add = FloatFunctional()
 

@@ -315,7 +315,9 @@ class QuantizableResNetBackbone(QuantizableResNet):
         return x
 
 
-def _resnet(arch, block, layers, pretrained, progress, quantize, is_qat, backbone_only, **kwargs):
+def _resnet(
+    arch, block, layers, pretrained, progress, quantize, is_qat, backbone_only, **kwargs
+):
     backend = get_platform_aware_qconfig()
     if backend == "qnnpack":
         torch.backends.quantized.engine = "qnnpack"
@@ -345,7 +347,14 @@ def _resnet(arch, block, layers, pretrained, progress, quantize, is_qat, backbon
     return model
 
 
-def resnet18(pretrained=False, progress=True, quantize=False, is_qat=False, backbone_only=False, **kwargs):
+def resnet18(
+    pretrained=False,
+    progress=True,
+    quantize=False,
+    is_qat=False,
+    backbone_only=False,
+    **kwargs
+):
     r"""ResNet-18 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_
 
@@ -391,7 +400,14 @@ def resnet34(pretrained=False, progress=True, quantize=False, is_qat=False, **kw
     )
 
 
-def resnet50(pretrained=False, progress=True, quantize=False, is_qat=False, backbone_only=False, **kwargs):
+def resnet50(
+    pretrained=False,
+    progress=True,
+    quantize=False,
+    is_qat=False,
+    backbone_only=False,
+    **kwargs
+):
     r"""ResNet-50 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_
 

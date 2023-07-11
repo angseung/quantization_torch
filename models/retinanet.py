@@ -912,8 +912,9 @@ def retinanet_resnet50_fpn(
     )
 
     backbone = resnet50(
-        # weights=weights_backbone, progress=progress, norm_layer=norm_layer
-        progress=progress, quantize=quantize, is_qat=is_qat, backbone_only=False,
+        progress=progress,
+        quantize=quantize,
+        is_qat=is_qat,
     )
     # skip P2 because it generates too many anchors (according to their paper)
     backbone = _resnet_fpn_extractor(
@@ -931,15 +932,21 @@ def retinanet_resnet50_fpn(
         if is_qat:
             # model.fuse_model(is_qat=True)
             model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
-            model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
-            model.backbone.fpn.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.backbone.fpn.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
             model.train()
             torch.ao.quantization.prepare_qat(model.backbone, inplace=True)
         else:
             # model.fuse_model(is_qat=False)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
-            model.backbone.fpn.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.backbone.fpn.qconfig = torch.ao.quantization.get_default_qconfig(
+                backend
+            )
             torch.ao.quantization.prepare(model.backbone, inplace=True)
 
     if weights is not None:
@@ -961,6 +968,8 @@ def retinanet_resnet50_fpn_v2(
     num_classes: Optional[int] = None,
     weights_backbone: Optional[ResNet50_Weights] = None,
     trainable_backbone_layers: Optional[int] = None,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> RetinaNet:
     """
@@ -986,6 +995,8 @@ def retinanet_resnet50_fpn_v2(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) layers starting from final block.
             Valid values are between 0 and 5, with 5 meaning all backbone layers are trainable. If ``None`` is
             passed (the default) this value is set to 3.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.detection.RetinaNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/retinanet.py>`_
@@ -994,6 +1005,10 @@ def retinanet_resnet50_fpn_v2(
     .. autoclass:: torchvision.models.detection.RetinaNet_ResNet50_FPN_V2_Weights
         :members:
     """
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     weights = RetinaNet_ResNet50_FPN_V2_Weights.verify(weights)
     weights_backbone = ResNet50_Weights.verify(weights_backbone)
 
@@ -1010,12 +1025,14 @@ def retinanet_resnet50_fpn_v2(
         is_trained, trainable_backbone_layers, 5, 3
     )
 
-    backbone = resnet50(weights=weights_backbone, progress=progress)
+    backbone = resnet50(progress=progress, quantize=quantize, is_qat=is_qat)
     backbone = _resnet_fpn_extractor(
         backbone,
         trainable_backbone_layers,
         returned_layers=[2, 3, 4],
         extra_blocks=LastLevelP6P7(2048, 256),
+        quantize=quantize,
+        is_qat=is_qat,
     )
     anchor_generator = _default_anchorgen()
     head = RetinaNetHead(
@@ -1028,6 +1045,28 @@ def retinanet_resnet50_fpn_v2(
     model = RetinaNet(
         backbone, num_classes, anchor_generator=anchor_generator, head=head, **kwargs
     )
+    model.eval()
+
+    if quantize:
+        if is_qat:
+            # model.fuse_model(is_qat=True)
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.backbone.fpn.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.train()
+            torch.ao.quantization.prepare_qat(model.backbone, inplace=True)
+        else:
+            # model.fuse_model(is_qat=False)
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.backbone.fpn.qconfig = torch.ao.quantization.get_default_qconfig(
+                backend
+            )
+            torch.ao.quantization.prepare(model.backbone, inplace=True)
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress))
@@ -1038,14 +1077,17 @@ def retinanet_resnet50_fpn_v2(
 def fuse_retinanet_head(model: nn.Module, is_qat: bool) -> None:
     for module_name, module in model.named_children():
         if isinstance(module, Conv2dNormActivation):
-            _fuse_modules(module, modules_to_fuse=[["0", "1"]], is_qat=is_qat, inplace=True)
+            _fuse_modules(
+                module, modules_to_fuse=[["0", "1"]], is_qat=is_qat, inplace=True
+            )
 
         else:
             fuse_retinanet_head(module, is_qat=is_qat)
 
 
 if __name__ == "__main__":
-    model = retinanet_resnet50_fpn(quantize=True, is_qat=True)
+    # model = retinanet_resnet50_fpn(quantize=True, is_qat=True)
+    model = retinanet_resnet50_fpn_v2(quantize=True, is_qat=False)
     model.eval()
     x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
     model(x)
