@@ -11,7 +11,6 @@ from torch.ao.quantization import DeQuantStub, QuantStub
 from torch.ao.nn.quantized import FloatFunctional
 
 from torchvision.ops import boxes as box_ops, misc as misc_nn_ops, sigmoid_focal_loss
-from torchvision.ops.feature_pyramid_network import LastLevelP6P7
 from torchvision.transforms._presets import ObjectDetection
 from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.utils import _log_api_usage_once
@@ -30,6 +29,7 @@ from utils.backbone_utils import (
     _validate_trainable_layers,
 )
 from utils.quantization_utils import cal_mse, get_platform_aware_qconfig
+from ops.feature_pyramid_network import LastLevelP6P7
 from models.resnet import resnet50
 
 __all__ = [
@@ -517,7 +517,8 @@ class RetinaNet(nn.Module):
             )
         self.head = head
         self.quant = [QuantStub()] * 5
-        self.dequant = [DeQuantStub()] * 2
+        # self.dequant = [DeQuantStub()] * 5
+        self.dequant = DeQuantStub()
 
         if proposal_matcher is None:
             proposal_matcher = det_utils.Matcher(
@@ -704,19 +705,15 @@ class RetinaNet(nn.Module):
 
         # get the features from the backbone
         features = self.backbone(images.tensors)
+
         if isinstance(features, torch.Tensor):
             features = OrderedDict([("0", features)])
 
         # TODO: Do we want a list or a dict?
-        features = list(features.values())
+        features = list(features.values())  # qint8
 
         # compute the retinanet heads outputs using the features
-
-        # features = self.quant(features)
-        features = [stub(feat) for stub, feat in zip(self.quant, features)]
         head_outputs = self.head(features)
-        # head_outputs = self.dequant(head_outputs)
-        head_outputs = {head_key: destub(head_val) for destub, head_key, head_val in zip(self.dequant, head_outputs.keys(), head_outputs.values())}
 
         # create the set of anchors
         anchors = self.anchor_generator(images, features)
@@ -938,6 +935,7 @@ def retinanet_resnet50_fpn(
         else:
             # model.fuse_model(is_qat=False)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model.backbone, inplace=True)
 
     if weights is not None:
@@ -1048,7 +1046,7 @@ if __name__ == "__main__":
     x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
     # model(x)
     torch.ao.quantization.convert(model.backbone, inplace=True)
-    # torch.ao.quantization.convert(model.head, inplace=True)
+    torch.ao.quantization.convert(model.backbone.fpn, inplace=True)
     model(x)
 
     backbone = resnet50(quantize=True, is_qat=False, backbone_only=False)

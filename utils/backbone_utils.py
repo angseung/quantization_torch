@@ -7,11 +7,12 @@ from typing import Callable, Dict, List, Optional, Union
 from torch import nn, Tensor
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torchvision.ops import misc as misc_nn_ops
-from torchvision.ops.feature_pyramid_network import ExtraFPNBlock, FeaturePyramidNetwork, LastLevelMaxPool
+# from torchvision.ops.feature_pyramid_network import ExtraFPNBlock, FeaturePyramidNetwork, LastLevelMaxPool
 
 from torchvision.models import mobilenet, resnet
 from torchvision.models._api import _get_enum_from_fn, WeightsEnum
 from torchvision.models._utils import handle_legacy_interface, IntermediateLayerGetter
+from ops.feature_pyramid_network import ExtraFPNBlock, FeaturePyramidNetwork, LastLevelMaxPool
 
 
 class BackboneWithFPN(nn.Module):
@@ -49,6 +50,8 @@ class BackboneWithFPN(nn.Module):
             extra_blocks = LastLevelMaxPool()
 
         self.body = IntermediateLayerGetter(backbone, return_layers=return_layers)
+        self.body.quant = nn.Identity()
+        self.body.dequant = nn.Identity()
         self.fpn = FeaturePyramidNetwork(
             in_channels_list=in_channels_list,
             out_channels=out_channels,
