@@ -300,9 +300,7 @@ class QuantizableResNet(nn.Module):
         return x
 
 
-def _resnet(
-    arch, block, layers, pretrained, progress, quantize, is_qat, **kwargs
-):
+def _resnet(arch, block, layers, pretrained, progress, quantize, is_qat, **kwargs):
     backend = get_platform_aware_qconfig()
     if backend == "qnnpack":
         torch.backends.quantized.engine = "qnnpack"
