@@ -71,11 +71,18 @@ class QuantizableSSDHead(nn.Module):
             in_channels, num_anchors, num_classes
         )
         self.regression_head = QuantizableSSDRegressionHead(in_channels, num_anchors)
+        self.quant = QuantStub()
+        self.dequant_class = DeQuantStub()
+        self.dequant_bbox = DeQuantStub()
 
     def forward(self, x: List[Tensor]) -> Dict[str, Tensor]:
+        x = [self.quant(xi) for xi in x]
+        bbox_regression = self.regression_head(x)
+        class_logits = self.classification_head(x)
+
         return {
-            "bbox_regression": self.regression_head(x),
-            "cls_logits": self.classification_head(x),
+            "bbox_regression": self.dequant_bbox(bbox_regression),
+            "cls_logits": self.dequant_class(class_logits),
         }
 
 
@@ -745,7 +752,7 @@ def ssd300_vgg16(
     )
 
     # Use custom backbones more appropriate for SSD
-    backbone = vgg16(weights=weights_backbone, progress=progress)
+    backbone = vgg16(weights=weights_backbone, progress=progress, quantize=quantize, is_qat=is_qat)
     backbone = _vgg_extractor(backbone, False, trainable_backbone_layers)
     anchor_generator = DefaultBoxGenerator(
         [[2], [2, 3], [2, 3], [2, 3], [2], [2]],
@@ -793,4 +800,9 @@ def ssd300_vgg16(
 
 
 if __name__ == "__main__":
-    pass
+    dummy_input = torch.randn(1, 3, 224, 224)
+    model = ssd300_vgg16(quantize=True, is_qat=False)
+    model_fp = copy.deepcopy(model)
+    model(dummy_input)
+    torch.ao.quantization.convert(model, inplace=True)
+    dummy_output = model(dummy_input)
