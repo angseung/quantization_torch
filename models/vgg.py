@@ -189,11 +189,13 @@ def _vgg(
 
     if quantize:
         if is_qat:
+            model.fuse_model(is_qat=is_qat)
             model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.train()
             torch.ao.quantization.prepare_qat(model, inplace=True)
 
         else:
+            model.fuse_model(is_qat=is_qat)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model, inplace=True)
 
@@ -399,7 +401,7 @@ class VGG19_BN_Weights(WeightsEnum):
 
 @handle_legacy_interface(weights=("pretrained", VGG11_Weights.IMAGENET1K_V1))
 def vgg11(
-    *, weights: Optional[VGG11_Weights] = None, progress: bool = True, **kwargs: Any
+    *, weights: Optional[VGG11_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-11 from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
@@ -411,6 +413,8 @@ def vgg11(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -421,12 +425,12 @@ def vgg11(
     """
     weights = VGG11_Weights.verify(weights)
 
-    return _vgg("A", False, weights, progress, **kwargs)
+    return _vgg("A", False, weights, progress, quantize, is_qat, **kwargs)
 
 
 @handle_legacy_interface(weights=("pretrained", VGG11_BN_Weights.IMAGENET1K_V1))
 def vgg11_bn(
-    *, weights: Optional[VGG11_BN_Weights] = None, progress: bool = True, **kwargs: Any
+    *, weights: Optional[VGG11_BN_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-11-BN from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
@@ -438,6 +442,8 @@ def vgg11_bn(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -448,12 +454,12 @@ def vgg11_bn(
     """
     weights = VGG11_BN_Weights.verify(weights)
 
-    return _vgg("A", True, weights, progress, **kwargs)
+    return _vgg("A", True, weights, progress, quantize, is_qat, **kwargs)
 
 
 @handle_legacy_interface(weights=("pretrained", VGG13_Weights.IMAGENET1K_V1))
 def vgg13(
-    *, weights: Optional[VGG13_Weights] = None, progress: bool = True, **kwargs: Any
+    *, weights: Optional[VGG13_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-13 from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
@@ -465,6 +471,8 @@ def vgg13(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -475,12 +483,12 @@ def vgg13(
     """
     weights = VGG13_Weights.verify(weights)
 
-    return _vgg("B", False, weights, progress, **kwargs)
+    return _vgg("B", False, weights, progress, quantize, is_qat, **kwargs)
 
 
 @handle_legacy_interface(weights=("pretrained", VGG13_BN_Weights.IMAGENET1K_V1))
 def vgg13_bn(
-    *, weights: Optional[VGG13_BN_Weights] = None, progress: bool = True, **kwargs: Any
+    *, weights: Optional[VGG13_BN_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-13-BN from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
@@ -492,6 +500,8 @@ def vgg13_bn(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -502,12 +512,12 @@ def vgg13_bn(
     """
     weights = VGG13_BN_Weights.verify(weights)
 
-    return _vgg("B", True, weights, progress, **kwargs)
+    return _vgg("B", True, weights, progress, quantize, is_qat, **kwargs)
 
 
 @handle_legacy_interface(weights=("pretrained", VGG16_Weights.IMAGENET1K_V1))
 def vgg16(
-    *, weights: Optional[VGG16_Weights] = None, progress: bool = True, **kwargs: Any
+    *, weights: Optional[VGG16_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-16 from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
@@ -519,6 +529,8 @@ def vgg16(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -529,12 +541,12 @@ def vgg16(
     """
     weights = VGG16_Weights.verify(weights)
 
-    return _vgg("D", False, weights, progress, **kwargs)
+    return _vgg("D", False, weights, progress, quantize, is_qat, **kwargs)
 
 
 @handle_legacy_interface(weights=("pretrained", VGG16_BN_Weights.IMAGENET1K_V1))
 def vgg16_bn(
-    *, weights: Optional[VGG16_BN_Weights] = None, progress: bool = True, **kwargs: Any
+    *, weights: Optional[VGG16_BN_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-16-BN from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
@@ -546,6 +558,8 @@ def vgg16_bn(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -556,12 +570,12 @@ def vgg16_bn(
     """
     weights = VGG16_BN_Weights.verify(weights)
 
-    return _vgg("D", True, weights, progress, **kwargs)
+    return _vgg("D", True, weights, progress, quantize, is_qat, **kwargs)
 
 
 @handle_legacy_interface(weights=("pretrained", VGG19_Weights.IMAGENET1K_V1))
 def vgg19(
-    *, weights: Optional[VGG19_Weights] = None, progress: bool = True, **kwargs: Any
+    *, weights: Optional[VGG19_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-19 from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
@@ -573,6 +587,8 @@ def vgg19(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -583,12 +599,12 @@ def vgg19(
     """
     weights = VGG19_Weights.verify(weights)
 
-    return _vgg("E", False, weights, progress, **kwargs)
+    return _vgg("E", False, weights, progress, quantize, is_qat, **kwargs)
 
 
 @handle_legacy_interface(weights=("pretrained", VGG19_BN_Weights.IMAGENET1K_V1))
 def vgg19_bn(
-    *, weights: Optional[VGG19_BN_Weights] = None, progress: bool = True, **kwargs: Any
+    *, weights: Optional[VGG19_BN_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-19_BN from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
@@ -600,6 +616,8 @@ def vgg19_bn(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -610,7 +628,7 @@ def vgg19_bn(
     """
     weights = VGG19_BN_Weights.verify(weights)
 
-    return _vgg("E", True, weights, progress, **kwargs)
+    return _vgg("E", True, weights, progress, quantize, is_qat, **kwargs)
 
 
 def fuse_vgg(model: nn.Module, version: str = "vgg16", is_qat: bool = False) -> None:
@@ -650,8 +668,6 @@ def fuse_vgg(model: nn.Module, version: str = "vgg16", is_qat: bool = False) -> 
                     ["17", "18"],
                     ["19", "20"],
                     ["21", "22"],
-                    ["19", "20"],
-                    ["21", "22"],
                     ["24", "25"],
                     ["26", "27"],
                     ["28", "29"],
@@ -664,4 +680,28 @@ def fuse_vgg(model: nn.Module, version: str = "vgg16", is_qat: bool = False) -> 
 
 
 if __name__ == "__main__":
-    model = vgg16_bn()
+    dummy_input = torch.randn(1, 3, 224, 224)
+    model_bn = vgg16_bn(quantize=True, is_qat=False)
+    model = vgg16(quantize=True, is_qat=False)
+    model_bn_fp = copy.deepcopy(model_bn)
+    model_fp = copy.deepcopy(model)
+
+    model(dummy_input)
+    model_bn(dummy_input)
+    dummy_output_fp = model_fp(dummy_input)
+    dummy_output_bn_fp = model_bn_fp(dummy_input)
+
+    torch.ao.quantization.convert(model_bn, inplace=True)
+    torch.ao.quantization.convert(model, inplace=True)
+
+    dummy_output = model(dummy_input)
+    dummy_output_bn = model_bn(dummy_input)
+
+    mse = cal_mse(dummy_output_bn, dummy_output_bn_fp, norm=True)
+    mse_bn = cal_mse(dummy_output, dummy_output_fp, norm=True)
+
+    # from utils.onnx_utils import convert_onnx
+    # convert_onnx(model_bn, "../onnx/vgg_bn_qint8.onnx", opset=13)  # success
+    # convert_onnx(model_bn_fp, "../onnx/vgg_bn_fp32.onnx", opset=13)  # success
+    # convert_onnx(model, "../onnx/vgg_qint8.onnx", opset=13)  # success
+    # convert_onnx(model_fp, "../onnx/vgg_fp32.onnx", opset=13)  # success
