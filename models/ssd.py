@@ -6,6 +6,9 @@ import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 
+from torch.ao.quantization import DeQuantStub, QuantStub
+from torch.ao.nn.quantized import FloatFunctional
+from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.ops import boxes as box_ops
 from torchvision.transforms._presets import ObjectDetection
 from torchvision.utils import _log_api_usage_once
@@ -17,6 +20,7 @@ from torchvision.models.detection import _utils as det_utils
 from torchvision.models.detection.anchor_utils import DefaultBoxGenerator
 from torchvision.models.detection.backbone_utils import _validate_trainable_layers
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
+from utils.quantization_utils import cal_mse, get_platform_aware_qconfig
 
 
 __all__ = [
@@ -56,9 +60,13 @@ def _xavier_init(conv: nn.Module):
 
 
 class SSDHead(nn.Module):
-    def __init__(self, in_channels: List[int], num_anchors: List[int], num_classes: int):
+    def __init__(
+        self, in_channels: List[int], num_anchors: List[int], num_classes: int
+    ):
         super().__init__()
-        self.classification_head = SSDClassificationHead(in_channels, num_anchors, num_classes)
+        self.classification_head = SSDClassificationHead(
+            in_channels, num_anchors, num_classes
+        )
         self.regression_head = SSDRegressionHead(in_channels, num_anchors)
 
     def forward(self, x: List[Tensor]) -> Dict[str, Tensor]:
@@ -106,10 +114,14 @@ class SSDScoringHead(nn.Module):
 
 
 class SSDClassificationHead(SSDScoringHead):
-    def __init__(self, in_channels: List[int], num_anchors: List[int], num_classes: int):
+    def __init__(
+        self, in_channels: List[int], num_anchors: List[int], num_classes: int
+    ):
         cls_logits = nn.ModuleList()
         for channels, anchors in zip(in_channels, num_anchors):
-            cls_logits.append(nn.Conv2d(channels, num_classes * anchors, kernel_size=3, padding=1))
+            cls_logits.append(
+                nn.Conv2d(channels, num_classes * anchors, kernel_size=3, padding=1)
+            )
         _xavier_init(cls_logits)
         super().__init__(cls_logits, num_classes)
 
@@ -231,7 +243,13 @@ class SSD(nn.Module):
         if image_std is None:
             image_std = [0.229, 0.224, 0.225]
         self.transform = GeneralizedRCNNTransform(
-            min(size), max(size), image_mean, image_std, size_divisible=1, fixed_size=size, **kwargs
+            min(size),
+            max(size),
+            image_mean,
+            image_std,
+            size_divisible=1,
+            fixed_size=size,
+            **kwargs,
         )
 
         self.score_thresh = score_thresh
@@ -275,16 +293,26 @@ class SSD(nn.Module):
         ) in zip(targets, bbox_regression, cls_logits, anchors, matched_idxs):
             # produce the matching between boxes and targets
             foreground_idxs_per_image = torch.where(matched_idxs_per_image >= 0)[0]
-            foreground_matched_idxs_per_image = matched_idxs_per_image[foreground_idxs_per_image]
+            foreground_matched_idxs_per_image = matched_idxs_per_image[
+                foreground_idxs_per_image
+            ]
             num_foreground += foreground_matched_idxs_per_image.numel()
 
             # Calculate regression loss
-            matched_gt_boxes_per_image = targets_per_image["boxes"][foreground_matched_idxs_per_image]
-            bbox_regression_per_image = bbox_regression_per_image[foreground_idxs_per_image, :]
+            matched_gt_boxes_per_image = targets_per_image["boxes"][
+                foreground_matched_idxs_per_image
+            ]
+            bbox_regression_per_image = bbox_regression_per_image[
+                foreground_idxs_per_image, :
+            ]
             anchors_per_image = anchors_per_image[foreground_idxs_per_image, :]
-            target_regression = self.box_coder.encode_single(matched_gt_boxes_per_image, anchors_per_image)
+            target_regression = self.box_coder.encode_single(
+                matched_gt_boxes_per_image, anchors_per_image
+            )
             bbox_loss.append(
-                torch.nn.functional.smooth_l1_loss(bbox_regression_per_image, target_regression, reduction="sum")
+                torch.nn.functional.smooth_l1_loss(
+                    bbox_regression_per_image, target_regression, reduction="sum"
+                )
             )
 
             # Estimate ground truth for class targets
@@ -303,16 +331,18 @@ class SSD(nn.Module):
 
         # Calculate classification loss
         num_classes = cls_logits.size(-1)
-        cls_loss = F.cross_entropy(cls_logits.view(-1, num_classes), cls_targets.view(-1), reduction="none").view(
-            cls_targets.size()
-        )
+        cls_loss = F.cross_entropy(
+            cls_logits.view(-1, num_classes), cls_targets.view(-1), reduction="none"
+        ).view(cls_targets.size())
 
         # Hard Negative Sampling
         foreground_idxs = cls_targets > 0
         num_negative = self.neg_to_pos_ratio * foreground_idxs.sum(1, keepdim=True)
         # num_negative[num_negative < self.neg_to_pos_ratio] = self.neg_to_pos_ratio
         negative_loss = cls_loss.clone()
-        negative_loss[foreground_idxs] = -float("inf")  # use -inf to detect positive values that creeped in the sample
+        negative_loss[foreground_idxs] = -float(
+            "inf"
+        )  # use -inf to detect positive values that creeped in the sample
         values, idx = negative_loss.sort(1, descending=True)
         # background_idxs = torch.logical_and(idx.sort(1)[1] < num_negative, torch.isfinite(values))
         background_idxs = idx.sort(1)[1] < num_negative
@@ -320,7 +350,10 @@ class SSD(nn.Module):
         N = max(1, num_foreground)
         return {
             "bbox_regression": bbox_loss.sum() / N,
-            "classification": (cls_loss[foreground_idxs].sum() + cls_loss[background_idxs].sum()) / N,
+            "classification": (
+                cls_loss[foreground_idxs].sum() + cls_loss[background_idxs].sum()
+            )
+            / N,
         }
 
     def forward(
@@ -338,7 +371,10 @@ class SSD(nn.Module):
                             f"Expected target boxes to be a tensor of shape [N, 4], got {boxes.shape}.",
                         )
                     else:
-                        torch._assert(False, f"Expected target boxes to be of type Tensor, got {type(boxes)}.")
+                        torch._assert(
+                            False,
+                            f"Expected target boxes to be of type Tensor, got {type(boxes)}.",
+                        )
 
         # get the original image sizes
         original_image_sizes: List[Tuple[int, int]] = []
@@ -391,28 +427,42 @@ class SSD(nn.Module):
                     if targets_per_image["boxes"].numel() == 0:
                         matched_idxs.append(
                             torch.full(
-                                (anchors_per_image.size(0),), -1, dtype=torch.int64, device=anchors_per_image.device
+                                (anchors_per_image.size(0),),
+                                -1,
+                                dtype=torch.int64,
+                                device=anchors_per_image.device,
                             )
                         )
                         continue
 
-                    match_quality_matrix = box_ops.box_iou(targets_per_image["boxes"], anchors_per_image)
+                    match_quality_matrix = box_ops.box_iou(
+                        targets_per_image["boxes"], anchors_per_image
+                    )
                     matched_idxs.append(self.proposal_matcher(match_quality_matrix))
 
                 losses = self.compute_loss(targets, head_outputs, anchors, matched_idxs)
         else:
-            detections = self.postprocess_detections(head_outputs, anchors, images.image_sizes)
-            detections = self.transform.postprocess(detections, images.image_sizes, original_image_sizes)
+            detections = self.postprocess_detections(
+                head_outputs, anchors, images.image_sizes
+            )
+            detections = self.transform.postprocess(
+                detections, images.image_sizes, original_image_sizes
+            )
 
         if torch.jit.is_scripting():
             if not self._has_warned:
-                warnings.warn("SSD always returns a (Losses, Detections) tuple in scripting")
+                warnings.warn(
+                    "SSD always returns a (Losses, Detections) tuple in scripting"
+                )
                 self._has_warned = True
             return losses, detections
         return self.eager_outputs(losses, detections)
 
     def postprocess_detections(
-        self, head_outputs: Dict[str, Tensor], image_anchors: List[Tensor], image_shapes: List[Tuple[int, int]]
+        self,
+        head_outputs: Dict[str, Tensor],
+        image_anchors: List[Tensor],
+        image_shapes: List[Tuple[int, int]],
     ) -> List[Dict[str, Tensor]]:
         bbox_regression = head_outputs["bbox_regression"]
         pred_scores = F.softmax(head_outputs["cls_logits"], dim=-1)
@@ -422,7 +472,9 @@ class SSD(nn.Module):
 
         detections: List[Dict[str, Tensor]] = []
 
-        for boxes, scores, anchors, image_shape in zip(bbox_regression, pred_scores, image_anchors, image_shapes):
+        for boxes, scores, anchors, image_shape in zip(
+            bbox_regression, pred_scores, image_anchors, image_shapes
+        ):
             boxes = self.box_coder.decode_single(boxes, anchors)
             boxes = box_ops.clip_boxes_to_image(boxes, image_shape)
 
@@ -443,14 +495,20 @@ class SSD(nn.Module):
 
                 image_boxes.append(box)
                 image_scores.append(score)
-                image_labels.append(torch.full_like(score, fill_value=label, dtype=torch.int64, device=device))
+                image_labels.append(
+                    torch.full_like(
+                        score, fill_value=label, dtype=torch.int64, device=device
+                    )
+                )
 
             image_boxes = torch.cat(image_boxes, dim=0)
             image_scores = torch.cat(image_scores, dim=0)
             image_labels = torch.cat(image_labels, dim=0)
 
             # non-maximum suppression
-            keep = box_ops.batched_nms(image_boxes, image_scores, image_labels, self.nms_thresh)
+            keep = box_ops.batched_nms(
+                image_boxes, image_scores, image_labels, self.nms_thresh
+            )
             keep = keep[: self.detections_per_img]
 
             detections.append(
@@ -467,7 +525,9 @@ class SSDFeatureExtractorVGG(nn.Module):
     def __init__(self, backbone: nn.Module, highres: bool):
         super().__init__()
 
-        _, _, maxpool3_pos, maxpool4_pos, _ = (i for i, layer in enumerate(backbone) if isinstance(layer, nn.MaxPool2d))
+        _, _, maxpool3_pos, maxpool4_pos, _ = (
+            i for i, layer in enumerate(backbone) if isinstance(layer, nn.MaxPool2d)
+        )
 
         # Patch ceil_mode for maxpool3 to get the same WxH output sizes as the paper
         backbone[maxpool3_pos].ceil_mode = True
@@ -520,8 +580,12 @@ class SSDFeatureExtractorVGG(nn.Module):
         _xavier_init(extra)
 
         fc = nn.Sequential(
-            nn.MaxPool2d(kernel_size=3, stride=1, padding=1, ceil_mode=False),  # add modified maxpool5
-            nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, padding=6, dilation=6),  # FC6 with atrous
+            nn.MaxPool2d(
+                kernel_size=3, stride=1, padding=1, ceil_mode=False
+            ),  # add modified maxpool5
+            nn.Conv2d(
+                in_channels=512, out_channels=1024, kernel_size=3, padding=6, dilation=6
+            ),  # FC6 with atrous
             nn.ReLU(inplace=True),
             nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=1),  # FC7
             nn.ReLU(inplace=True),
@@ -553,7 +617,9 @@ class SSDFeatureExtractorVGG(nn.Module):
 def _vgg_extractor(backbone: VGG, highres: bool, trainable_layers: int):
     backbone = backbone.features
     # Gather the indices of maxpools. These are the locations of output blocks.
-    stage_indices = [0] + [i for i, b in enumerate(backbone) if isinstance(b, nn.MaxPool2d)][:-1]
+    stage_indices = [0] + [
+        i for i, b in enumerate(backbone) if isinstance(b, nn.MaxPool2d)
+    ][:-1]
     num_stages = len(stage_indices)
 
     # find the index of the layer from which we won't freeze
@@ -561,7 +627,11 @@ def _vgg_extractor(backbone: VGG, highres: bool, trainable_layers: int):
         0 <= trainable_layers <= num_stages,
         f"trainable_layers should be in the range [0, {num_stages}]. Instead got {trainable_layers}",
     )
-    freeze_before = len(backbone) if trainable_layers == 0 else stage_indices[num_stages - trainable_layers]
+    freeze_before = (
+        len(backbone)
+        if trainable_layers == 0
+        else stage_indices[num_stages - trainable_layers]
+    )
 
     for b in backbone[:freeze_before]:
         for parameter in b.parameters():
@@ -581,6 +651,8 @@ def ssd300_vgg16(
     num_classes: Optional[int] = None,
     weights_backbone: Optional[VGG16_Weights] = VGG16_Weights.IMAGENET1K_FEATURES,
     trainable_backbone_layers: Optional[int] = None,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> SSD:
     """The SSD300 model is based on the `SSD: Single Shot MultiBox Detector
@@ -634,6 +706,8 @@ def ssd300_vgg16(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) layers starting from final block.
             Valid values are between 0 and 5, with 5 meaning all backbone layers are trainable. If ``None`` is
             passed (the default) this value is set to 4.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.detection.SSD``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/ssd.py>`_
@@ -642,6 +716,10 @@ def ssd300_vgg16(
     .. autoclass:: torchvision.models.detection.SSD300_VGG16_Weights
         :members:
     """
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     weights = SSD300_VGG16_Weights.verify(weights)
     weights_backbone = VGG16_Weights.verify(weights_backbone)
 
@@ -650,12 +728,17 @@ def ssd300_vgg16(
 
     if weights is not None:
         weights_backbone = None
-        num_classes = _ovewrite_value_param("num_classes", num_classes, len(weights.meta["categories"]))
+        num_classes = _ovewrite_value_param(
+            "num_classes", num_classes, len(weights.meta["categories"])
+        )
     elif num_classes is None:
         num_classes = 91
 
     trainable_backbone_layers = _validate_trainable_layers(
-        weights is not None or weights_backbone is not None, trainable_backbone_layers, 5, 4
+        weights is not None or weights_backbone is not None,
+        trainable_backbone_layers,
+        5,
+        4,
     )
 
     # Use custom backbones more appropriate for SSD
@@ -670,12 +753,39 @@ def ssd300_vgg16(
     defaults = {
         # Rescale the input in a way compatible to the backbone
         "image_mean": [0.48235, 0.45882, 0.40784],
-        "image_std": [1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0],  # undo the 0-1 scaling of toTensor
+        "image_std": [
+            1.0 / 255.0,
+            1.0 / 255.0,
+            1.0 / 255.0,
+        ],  # undo the 0-1 scaling of toTensor
     }
     kwargs: Any = {**defaults, **kwargs}
     model = SSD(backbone, anchor_generator, (300, 300), num_classes, **kwargs)
+    model.eval()
+
+    if quantize:
+        if is_qat:
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.head.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.train()
+            torch.ao.quantization.prepare_qat(model.backbone, inplace=True)
+            torch.ao.quantization.prepare_qat(model.head, inplace=True)
+
+        else:
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.head.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            torch.ao.quantization.prepare(model.backbone, inplace=True)
+            torch.ao.quantization.prepare(model.head, inplace=True)
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress))
 
     return model
+
+
+if __name__ == "__main__":
+    pass
