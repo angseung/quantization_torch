@@ -4,11 +4,15 @@ from typing import Any, cast, Dict, List, Optional, Union
 import torch
 import torch.nn as nn
 
+from torch.ao.quantization import DeQuantStub, QuantStub
+from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.transforms._presets import ImageClassification
 from torchvision.utils import _log_api_usage_once
-from torchvision.models._api import register_model, Weights, WeightsEnum
+from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
+
+from utils.quantization_utils import cal_mse, get_platform_aware_qconfig
 
 
 __all__ = [
@@ -53,6 +57,9 @@ class QuantizableVGG(nn.Module):
             nn.Dropout(p=dropout),
             nn.Linear(4096, num_classes),
         )
+        self.quant = QuantStub()
+        self.dequant = DeQuantStub()
+
         if init_weights:
             for m in self.modules():
                 if isinstance(m, nn.Conv2d):
@@ -68,11 +75,22 @@ class QuantizableVGG(nn.Module):
                     nn.init.normal_(m.weight, 0, 0.01)
                     nn.init.constant_(m.bias, 0)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def fuse_model(self, is_qat: bool = False):
+        fuse_vgg(self, is_qat=is_qat)
+
+    def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:
         x = self.features(x)
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.classifier(x)
+
+        return x
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.quant(x)
+        x = self._forward_impl(x)
+        x = self.dequant(x)
+
         return x
 
 
@@ -147,8 +165,14 @@ def _vgg(
     batch_norm: bool,
     weights: Optional[WeightsEnum],
     progress: bool,
+    quantize: bool,
+    is_qat: bool,
     **kwargs: Any
 ) -> QuantizableVGG:
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     if weights is not None:
         kwargs["init_weights"] = False
         if weights.meta["categories"] is not None:
@@ -156,8 +180,21 @@ def _vgg(
                 kwargs, "num_classes", len(weights.meta["categories"])
             )
     model = QuantizableVGG(make_layers(cfgs[cfg], batch_norm=batch_norm), **kwargs)
+    model.eval()
+
+    if quantize:
+        if is_qat:
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+
+        else:
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            torch.ao.quantization.prepare(model, inplace=True)
+
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress))
+
     return model
 
 
@@ -572,3 +609,11 @@ def vgg19_bn(
     weights = VGG19_BN_Weights.verify(weights)
 
     return _vgg("E", True, weights, progress, **kwargs)
+
+
+def fuse_vgg(model: nn.Module, is_qat: bool = False) -> None:
+    pass
+
+
+if __name__ == "__main__":
+    model = vgg16_bn()
