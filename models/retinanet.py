@@ -1115,7 +1115,7 @@ if __name__ == "__main__":
     # model = retinanet_resnet50_fpn_v2(quantize=True, is_qat=False)
     model.eval()
     model_fp = copy.deepcopy(model)
-    x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
+    x = [torch.randn(3, 300, 400), torch.randn(3, 500, 400)]
     model(x)
     torch.ao.quantization.convert(model.backbone, inplace=True)
     torch.ao.quantization.convert(model.head, inplace=True)
@@ -1129,3 +1129,5 @@ if __name__ == "__main__":
     elapsed_fp = time.time() - start
 
     print(f"latency_quant: {elapsed_quant: .2f}, latency_fp: {elapsed_fp: .2f}")
+    # torch.onnx.export(model_fp, torch.randn(3, 300, 400), f="../onnx/retinanet_fp.onnx", opset_version=13)  # success
+    # torch.onnx.export(model, torch.randn(3, 300, 400), f="../onnx/retinanet_qint8.onnx", opset_version=13)  # failed
