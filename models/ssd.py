@@ -15,15 +15,17 @@ from torchvision.utils import _log_api_usage_once
 from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _COCO_CATEGORIES
 from torchvision.models._utils import _ovewrite_value_param, handle_legacy_interface
-from torchvision.models.vgg import VGG, vgg16, VGG16_Weights
 from torchvision.models.detection import _utils as det_utils
 from torchvision.models.detection.anchor_utils import DefaultBoxGenerator
 from torchvision.models.detection.backbone_utils import _validate_trainable_layers
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
-from utils.quantization_utils import cal_mse, get_platform_aware_qconfig
+from models.vgg import QuantizableVGG, vgg16, VGG16_Weights
+from utils.quantization_utils import get_platform_aware_qconfig
 
 
 __all__ = [
+    "QuantizableSSD",
+    "QuantizableSSDScoringHead",
     "SSD300_VGG16_Weights",
     "ssd300_vgg16",
 ]
@@ -59,15 +61,15 @@ def _xavier_init(conv: nn.Module):
                 torch.nn.init.constant_(layer.bias, 0.0)
 
 
-class SSDHead(nn.Module):
+class QuantizableSSDHead(nn.Module):
     def __init__(
         self, in_channels: List[int], num_anchors: List[int], num_classes: int
     ):
         super().__init__()
-        self.classification_head = SSDClassificationHead(
+        self.classification_head = QuantizableSSDClassificationHead(
             in_channels, num_anchors, num_classes
         )
-        self.regression_head = SSDRegressionHead(in_channels, num_anchors)
+        self.regression_head = QuantizableSSDRegressionHead(in_channels, num_anchors)
 
     def forward(self, x: List[Tensor]) -> Dict[str, Tensor]:
         return {
@@ -76,7 +78,7 @@ class SSDHead(nn.Module):
         }
 
 
-class SSDScoringHead(nn.Module):
+class QuantizableSSDScoringHead(nn.Module):
     def __init__(self, module_list: nn.ModuleList, num_columns: int):
         super().__init__()
         self.module_list = module_list
@@ -113,7 +115,7 @@ class SSDScoringHead(nn.Module):
         return torch.cat(all_results, dim=1)
 
 
-class SSDClassificationHead(SSDScoringHead):
+class QuantizableSSDClassificationHead(QuantizableSSDScoringHead):
     def __init__(
         self, in_channels: List[int], num_anchors: List[int], num_classes: int
     ):
@@ -126,7 +128,7 @@ class SSDClassificationHead(SSDScoringHead):
         super().__init__(cls_logits, num_classes)
 
 
-class SSDRegressionHead(SSDScoringHead):
+class QuantizableSSDRegressionHead(QuantizableSSDScoringHead):
     def __init__(self, in_channels: List[int], num_anchors: List[int]):
         bbox_reg = nn.ModuleList()
         for channels, anchors in zip(in_channels, num_anchors):
@@ -135,9 +137,9 @@ class SSDRegressionHead(SSDScoringHead):
         super().__init__(bbox_reg, 4)
 
 
-class SSD(nn.Module):
+class QuantizableSSD(nn.Module):
     """
-    Implements SSD architecture from `"SSD: Single Shot MultiBox Detector" <https://arxiv.org/abs/1512.02325>`_.
+    Implements QuantizableSSD architecture from `"SSD: Single Shot MultiBox Detector" <https://arxiv.org/abs/1512.02325>`_.
 
     The input to the model is expected to be a list of tensors, each of shape [C, H, W], one for each
     image, and should be in 0-1 range. Different images can have different sizes, but they will be resized
@@ -233,7 +235,7 @@ class SSD(nn.Module):
                 )
 
             num_anchors = self.anchor_generator.num_anchors_per_location()
-            head = SSDHead(out_channels, num_anchors, num_classes)
+            head = QuantizableSSDHead(out_channels, num_anchors, num_classes)
         self.head = head
 
         self.proposal_matcher = det_utils.SSDMatcher(iou_thresh)
@@ -521,7 +523,7 @@ class SSD(nn.Module):
         return detections
 
 
-class SSDFeatureExtractorVGG(nn.Module):
+class QuantizableSSDFeatureExtractorVGG(nn.Module):
     def __init__(self, backbone: nn.Module, highres: bool):
         super().__init__()
 
@@ -614,7 +616,7 @@ class SSDFeatureExtractorVGG(nn.Module):
         return OrderedDict([(str(i), v) for i, v in enumerate(output)])
 
 
-def _vgg_extractor(backbone: VGG, highres: bool, trainable_layers: int):
+def _vgg_extractor(backbone: QuantizableVGG, highres: bool, trainable_layers: int):
     backbone = backbone.features
     # Gather the indices of maxpools. These are the locations of output blocks.
     stage_indices = [0] + [
@@ -637,7 +639,7 @@ def _vgg_extractor(backbone: VGG, highres: bool, trainable_layers: int):
         for parameter in b.parameters():
             parameter.requires_grad_(False)
 
-    return SSDFeatureExtractorVGG(backbone, highres)
+    return QuantizableSSDFeatureExtractorVGG(backbone, highres)
 
 
 @handle_legacy_interface(
@@ -654,7 +656,7 @@ def ssd300_vgg16(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> SSD:
+) -> QuantizableSSD:
     """The SSD300 model is based on the `SSD: Single Shot MultiBox Detector
     <https://arxiv.org/abs/1512.02325>`_ paper.
 
@@ -760,7 +762,7 @@ def ssd300_vgg16(
         ],  # undo the 0-1 scaling of toTensor
     }
     kwargs: Any = {**defaults, **kwargs}
-    model = SSD(backbone, anchor_generator, (300, 300), num_classes, **kwargs)
+    model = QuantizableSSD(backbone, anchor_generator, (300, 300), num_classes, **kwargs)
     model.eval()
 
     if quantize:

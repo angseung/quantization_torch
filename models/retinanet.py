@@ -33,7 +33,7 @@ from ops.feature_pyramid_network import LastLevelP6P7
 from models.resnet import resnet50
 
 __all__ = [
-    "RetinaNet",
+    "QuantizableRetinaNet",
     "RetinaNet_ResNet50_FPN_Weights",
     "RetinaNet_ResNet50_FPN_V2_Weights",
     "retinanet_resnet50_fpn",
@@ -67,7 +67,7 @@ def _default_anchorgen():
     return anchor_generator
 
 
-class RetinaNetHead(nn.Module):
+class QuantizableRetinaNetHead(nn.Module):
     """
     A regression and classification head for use in RetinaNet.
 
@@ -87,13 +87,13 @@ class RetinaNetHead(nn.Module):
     ):
         super().__init__()
 
-        self.classification_head = RetinaNetClassificationHead(
+        self.classification_head = QuantizableRetinaNetClassificationHead(
             in_channels,
             num_anchors,
             num_classes,
             norm_layer=norm_layer,
         )
-        self.regression_head = RetinaNetRegressionHead(
+        self.regression_head = QuantizableRetinaNetRegressionHead(
             in_channels,
             num_anchors,
             norm_layer=norm_layer,
@@ -125,7 +125,7 @@ class RetinaNetHead(nn.Module):
         }
 
 
-class RetinaNetClassificationHead(nn.Module):
+class QuantizableRetinaNetClassificationHead(nn.Module):
     """
     A classification head for use in RetinaNet.
 
@@ -260,7 +260,7 @@ class RetinaNetClassificationHead(nn.Module):
         return torch.cat(all_cls_logits, dim=1)
 
 
-class RetinaNetRegressionHead(nn.Module):
+class QuantizableRetinaNetRegressionHead(nn.Module):
     """
     A regression head for use in RetinaNet.
 
@@ -391,9 +391,9 @@ class RetinaNetRegressionHead(nn.Module):
         return torch.cat(all_bbox_regression, dim=1)
 
 
-class RetinaNet(nn.Module):
+class QuantizableRetinaNet(nn.Module):
     """
-    Implements RetinaNet.
+    Implements QuantizableRetinaNet.
 
     The input to the model is expected to be a list of tensors, each of shape [C, H, W], one for each
     image, and should be in 0-1 range. Different images can have different sizes.
@@ -523,7 +523,7 @@ class RetinaNet(nn.Module):
         self.anchor_generator = anchor_generator
 
         if head is None:
-            head = RetinaNetHead(
+            head = QuantizableRetinaNetHead(
                 backbone.out_channels,
                 anchor_generator.num_anchors_per_location()[0],
                 num_classes,
@@ -840,7 +840,7 @@ def retinanet_resnet50_fpn(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> RetinaNet:
+) -> QuantizableRetinaNet:
     """
     Constructs a RetinaNet model with a ResNet-50-FPN backbone.
 
@@ -937,7 +937,7 @@ def retinanet_resnet50_fpn(
         returned_layers=[2, 3, 4],
         extra_blocks=LastLevelP6P7(256, 256),
     )
-    model = RetinaNet(backbone, num_classes, quantize=quantize, **kwargs)
+    model = QuantizableRetinaNet(backbone, num_classes, quantize=quantize, **kwargs)
     model.eval()
 
     if quantize:
@@ -986,7 +986,7 @@ def retinanet_resnet50_fpn_v2(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> RetinaNet:
+) -> QuantizableRetinaNet:
     """
     Constructs an improved RetinaNet model with a ResNet-50-FPN backbone.
 
@@ -1050,14 +1050,14 @@ def retinanet_resnet50_fpn_v2(
         extra_blocks=LastLevelP6P7(2048, 256),
     )
     anchor_generator = _default_anchorgen()
-    head = RetinaNetHead(
+    head = QuantizableRetinaNetHead(
         backbone.out_channels,
         anchor_generator.num_anchors_per_location()[0],
         num_classes,
         norm_layer=partial(nn.GroupNorm, 32),
     )
     head.regression_head._loss_type = "giou"
-    model = RetinaNet(
+    model = QuantizableRetinaNet(
         backbone,
         num_classes,
         anchor_generator=anchor_generator,

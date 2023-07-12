@@ -16,15 +16,15 @@ from torchvision.models import mobilenet
 from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _COCO_CATEGORIES
 from torchvision.models._utils import _ovewrite_value_param, handle_legacy_interface
-from torchvision.models.mobilenetv3 import (
-    mobilenet_v3_large,
-    MobileNet_V3_Large_Weights,
-)
 from torchvision.models.detection import _utils as det_utils
 from torchvision.models.detection.anchor_utils import DefaultBoxGenerator
 from torchvision.models.detection.backbone_utils import _validate_trainable_layers
-from torchvision.models.detection.ssd import SSD, SSDScoringHead
-from utils.quantization_utils import cal_mse, get_platform_aware_qconfig
+from models.ssd import QuantizableSSD, QuantizableSSDScoringHead
+from models.mobilenetv3 import (
+    mobilenet_v3_large,
+    MobileNet_V3_Large_Weights,
+)
+from utils.quantization_utils import get_platform_aware_qconfig
 
 
 __all__ = [
@@ -98,7 +98,7 @@ def _normal_init(conv: nn.Module):
                 torch.nn.init.constant_(layer.bias, 0.0)
 
 
-class SSDLiteHead(nn.Module):
+class QuantizableSSDLiteHead(nn.Module):
     def __init__(
         self,
         in_channels: List[int],
@@ -107,10 +107,10 @@ class SSDLiteHead(nn.Module):
         norm_layer: Callable[..., nn.Module],
     ):
         super().__init__()
-        self.classification_head = SSDLiteClassificationHead(
+        self.classification_head = QuantizableSSDLiteClassificationHead(
             in_channels, num_anchors, num_classes, norm_layer
         )
-        self.regression_head = SSDLiteRegressionHead(
+        self.regression_head = QuantizableSSDLiteRegressionHead(
             in_channels, num_anchors, norm_layer
         )
 
@@ -121,7 +121,7 @@ class SSDLiteHead(nn.Module):
         }
 
 
-class SSDLiteClassificationHead(SSDScoringHead):
+class QuantizableSSDLiteClassificationHead(QuantizableSSDScoringHead):
     def __init__(
         self,
         in_channels: List[int],
@@ -138,7 +138,7 @@ class SSDLiteClassificationHead(SSDScoringHead):
         super().__init__(cls_logits, num_classes)
 
 
-class SSDLiteRegressionHead(SSDScoringHead):
+class QuantizableSSDLiteRegressionHead(QuantizableSSDScoringHead):
     def __init__(
         self,
         in_channels: List[int],
@@ -152,7 +152,7 @@ class SSDLiteRegressionHead(SSDScoringHead):
         super().__init__(bbox_reg, 4)
 
 
-class SSDLiteFeatureExtractorMobileNet(nn.Module):
+class QuantizableSSDLiteFeatureExtractorMobileNet(nn.Module):
     def __init__(
         self,
         backbone: nn.Module,
@@ -234,7 +234,7 @@ def _mobilenet_extractor(
         for parameter in b.parameters():
             parameter.requires_grad_(False)
 
-    return SSDLiteFeatureExtractorMobileNet(backbone, stage_indices[-2], norm_layer)
+    return QuantizableSSDLiteFeatureExtractorMobileNet(backbone, stage_indices[-2], norm_layer)
 
 
 class SSDLite320_MobileNet_V3_Large_Weights(WeightsEnum):
@@ -276,7 +276,7 @@ def ssdlite320_mobilenet_v3_large(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> SSD:
+) -> QuantizableSSD:
     """SSDlite model architecture with input size 320x320 and a MobileNetV3 Large backbone, as
     described at `Searching for MobileNetV3 <https://arxiv.org/abs/1905.02244>`__ and
     `MobileNetV2: Inverted Residuals and Linear Bottlenecks <https://arxiv.org/abs/1801.04381>`__.
@@ -388,12 +388,12 @@ def ssdlite320_mobilenet_v3_large(
         "image_std": [0.5, 0.5, 0.5],
     }
     kwargs: Any = {**defaults, **kwargs}
-    model = SSD(
+    model = QuantizableSSD(
         backbone,
         anchor_generator,
         size,
         num_classes,
-        head=SSDLiteHead(out_channels, num_anchors, num_classes, norm_layer),
+        head=QuantizableSSDLiteHead(out_channels, num_anchors, num_classes, norm_layer),
         **kwargs,
     )
     model.eval()
