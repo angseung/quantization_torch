@@ -1,3 +1,4 @@
+import copy
 import warnings
 from collections import OrderedDict
 from functools import partial

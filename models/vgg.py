@@ -1,3 +1,4 @@
+import copy
 from functools import partial
 from typing import Any, cast, Dict, List, Optional, Union
 
@@ -612,8 +613,50 @@ def vgg19_bn(
     return _vgg("E", True, weights, progress, **kwargs)
 
 
-def fuse_vgg(model: nn.Module, is_qat: bool = False) -> None:
-    pass
+def fuse_vgg(model: nn.Module, version: str = "vgg16", is_qat: bool = False) -> None:
+    if version == "vgg16":
+        if isinstance(model.features[1], nn.BatchNorm2d):
+            _fuse_modules(model.features,
+                          modules_to_fuse=[
+                              ["0", "1", "2"],
+                              ["3", "4", "5"],
+                              ["7", "8", "9"],
+                              ["10", "11", "12"],
+                              ["14", "15", "16"],
+                              ["17", "18", "19"],
+                              ["20", "21", "22"],
+                              ["24", "25", "26"],
+                              ["27", "28", "29"],
+                              ["30", "31", "32"],
+                              ["34", "35", "36"],
+                              ["37", "38", "39"],
+                              ["40", "41", "42"],
+                          ],
+                          is_qat=is_qat,
+                          inplace=True)
+        else:
+            _fuse_modules(model.features,
+                          modules_to_fuse=[
+                              ["0", "1"],
+                              ["2", "3"],
+                              ["5", "6"],
+                              ["7", "8"],
+                              ["10", "11"],
+                              ["12", "13"],
+                              ["14", "15"],
+                              ["17", "18"],
+                              ["19", "20"],
+                              ["21", "22"],
+                              ["19", "20"],
+                              ["21", "22"],
+                              ["24", "25"],
+                              ["26", "27"],
+                              ["28", "29"],
+                          ],
+                          is_qat=is_qat,
+                          inplace=True)
+    else:
+        raise NotImplementedError
 
 
 if __name__ == "__main__":
