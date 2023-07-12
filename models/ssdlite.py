@@ -234,7 +234,9 @@ def _mobilenet_extractor(
         for parameter in b.parameters():
             parameter.requires_grad_(False)
 
-    return QuantizableSSDLiteFeatureExtractorMobileNet(backbone, stage_indices[-2], norm_layer)
+    return QuantizableSSDLiteFeatureExtractorMobileNet(
+        backbone, stage_indices[-2], norm_layer
+    )
 
 
 class SSDLite320_MobileNet_V3_Large_Weights(WeightsEnum):

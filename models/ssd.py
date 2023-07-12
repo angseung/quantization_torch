@@ -762,7 +762,9 @@ def ssd300_vgg16(
         ],  # undo the 0-1 scaling of toTensor
     }
     kwargs: Any = {**defaults, **kwargs}
-    model = QuantizableSSD(backbone, anchor_generator, (300, 300), num_classes, **kwargs)
+    model = QuantizableSSD(
+        backbone, anchor_generator, (300, 300), num_classes, **kwargs
+    )
     model.eval()
 
     if quantize:
