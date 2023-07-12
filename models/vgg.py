@@ -180,6 +180,10 @@ def _vgg(
                 kwargs, "num_classes", len(weights.meta["categories"])
             )
     model = QuantizableVGG(make_layers(cfgs[cfg], batch_norm=batch_norm), **kwargs)
+
+    if weights is not None:
+        model.load_state_dict(weights.get_state_dict(progress=progress))
+
     model.eval()
 
     if quantize:
@@ -191,9 +195,6 @@ def _vgg(
         else:
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model, inplace=True)
-
-    if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
 
     return model
 
