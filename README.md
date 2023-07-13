@@ -88,6 +88,8 @@
 | densenet161 | 2.87 | 2.74 | 0.95 |
 | densenet169 | 2.37 | 1.71 | 0.72 |
 | densenet201 | 2.84 | 2.19 | 0.77 |
+
+
 - ResNet 계열
 
 | model | before (s) | after (s) | ratio |
@@ -102,12 +104,14 @@
 | wide_resnet50_2 | 2.56 | 1.02 | 0.4 |
 | wide_resnet101_2 | 4.81 | 1.91 | 0.4 |
 
+
 - MobileNet 계열
 
 | model | before (s) | after (s) | ratio |
 | --- | --- | --- | --- |
 | mobilenet_v2 | 1.42 | 0.75 | 0.53 |
 | mobilenet_v3 | 1.67 | 0.75 | 0.44 |
+
 
 - Yolo 계열
 
@@ -119,6 +123,43 @@
 | Yolov5l | 1.617 | 0.677 | 0.42  |
 
 ## 2.2. 2차 양자화 대상 모델 추론시간 비교
+
+- Classification 모델
+
+| model | before (s) | after (s) | ratio |
+| --- | --- | --- | --- |
+| SqueezeNet 1.0 |  |  |  |
+| SqueezeNet 1.1 |  |  |  |
+| MNASNet_0,5 |  |  |  |
+| MNASNet_0,75 |  |  |  |
+| MNASNet_1.0 |  |  |  |
+| MNASNet_1.3 |  |  |  |
+| ConvNeXt |  |  |  |
+| RegNet X |  |  |  |
+| RegNet Y |  |  |  |
+| VGG16 |  |  |  |
+| VGG16_BN |  |  |  |
+
+
+- Detection 모델
+
+| model | before (s) | after (s) | ratio |
+| --- | --- | --- | --- |
+| RetinaNet_ResNet50_FPN |  |  |  |
+| RetinaNet_ResNet50_FPN_V2 |  |  |  |
+| SSD300_VGG16 |  |  |  |
+| SSDLite320_MobileNetV3_Large |  |  |  |
+| FCOS |  |  |  |
+
+
+- Segmentation 모델
+
+| model | before (s) | after (s) | ratio |
+| --- | --- | --- | --- |
+| FPN |  |  |  |
+| DeepLabV3 |  |  |  |
+| LRASPP |  |  |  |
+| Mask R-CNN |  |  |  |
 
 # 3. ONNX Export Test
 
@@ -152,6 +193,7 @@
 | YoloV3 | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
 | YoloV4 | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
 | YoloV5 | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
+
 
 - 2차 지원 모델군
 
