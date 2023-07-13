@@ -367,6 +367,9 @@ class QuantizableSSD(nn.Module):
             / N,
         }
 
+    def fuse_model(self, is_qat: bool = False):
+        fuse_model(self, is_qat=is_qat)
+
     def forward(
         self, images: List[Tensor], targets: Optional[List[Dict[str, Tensor]]] = None
     ) -> Tuple[Dict[str, Tensor], List[Dict[str, Tensor]]]:
@@ -789,6 +792,7 @@ def ssd300_vgg16(
 
     if quantize:
         if is_qat:
+            model.fuse_model(is_qat=is_qat)
             model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
                 backend
@@ -799,6 +803,7 @@ def ssd300_vgg16(
             torch.ao.quantization.prepare_qat(model.head, inplace=True)
 
         else:
+            model.fuse_model(is_qat=is_qat)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.head.qconfig = torch.ao.quantization.get_default_qconfig(backend)
@@ -808,9 +813,42 @@ def ssd300_vgg16(
     return model
 
 
+def fuse_model(model: nn.Module, is_qat: bool = False) -> None:
+    _fuse_modules(
+        model.backbone.extra[0][-1],
+        modules_to_fuse=[["1", "2"], ["3", "4"]],
+        is_qat=is_qat,
+        inplace=True,
+    )
+    _fuse_modules(
+        model.backbone.extra[1],
+        modules_to_fuse=[["0", "1"], ["2", "3"]],
+        is_qat=is_qat,
+        inplace=True,
+    )
+    _fuse_modules(
+        model.backbone.extra[2],
+        modules_to_fuse=[["0", "1"], ["2", "3"]],
+        is_qat=is_qat,
+        inplace=True,
+    )
+    _fuse_modules(
+        model.backbone.extra[3],
+        modules_to_fuse=[["0", "1"], ["2", "3"]],
+        is_qat=is_qat,
+        inplace=True,
+    )
+    _fuse_modules(
+        model.backbone.extra[4],
+        modules_to_fuse=[["0", "1"], ["2", "3"]],
+        is_qat=is_qat,
+        inplace=True,
+    )
+
+
 if __name__ == "__main__":
     dummy_input = torch.randn(1, 3, 224, 224)
-    model = ssd300_vgg16(quantize=True, is_qat=True)
+    model = ssd300_vgg16(quantize=True, is_qat=False)
     model_fp = copy.deepcopy(model)
     model(dummy_input)
     torch.ao.quantization.convert(model, inplace=True)
