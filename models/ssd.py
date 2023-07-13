@@ -9,7 +9,6 @@ import torch.nn.functional as F
 from torch import nn, Tensor
 
 from torch.ao.quantization import DeQuantStub, QuantStub
-from torch.ao.nn.quantized import FloatFunctional
 from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.ops import boxes as box_ops
 from torchvision.transforms._presets import ObjectDetection
@@ -22,6 +21,7 @@ from torchvision.models.detection.anchor_utils import DefaultBoxGenerator
 from torchvision.models.detection.backbone_utils import _validate_trainable_layers
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
 from models.vgg import QuantizableVGG, vgg16, VGG16_Weights
+
 from utils.quantization_utils import get_platform_aware_qconfig
 
 

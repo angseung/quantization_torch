@@ -8,7 +8,6 @@ import torch
 from torch import nn, Tensor
 
 from torch.ao.quantization import DeQuantStub, QuantStub
-from torch.ao.nn.quantized import FloatFunctional
 from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.ops.misc import Conv2dNormActivation
 from torchvision.transforms._presets import ObjectDetection
@@ -426,4 +425,4 @@ def ssdlite320_mobilenet_v3_large(
 
 
 if __name__ == "__main__":
-    pass
+    model = ssdlite320_mobilenet_v3_large().eval()

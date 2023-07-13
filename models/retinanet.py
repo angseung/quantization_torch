@@ -28,7 +28,7 @@ from utils.backbone_utils import (
     _resnet_fpn_extractor,
     _validate_trainable_layers,
 )
-from utils.quantization_utils import cal_mse, get_platform_aware_qconfig
+from utils.quantization_utils import get_platform_aware_qconfig
 from ops.feature_pyramid_network import LastLevelP6P7
 from models.resnet import resnet50
 
