@@ -4,6 +4,7 @@ it overrides torchvision.models.detection.retinanet
 
 import math
 import copy
+import time
 import warnings
 from collections import OrderedDict
 from functools import partial
@@ -941,6 +942,12 @@ def retinanet_resnet50_fpn(
         extra_blocks=LastLevelP6P7(256, 256),
     )
     model = QuantizableRetinaNet(backbone, num_classes, quantize=quantize, **kwargs)
+
+    if weights is not None:
+        model.load_state_dict(weights.get_state_dict(progress=progress))
+        if weights == RetinaNet_ResNet50_FPN_Weights.COCO_V1:
+            overwrite_eps(model, 0.0)
+
     model.eval()
 
     if quantize:
@@ -966,11 +973,6 @@ def retinanet_resnet50_fpn(
             model.head.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model.backbone, inplace=True)
             torch.ao.quantization.prepare(model.head, inplace=True)
-
-    if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
-        if weights == RetinaNet_ResNet50_FPN_Weights.COCO_V1:
-            overwrite_eps(model, 0.0)
 
     return model
 
@@ -1113,8 +1115,6 @@ def fuse_retinanet_head(model: nn.Module, is_qat: bool) -> None:
 
 
 if __name__ == "__main__":
-    import time
-
     model = retinanet_resnet50_fpn(quantize=True, is_qat=False)
     # model = retinanet_resnet50_fpn_v2(quantize=True, is_qat=False)
     model.eval()
