@@ -1,4 +1,5 @@
 import copy
+import time
 import warnings
 from collections import OrderedDict
 from functools import partial
@@ -23,6 +24,7 @@ from models.ssd import QuantizableSSD, QuantizableSSDScoringHead
 from models.mobilenetv3 import (
     mobilenet_v3_large,
     MobileNet_V3_Large_Weights,
+    QuantizableSqueezeExcitation,
 )
 from utils.quantization_utils import get_platform_aware_qconfig
 
@@ -48,7 +50,8 @@ def _prediction_block(
             kernel_size=kernel_size,
             groups=in_channels,
             norm_layer=norm_layer,
-            activation_layer=nn.ReLU6,
+            # activation_layer=nn.ReLU6,
+            activation_layer=nn.ReLU,
         ),
         # 1x1 projetion to output channels
         nn.Conv2d(in_channels, out_channels, 1),
@@ -58,7 +61,8 @@ def _prediction_block(
 def _extra_block(
     in_channels: int, out_channels: int, norm_layer: Callable[..., nn.Module]
 ) -> nn.Sequential:
-    activation = nn.ReLU6
+    # activation = nn.ReLU6
+    activation = nn.ReLU
     intermediate_channels = out_channels // 2
     return nn.Sequential(
         # 1x1 projection to half output channels
@@ -113,11 +117,18 @@ class QuantizableSSDLiteHead(nn.Module):
         self.regression_head = QuantizableSSDLiteRegressionHead(
             in_channels, num_anchors, norm_layer
         )
+        self.quant = QuantStub()
+        self.dequant_bbox = DeQuantStub()
+        self.dequant_class = DeQuantStub()
 
     def forward(self, x: List[Tensor]) -> Dict[str, Tensor]:
+        x = [self.quant(xi) for xi in x]
+        bbox_regression = self.regression_head(x)
+        class_logits = self.classification_head(x)
+
         return {
-            "bbox_regression": self.regression_head(x),
-            "cls_logits": self.classification_head(x),
+            "bbox_regression": self.dequant_bbox(bbox_regression),
+            "cls_logits": self.dequant_class(class_logits),
         }
 
 
@@ -189,17 +200,20 @@ class QuantizableSSDLiteFeatureExtractorMobileNet(nn.Module):
         _normal_init(extra)
 
         self.extra = extra
+        self.quant = QuantStub()
+        self.dequant = DeQuantStub()
 
     def forward(self, x: Tensor) -> Dict[str, Tensor]:
+        x = self.quant(x)
         # Get feature maps from backbone and extra. Can't be refactored due to JIT limitations.
         output = []
         for block in self.features:
             x = block(x)
-            output.append(x)
+            output.append(self.dequant(x))
 
         for block in self.extra:
             x = block(x)
-            output.append(x)
+            output.append(self.dequant(x))
 
         return OrderedDict([(str(i), v) for i, v in enumerate(output)])
 
@@ -362,6 +376,7 @@ def ssdlite320_mobilenet_v3_large(
     if weights_backbone is None:
         # Change the default initialization scheme if not pretrained
         _normal_init(backbone)
+
     backbone = _mobilenet_extractor(
         backbone,
         trainable_backbone_layers,
@@ -398,10 +413,15 @@ def ssdlite320_mobilenet_v3_large(
         head=QuantizableSSDLiteHead(out_channels, num_anchors, num_classes, norm_layer),
         **kwargs,
     )
+
+    if weights is not None:
+        model.load_state_dict(weights.get_state_dict(progress=progress))
+
     model.eval()
 
     if quantize:
         if is_qat:
+            fuse_ssdlite(model, is_qat=is_qat)
             model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
                 backend
@@ -412,17 +432,56 @@ def ssdlite320_mobilenet_v3_large(
             torch.ao.quantization.prepare_qat(model.head, inplace=True)
 
         else:
+            fuse_ssdlite(model, is_qat=is_qat)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.head.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model.backbone, inplace=True)
             torch.ao.quantization.prepare(model.head, inplace=True)
 
-    if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
-
     return model
 
 
+def fuse_ssdlite(model: nn.Module, is_qat: bool = False) -> None:
+    for module_name, module in model.named_children():
+        if type(module) is Conv2dNormActivation:
+            modules_to_fuse = ["0", "1"]
+            if len(module) == 3 and type(module[2]) is nn.ReLU:
+                modules_to_fuse.append("2")
+            _fuse_modules(module, modules_to_fuse, is_qat, inplace=True)
+
+        elif type(module) is QuantizableSqueezeExcitation:
+            module.fuse_model(is_qat=is_qat)
+
+        else:
+            fuse_ssdlite(module, is_qat=is_qat)
+
+
 if __name__ == "__main__":
-    model = ssdlite320_mobilenet_v3_large().eval()
+    dummy_input = torch.randn(1, 3, 224, 224)
+    model = ssdlite320_mobilenet_v3_large(quantize=True, is_qat=False)
+    model_fp = copy.deepcopy(model)
+    model(dummy_input)
+    torch.ao.quantization.convert(model, inplace=True)
+
+    start = time.time()
+    predictions = model(dummy_input)
+    elapsed_quant = time.time() - start
+
+    start = time.time()
+    predictions_fp = model_fp(dummy_input)
+    elapsed_fp = time.time() - start
+    print(f"latency_quant: {elapsed_quant: .2f}, latency_fp: {elapsed_fp: .2f}")
+
+    # torch.onnx.export(
+    #     model_fp,
+    #     dummy_input,
+    #     f="../onnx/ssdlite320_mobilenet_v3_large_fp.onnx",
+    #     opset_version=13,
+    # )  # success
+    # torch.onnx.export(
+    #     model,
+    #     dummy_input,
+    #     f="../onnx/ssdlite320_mobilenet_v3_large_qint8.onnx",
+    #     opset_version=13,
+    # )  # failed
