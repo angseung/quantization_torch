@@ -1,4 +1,5 @@
 import copy
+import time
 import warnings
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple
@@ -610,16 +611,21 @@ class QuantizableSSDFeatureExtractorVGG(nn.Module):
         )
         self.extra = extra
 
+        self.quant = QuantStub()
+        self.dequant = DeQuantStub()
+        self.qconfig = backbone.qconfig
+
     def forward(self, x: Tensor) -> Dict[str, Tensor]:
         # L2 regularization + Rescaling of 1st block's feature map
+        x = self.quant(x)
         x = self.features(x)
-        rescaled = self.scale_weight.view(1, -1, 1, 1) * F.normalize(x)
+        rescaled = self.scale_weight.view(1, -1, 1, 1) * F.normalize(self.dequant(x))
         output = [rescaled]
 
         # Calculating Feature maps for the rest blocks
         for block in self.extra:
             x = block(x)
-            output.append(x)
+            output.append(self.dequant(x))
 
         return OrderedDict([(str(i), v) for i, v in enumerate(output)])
 
@@ -752,7 +758,9 @@ def ssd300_vgg16(
     )
 
     # Use custom backbones more appropriate for SSD
-    backbone = vgg16(weights=weights_backbone, progress=progress, quantize=quantize, is_qat=is_qat)
+    backbone = vgg16(
+        weights=weights_backbone, progress=progress, quantize=quantize, is_qat=is_qat
+    )
     backbone = _vgg_extractor(backbone, False, trainable_backbone_layers)
     anchor_generator = DefaultBoxGenerator(
         [[2], [2, 3], [2, 3], [2, 3], [2], [2]],
@@ -773,6 +781,10 @@ def ssd300_vgg16(
     model = QuantizableSSD(
         backbone, anchor_generator, (300, 300), num_classes, **kwargs
     )
+
+    if weights is not None:
+        model.load_state_dict(weights.get_state_dict(progress=progress))
+
     model.eval()
 
     if quantize:
@@ -793,16 +805,24 @@ def ssd300_vgg16(
             torch.ao.quantization.prepare(model.backbone, inplace=True)
             torch.ao.quantization.prepare(model.head, inplace=True)
 
-    if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
-
     return model
 
 
 if __name__ == "__main__":
     dummy_input = torch.randn(1, 3, 224, 224)
-    model = ssd300_vgg16(quantize=True, is_qat=False)
+    model = ssd300_vgg16(quantize=True, is_qat=True)
     model_fp = copy.deepcopy(model)
     model(dummy_input)
     torch.ao.quantization.convert(model, inplace=True)
-    dummy_output = model(dummy_input)
+
+    start = time.time()
+    predictions = model(dummy_input)
+    elapsed_quant = time.time() - start
+
+    start = time.time()
+    predictions_fp = model_fp(dummy_input)
+    elapsed_fp = time.time() - start
+    print(f"latency_quant: {elapsed_quant: .2f}, latency_fp: {elapsed_fp: .2f}")
+
+    # torch.onnx.export(model_fp, dummy_input, f="../onnx/ssd300_vgg16_fp.onnx", opset_version=13)  # success
+    # torch.onnx.export(model, dummy_input, f="../onnx/ssd300_vgg16_qint8.onnx", opset_version=13)  # failed

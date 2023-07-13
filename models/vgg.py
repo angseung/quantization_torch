@@ -401,7 +401,12 @@ class VGG19_BN_Weights(WeightsEnum):
 
 @handle_legacy_interface(weights=("pretrained", VGG11_Weights.IMAGENET1K_V1))
 def vgg11(
-    *, weights: Optional[VGG11_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
+    *,
+    weights: Optional[VGG11_Weights] = None,
+    progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
+    **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-11 from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
@@ -430,7 +435,12 @@ def vgg11(
 
 @handle_legacy_interface(weights=("pretrained", VGG11_BN_Weights.IMAGENET1K_V1))
 def vgg11_bn(
-    *, weights: Optional[VGG11_BN_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
+    *,
+    weights: Optional[VGG11_BN_Weights] = None,
+    progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
+    **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-11-BN from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
@@ -459,7 +469,12 @@ def vgg11_bn(
 
 @handle_legacy_interface(weights=("pretrained", VGG13_Weights.IMAGENET1K_V1))
 def vgg13(
-    *, weights: Optional[VGG13_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
+    *,
+    weights: Optional[VGG13_Weights] = None,
+    progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
+    **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-13 from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
@@ -488,7 +503,12 @@ def vgg13(
 
 @handle_legacy_interface(weights=("pretrained", VGG13_BN_Weights.IMAGENET1K_V1))
 def vgg13_bn(
-    *, weights: Optional[VGG13_BN_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
+    *,
+    weights: Optional[VGG13_BN_Weights] = None,
+    progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
+    **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-13-BN from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
@@ -517,7 +537,12 @@ def vgg13_bn(
 
 @handle_legacy_interface(weights=("pretrained", VGG16_Weights.IMAGENET1K_V1))
 def vgg16(
-    *, weights: Optional[VGG16_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
+    *,
+    weights: Optional[VGG16_Weights] = None,
+    progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
+    **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-16 from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
@@ -546,7 +571,12 @@ def vgg16(
 
 @handle_legacy_interface(weights=("pretrained", VGG16_BN_Weights.IMAGENET1K_V1))
 def vgg16_bn(
-    *, weights: Optional[VGG16_BN_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
+    *,
+    weights: Optional[VGG16_BN_Weights] = None,
+    progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
+    **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-16-BN from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
@@ -575,7 +605,12 @@ def vgg16_bn(
 
 @handle_legacy_interface(weights=("pretrained", VGG19_Weights.IMAGENET1K_V1))
 def vgg19(
-    *, weights: Optional[VGG19_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
+    *,
+    weights: Optional[VGG19_Weights] = None,
+    progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
+    **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-19 from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
@@ -604,7 +639,12 @@ def vgg19(
 
 @handle_legacy_interface(weights=("pretrained", VGG19_BN_Weights.IMAGENET1K_V1))
 def vgg19_bn(
-    *, weights: Optional[VGG19_BN_Weights] = None, progress: bool = True, quantize: bool = False, is_qat: bool = False, **kwargs: Any
+    *,
+    weights: Optional[VGG19_BN_Weights] = None,
+    progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
+    **kwargs: Any
 ) -> QuantizableVGG:
     """VGG-19_BN from `Very Deep Convolutional Networks for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`__.
 
