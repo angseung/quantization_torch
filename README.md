@@ -40,6 +40,8 @@
 | ConvNeXt | N | 양자화 미지원 |
 | RegNet X | N | Y |
 | RegNet Y | N | 양자화 미지원 |
+| VGG16 | N | Y |
+| VGG16_BN | N | Y |
 
 - EfficientNet 계열: Stride ≠ 1인 Pointwise Convolution
 - ConvNext 계열: GeLU 활성화 함수 및 Layer Normalization의 qint8 연산 미지원
@@ -52,9 +54,10 @@
 | YoloV3 | N | Y |
 | YoloV4 | N | Y |
 | YoloV5 | N | Y |
-| RetinaNet | N | Y |
-| SSD |  |  |
-| SSDLite |  |  |
+| RetinaNet_ResNet50_FPN | N | Y |
+| RetinaNet_ResNet50_FPN_V2 | N | Y |
+| SSD300_VGG16 | N | Y |
+| SSDLite320_MobileNetV3_Large | N | Y |
 | FCOS |  |  |
 
 ### 1.1.3. Segmentation
@@ -160,12 +163,15 @@
 | MNASNet_0,75 | PTQ, QAT | Y | Y | 13 |
 | MNASNet_1.0 | PTQ, QAT | Y | Y | 13 |
 | MNASNet_1.3 | PTQ, QAT | Y | Y | 13 |
-| ConvNeXt | N | Y | N | N/A |
+| ConvNeXt | N | Y | N | 13 |
 | RegNet X | PTQ, QAT | Y | Y | 13 |
-| RegNet Y | PTQ, QAT | Y | Y | 13 |
-| RetinaNet | PTQ, QAT |  |  |  |
-| SSD |  |  |  |  |
-| SSDLite |  |  |  |  |
+| RegNet Y | N | Y | N | 13 |
+| RetinaNet_ResNet50_FPN | PTQ, QAT | Y | N | 13 |
+| RetinaNet_ResNet50_FPN_V2 | PTQ, QAT | Y | N | 13 |
+| VGG16 | PTQ, QAT | Y | Y | 13 |
+| VGG16_BN | PTQ, QAT | Y | Y | 13 |
+| SSD300_VGG16 | PTQ, QAT | Y | N | 13 |
+| SSDLite320_MobileNetV3_Large | PTQ, QAT | Y | Y | 13 |
 | FCOS |  |  |  |  |
 | FPN |  |  |  |  |
 | DeepLabV3 |  |  |  |  |
