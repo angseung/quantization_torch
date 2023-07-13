@@ -865,5 +865,9 @@ if __name__ == "__main__":
     elapsed_fp = time.time() - start
     print(f"latency_quant: {elapsed_quant: .2f}, latency_fp: {elapsed_fp: .2f}")
 
-    # torch.onnx.export(model_fp, dummy_input, f="../onnx/ssd300_vgg16_fp.onnx", opset_version=13)  # success
-    # torch.onnx.export(model, dummy_input, f="../onnx/ssd300_vgg16_qint8.onnx", opset_version=13)  # failed
+    # torch.onnx.export(
+    #     model_fp, dummy_input, f="../onnx/ssd300_vgg16_fp.onnx", opset_version=13
+    # )  # success
+    # torch.onnx.export(
+    #     model, dummy_input, f="../onnx/ssd300_vgg16_qint8.onnx", opset_version=13
+    # )  # failed

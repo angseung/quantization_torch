@@ -54,7 +54,6 @@ def _prediction_block(
             kernel_size=kernel_size,
             groups=in_channels,
             norm_layer=norm_layer,
-            # activation_layer=nn.ReLU6,
             activation_layer=nn.ReLU,
         ),
         # 1x1 projetion to output channels
@@ -65,7 +64,6 @@ def _prediction_block(
 def _extra_block(
     in_channels: int, out_channels: int, norm_layer: Callable[..., nn.Module]
 ) -> nn.Sequential:
-    # activation = nn.ReLU6
     activation = nn.ReLU
     intermediate_channels = out_channels // 2
     return nn.Sequential(
