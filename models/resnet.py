@@ -1,11 +1,15 @@
+"""
+it overrides torchvision.models.resnet
+"""
+
 import copy
-from typing import Tuple
 import torch
 import torch.nn as nn
 from torch.utils.model_zoo import load_url as load_state_dict_from_url
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torch.ao.nn.quantized import FloatFunctional
 from torchvision.models.quantization.utils import _fuse_modules
+
 from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
 
 

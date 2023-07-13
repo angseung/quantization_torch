@@ -1,3 +1,7 @@
+"""
+it overrides torchvision.models.detection.retinanet
+"""
+
 import math
 import copy
 import warnings
@@ -9,7 +13,6 @@ import torch
 from torch import nn, Tensor
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torch.ao.nn.quantized import FloatFunctional
-
 from torchvision.ops import boxes as box_ops, misc as misc_nn_ops, sigmoid_focal_loss
 from torchvision.transforms._presets import ObjectDetection
 from torchvision.models.quantization.utils import _fuse_modules

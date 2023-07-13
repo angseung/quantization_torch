@@ -1,10 +1,13 @@
+"""
+it overrides torchvision.models.vgg
+"""
+
 import copy
 from functools import partial
 from typing import Any, cast, Dict, List, Optional, Union
 
 import torch
 import torch.nn as nn
-
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.transforms._presets import ImageClassification

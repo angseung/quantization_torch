@@ -1,3 +1,7 @@
+"""
+it overrides torchvision.models.densenet
+"""
+
 import re
 from collections import OrderedDict
 from functools import partial

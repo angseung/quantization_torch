@@ -1,3 +1,7 @@
+"""
+it overrides torchvision.models.detection.ssdlite
+"""
+
 import copy
 import time
 import warnings
@@ -7,7 +11,6 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch import nn, Tensor
-
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.ops.misc import Conv2dNormActivation
@@ -20,6 +23,7 @@ from torchvision.models._utils import _ovewrite_value_param, handle_legacy_inter
 from torchvision.models.detection import _utils as det_utils
 from torchvision.models.detection.anchor_utils import DefaultBoxGenerator
 from torchvision.models.detection.backbone_utils import _validate_trainable_layers
+
 from models.ssd import QuantizableSSD, QuantizableSSDScoringHead
 from models.mobilenetv3 import (
     mobilenet_v3_large,
