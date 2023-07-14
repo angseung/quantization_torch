@@ -9,11 +9,9 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import torch
 from torch import nn, Tensor
 from torch.ao.quantization import DeQuantStub, QuantStub
-from torch.ao.nn.quantized import FloatFunctional
 from torchvision.ops import (
     boxes as box_ops,
     generalized_box_iou_loss,
-    misc as misc_nn_ops,
     sigmoid_focal_loss,
 )
 
@@ -21,7 +19,6 @@ from torchvision.ops import (
 from torchvision.transforms._presets import ObjectDetection
 from torchvision.utils import _log_api_usage_once
 from torchvision.models.resnet import ResNet50_Weights
-from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _COCO_CATEGORIES
 from torchvision.models._utils import _ovewrite_value_param, handle_legacy_interface
@@ -932,6 +929,7 @@ if __name__ == "__main__":
     model.eval()
     model_fp = copy.deepcopy(model)
     x = [torch.randn(3, 300, 400), torch.randn(3, 500, 400)]
+    model(x)
     torch.ao.quantization.convert(model, inplace=True)
 
     start = time.time()
@@ -943,6 +941,7 @@ if __name__ == "__main__":
     elapsed_fp = time.time() - start
 
     print(f"latency_quant: {elapsed_quant: .2f}, latency_fp: {elapsed_fp: .2f}")
+
     # torch.onnx.export(
     #     model_fp,
     #     x,
