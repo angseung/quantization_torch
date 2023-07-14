@@ -42,10 +42,11 @@
 | RegNet Y | N | 양자화 미지원 |
 | VGG16 | N | Y |
 | VGG16_BN | N | Y |
-
 - EfficientNet 계열: Stride ≠ 1인 Pointwise Convolution
 - ConvNext 계열: GeLU 활성화 함수 및 Layer Normalization의 qint8 연산 미지원
 - RegNet Y 계열: SEBlock Tensor-Mul의 qint8 연산 미지원
+
+ 
 
 ### 1.1.2. Detection
 
@@ -58,7 +59,7 @@
 | RetinaNet_ResNet50_FPN_V2 | N | Y |
 | SSD300_VGG16 | N | Y |
 | SSDLite320_MobileNetV3_Large | N | Y |
-| FCOS |  |  |
+| FCOS | N | Y |
 
 ### 1.1.3. Segmentation
 
@@ -69,10 +70,15 @@
 | LRASPP | N |  |
 | Mask R-CNN | N |  |
 
-- Pointwise-convolution에서 qint8 자료형 지원 불가 문제
+## 1.1.4. Issue
+
+- Pointwise Convolution에서 qint8 자료형 지원 불가 문제
     - stride ≠ 1인 Pointwise Convolution을 사용하는 EfficientNet, EfficientDet, MobileNetV1 등 모델들은 PyTorch에서 양자화 적용 불가
+    - Depthwise Convolution은 stride에 관계 없이 양자화 및 Fusing 가능
 
 [https://github.com/pytorch/pytorch/issues/74540](https://github.com/pytorch/pytorch/issues/74540)
+
+- Tensor Element-wise Multiply 연산 미지원 문제
 
 # 2. 추론시간 벤치마크
 
@@ -89,7 +95,6 @@
 | densenet169 | 2.37 | 1.71 | 0.72 |
 | densenet201 | 2.84 | 2.19 | 0.77 |
 
-
 - ResNet 계열
 
 | model | before (s) | after (s) | ratio |
@@ -104,14 +109,12 @@
 | wide_resnet50_2 | 2.56 | 1.02 | 0.4 |
 | wide_resnet101_2 | 4.81 | 1.91 | 0.4 |
 
-
 - MobileNet 계열
 
 | model | before (s) | after (s) | ratio |
 | --- | --- | --- | --- |
 | mobilenet_v2 | 1.42 | 0.75 | 0.53 |
 | mobilenet_v3 | 1.67 | 0.75 | 0.44 |
-
 
 - Yolo 계열
 
@@ -140,17 +143,15 @@
 | VGG16 |  |  |  |
 | VGG16_BN |  |  |  |
 
-
 - Detection 모델
 
 | model | before (s) | after (s) | ratio |
 | --- | --- | --- | --- |
-| RetinaNet_ResNet50_FPN |  |  |  |
-| RetinaNet_ResNet50_FPN_V2 |  |  |  |
+| RetinaNet_ResNet50_FPN | 193.8 | 23.73 |  |
+| RetinaNet_ResNet50_FPN_V2 | 193.4 | 24.61 |  |
 | SSD300_VGG16 |  |  |  |
 | SSDLite320_MobileNetV3_Large |  |  |  |
 | FCOS |  |  |  |
-
 
 - Segmentation 모델
 
@@ -176,14 +177,14 @@
 | DenseNet161 | PTQ, QAT | Y | N | N/A |
 | DenseNet169 | PTQ, QAT | Y | N | N/A |
 | DenseNet201 | PTQ, QAT | Y | N | N/A |
-| EfficientNetB0 | N | Y | N | N/A |
-| EfficientNetB1 | N | Y | N | N/A |
-| EfficientNetB2 | N | Y | N | N/A |
-| EfficientNetB3 | N | Y | N | N/A |
-| EfficientNetB4 | N | Y | N | N/A |
-| EfficientNetB5 | N | Y | N | N/A |
-| EfficientNetB6 | N | Y | N | N/A |
-| EfficientNetB7 | N | Y | N | N/A |
+| EfficientNetB0 | N | Y | N | 13 |
+| EfficientNetB1 | N | Y | N | 13 |
+| EfficientNetB2 | N | Y | N | 13 |
+| EfficientNetB3 | N | Y | N | 13 |
+| EfficientNetB4 | N | Y | N | 13 |
+| EfficientNetB5 | N | Y | N | 13 |
+| EfficientNetB6 | N | Y | N | 13 |
+| EfficientNetB7 | N | Y | N | 13 |
 | MobileNetV2 | PTQ, QAT | Y | Y | 13 |
 | MobileNetV3 | PTQ, QAT | Y | Y | 13 |
 | WideResNet50 | PTQ, QAT | Y | Y | 13 |
@@ -193,7 +194,6 @@
 | YoloV3 | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
 | YoloV4 | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
 | YoloV5 | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
-
 
 - 2차 지원 모델군
 
@@ -213,8 +213,8 @@
 | VGG16 | PTQ, QAT | Y | Y | 13 |
 | VGG16_BN | PTQ, QAT | Y | Y | 13 |
 | SSD300_VGG16 | PTQ, QAT | Y | N | 13 |
-| SSDLite320_MobileNetV3_Large | PTQ, QAT | Y | Y | 13 |
-| FCOS |  |  |  |  |
+| SSDLite320_MobileNetV3_Large | PTQ, QAT | Y | N | 13 |
+| FCOS | PTQ, QAT | Y | N | 13 |
 | FPN |  |  |  |  |
 | DeepLabV3 |  |  |  |  |
 | LRASPP |  |  |  |  |
