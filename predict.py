@@ -1,6 +1,8 @@
 import copy
 import time
+
 import torch
+
 from models.squeezenet import *
 from utils.quantization_utils import cal_mse
 

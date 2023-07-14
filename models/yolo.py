@@ -1,11 +1,3 @@
-# YOLOv3 🚀 by Ultralytics, GPL-3.0 license
-"""
-YOLO-specific modules
-
-Usage:
-    $ python path/to/models/yolo.py --cfg yolov3.yaml
-"""
-
 from typing import *
 import sys
 from copy import deepcopy
