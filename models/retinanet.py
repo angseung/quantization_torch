@@ -1079,9 +1079,6 @@ def retinanet_resnet50_fpn_v2(
             model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
                 backend
             )
-            model.backbone.fpn.qconfig = torch.ao.quantization.get_default_qat_qconfig(
-                backend
-            )
             model.head.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.train()
             torch.ao.quantization.prepare_qat(model.backbone, inplace=True)
@@ -1090,9 +1087,6 @@ def retinanet_resnet50_fpn_v2(
         else:
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
-            model.backbone.fpn.qconfig = torch.ao.quantization.get_default_qconfig(
-                backend
-            )
             model.head.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model.backbone, inplace=True)
             torch.ao.quantization.prepare(model.head, inplace=True)
