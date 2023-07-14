@@ -28,6 +28,8 @@ __all__ = [
     "QuantizableMobileNetV3",
     "MobileNet_V3_Large_QuantizedWeights",
     "mobilenet_v3_large",
+    "MobileNet_V3_Large_Weights",
+    "QuantizableSqueezeExcitation",
 ]
 
 

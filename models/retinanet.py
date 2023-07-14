@@ -1,5 +1,10 @@
+"""
+it overrides torchvision.models.detection.retinanet
+"""
+
 import math
 import copy
+import time
 import warnings
 from collections import OrderedDict
 from functools import partial
@@ -9,7 +14,6 @@ import torch
 from torch import nn, Tensor
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torch.ao.nn.quantized import FloatFunctional
-
 from torchvision.ops import boxes as box_ops, misc as misc_nn_ops, sigmoid_focal_loss
 from torchvision.transforms._presets import ObjectDetection
 from torchvision.models.quantization.utils import _fuse_modules
@@ -28,12 +32,12 @@ from utils.backbone_utils import (
     _resnet_fpn_extractor,
     _validate_trainable_layers,
 )
-from utils.quantization_utils import cal_mse, get_platform_aware_qconfig
+from utils.quantization_utils import get_platform_aware_qconfig
 from ops.feature_pyramid_network import LastLevelP6P7
 from models.resnet import resnet50
 
 __all__ = [
-    "RetinaNet",
+    "QuantizableRetinaNet",
     "RetinaNet_ResNet50_FPN_Weights",
     "RetinaNet_ResNet50_FPN_V2_Weights",
     "retinanet_resnet50_fpn",
@@ -67,7 +71,7 @@ def _default_anchorgen():
     return anchor_generator
 
 
-class RetinaNetHead(nn.Module):
+class QuantizableRetinaNetHead(nn.Module):
     """
     A regression and classification head for use in RetinaNet.
 
@@ -87,19 +91,20 @@ class RetinaNetHead(nn.Module):
     ):
         super().__init__()
 
-        self.classification_head = RetinaNetClassificationHead(
+        self.classification_head = QuantizableRetinaNetClassificationHead(
             in_channels,
             num_anchors,
             num_classes,
             norm_layer=norm_layer,
         )
-        self.regression_head = RetinaNetRegressionHead(
+        self.regression_head = QuantizableRetinaNetRegressionHead(
             in_channels,
             num_anchors,
             norm_layer=norm_layer,
         )
         self.quant = QuantStub()
-        self.dequant = DeQuantStub()
+        self.dequant_class = DeQuantStub()
+        self.dequant_bbox = DeQuantStub()
 
     def compute_loss(self, targets, head_outputs, anchors, matched_idxs):
         # type: (List[Dict[str, Tensor]], Dict[str, Tensor], List[Tensor], List[Tensor]) -> Dict[str, Tensor]
@@ -119,12 +124,12 @@ class RetinaNetHead(nn.Module):
         bbox_regression = self.regression_head(x)
 
         return {
-            "cls_logits": self.dequant(class_logits),
-            "bbox_regression": self.dequant(bbox_regression),
+            "cls_logits": self.dequant_class(class_logits),
+            "bbox_regression": self.dequant_bbox(bbox_regression),
         }
 
 
-class RetinaNetClassificationHead(nn.Module):
+class QuantizableRetinaNetClassificationHead(nn.Module):
     """
     A classification head for use in RetinaNet.
 
@@ -259,7 +264,7 @@ class RetinaNetClassificationHead(nn.Module):
         return torch.cat(all_cls_logits, dim=1)
 
 
-class RetinaNetRegressionHead(nn.Module):
+class QuantizableRetinaNetRegressionHead(nn.Module):
     """
     A regression head for use in RetinaNet.
 
@@ -390,9 +395,9 @@ class RetinaNetRegressionHead(nn.Module):
         return torch.cat(all_bbox_regression, dim=1)
 
 
-class RetinaNet(nn.Module):
+class QuantizableRetinaNet(nn.Module):
     """
-    Implements RetinaNet.
+    Implements QuantizableRetinaNet.
 
     The input to the model is expected to be a list of tensors, each of shape [C, H, W], one for each
     image, and should be in 0-1 range. Different images can have different sizes.
@@ -522,7 +527,7 @@ class RetinaNet(nn.Module):
         self.anchor_generator = anchor_generator
 
         if head is None:
-            head = RetinaNetHead(
+            head = QuantizableRetinaNetHead(
                 backbone.out_channels,
                 anchor_generator.num_anchors_per_location()[0],
                 num_classes,
@@ -839,7 +844,7 @@ def retinanet_resnet50_fpn(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> RetinaNet:
+) -> QuantizableRetinaNet:
     """
     Constructs a RetinaNet model with a ResNet-50-FPN backbone.
 
@@ -936,7 +941,13 @@ def retinanet_resnet50_fpn(
         returned_layers=[2, 3, 4],
         extra_blocks=LastLevelP6P7(256, 256),
     )
-    model = RetinaNet(backbone, num_classes, quantize=quantize, **kwargs)
+    model = QuantizableRetinaNet(backbone, num_classes, quantize=quantize, **kwargs)
+
+    if weights is not None:
+        model.load_state_dict(weights.get_state_dict(progress=progress))
+        if weights == RetinaNet_ResNet50_FPN_Weights.COCO_V1:
+            overwrite_eps(model, 0.0)
+
     model.eval()
 
     if quantize:
@@ -963,11 +974,6 @@ def retinanet_resnet50_fpn(
             torch.ao.quantization.prepare(model.backbone, inplace=True)
             torch.ao.quantization.prepare(model.head, inplace=True)
 
-    if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
-        if weights == RetinaNet_ResNet50_FPN_Weights.COCO_V1:
-            overwrite_eps(model, 0.0)
-
     return model
 
 
@@ -985,7 +991,7 @@ def retinanet_resnet50_fpn_v2(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> RetinaNet:
+) -> QuantizableRetinaNet:
     """
     Constructs an improved RetinaNet model with a ResNet-50-FPN backbone.
 
@@ -1049,14 +1055,14 @@ def retinanet_resnet50_fpn_v2(
         extra_blocks=LastLevelP6P7(2048, 256),
     )
     anchor_generator = _default_anchorgen()
-    head = RetinaNetHead(
+    head = QuantizableRetinaNetHead(
         backbone.out_channels,
         anchor_generator.num_anchors_per_location()[0],
         num_classes,
         norm_layer=partial(nn.GroupNorm, 32),
     )
     head.regression_head._loss_type = "giou"
-    model = RetinaNet(
+    model = QuantizableRetinaNet(
         backbone,
         num_classes,
         anchor_generator=anchor_generator,
@@ -1109,13 +1115,11 @@ def fuse_retinanet_head(model: nn.Module, is_qat: bool) -> None:
 
 
 if __name__ == "__main__":
-    import time
-
     model = retinanet_resnet50_fpn(quantize=True, is_qat=False)
     # model = retinanet_resnet50_fpn_v2(quantize=True, is_qat=False)
     model.eval()
     model_fp = copy.deepcopy(model)
-    x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
+    x = [torch.randn(3, 300, 400), torch.randn(3, 500, 400)]
     model(x)
     torch.ao.quantization.convert(model.backbone, inplace=True)
     torch.ao.quantization.convert(model.head, inplace=True)
@@ -1129,3 +1133,5 @@ if __name__ == "__main__":
     elapsed_fp = time.time() - start
 
     print(f"latency_quant: {elapsed_quant: .2f}, latency_fp: {elapsed_fp: .2f}")
+    # torch.onnx.export(model_fp, torch.randn(3, 300, 400), f="../onnx/retinanet_fp.onnx", opset_version=13)  # success
+    # torch.onnx.export(model, torch.randn(3, 300, 400), f="../onnx/retinanet_qint8.onnx", opset_version=13)  # failed

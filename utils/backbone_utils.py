@@ -19,7 +19,6 @@ from ops.feature_pyramid_network import (
     FeaturePyramidNetwork,
     LastLevelMaxPool,
 )
-from utils.quantization_utils import get_platform_aware_qconfig
 
 
 class BackboneWithFPN(nn.Module):

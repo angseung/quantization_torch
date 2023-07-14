@@ -1,3 +1,7 @@
+"""
+it overrides torchvision.models.convnext
+"""
+
 from functools import partial
 import copy
 from typing import Any, Callable, List, Optional, Sequence

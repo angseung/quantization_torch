@@ -1,3 +1,7 @@
+"""
+it overrides torchvision.models.efficientnet
+"""
+
 import copy
 import math
 from dataclasses import dataclass
@@ -8,7 +12,6 @@ import torch
 from torch import nn, Tensor
 from torchvision.ops import StochasticDepth
 from torch.ao.quantization import fuse_modules
-
 from torchvision.ops.misc import Conv2dNormActivation, SqueezeExcitation
 from torchvision.transforms._presets import ImageClassification, InterpolationMode
 from torchvision.utils import _log_api_usage_once
@@ -19,6 +22,7 @@ from torchvision.models._utils import (
     _ovewrite_named_param,
     handle_legacy_interface,
 )
+
 from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
 
 
@@ -1386,8 +1390,6 @@ def fuse_efficientnet(blocks: nn.Module, is_qat: bool = False):
 
 
 if __name__ == "__main__":
-    import copy
-
     model = efficientnet_b0(quantize=True, is_qat=False)
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)

@@ -1,5 +1,5 @@
 """
-it overrides torchvision.models.quantization.mobilenetv3
+it overrides torchvision.models.quantization.mobilenetv2
 """
 
 from functools import partial
@@ -13,7 +13,6 @@ from torchvision.models.mobilenetv2 import (
     MobileNet_V2_Weights,
     MobileNetV2,
 )
-
 from torchvision.ops.misc import Conv2dNormActivation
 from torchvision.transforms._presets import ImageClassification
 from torchvision.models._api import Weights, WeightsEnum
@@ -23,6 +22,7 @@ from torchvision.models.quantization.utils import (
     _fuse_modules,
     _replace_relu,
 )
+
 from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
 
 
