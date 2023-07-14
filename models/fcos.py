@@ -16,7 +16,8 @@ from torchvision.ops import (
     misc as misc_nn_ops,
     sigmoid_focal_loss,
 )
-from torchvision.ops.feature_pyramid_network import LastLevelP6P7
+
+# from torchvision.ops.feature_pyramid_network import LastLevelP6P7
 from torchvision.transforms._presets import ObjectDetection
 from torchvision.utils import _log_api_usage_once
 from torchvision.models.resnet import ResNet50_Weights
@@ -31,6 +32,7 @@ from torchvision.models.detection.transform import GeneralizedRCNNTransform
 from models.resnet import resnet50
 from utils.backbone_utils import _resnet_fpn_extractor, _validate_trainable_layers
 from utils.quantization_utils import get_platform_aware_qconfig
+from ops.feature_pyramid_network import LastLevelP6P7
 
 
 __all__ = [
@@ -878,10 +880,10 @@ def fcos_resnet50_fpn(
     trainable_backbone_layers = _validate_trainable_layers(
         is_trained, trainable_backbone_layers, 5, 3
     )
-    norm_layer = misc_nn_ops.FrozenBatchNorm2d if is_trained else nn.BatchNorm2d
+    norm_layer = nn.BatchNorm2d
+    # norm_layer = misc_nn_ops.FrozenBatchNorm2d if is_trained else nn.BatchNorm2d
 
     backbone = resnet50(
-        weights=weights_backbone,
         progress=progress,
         norm_layer=norm_layer,
         quantize=quantize,
@@ -927,3 +929,29 @@ def fuse_fcos(model: nn.Module, is_qat: bool = False) -> None:
 
 if __name__ == "__main__":
     model = fcos_resnet50_fpn(quantize=True, is_qat=False)
+    model.eval()
+    model_fp = copy.deepcopy(model)
+    x = [torch.randn(3, 300, 400), torch.randn(3, 500, 400)]
+    torch.ao.quantization.convert(model, inplace=True)
+
+    start = time.time()
+    predictions = model(x)
+    elapsed_quant = time.time() - start
+
+    start = time.time()
+    predictions_fp = model_fp(x)
+    elapsed_fp = time.time() - start
+
+    print(f"latency_quant: {elapsed_quant: .2f}, latency_fp: {elapsed_fp: .2f}")
+    # torch.onnx.export(
+    #     model_fp,
+    #     x,
+    #     f="../onnx/fcos_resnet50_fpn_fp.onnx",
+    #     opset_version=13,
+    # )  # success
+    # torch.onnx.export(
+    #     model,
+    #     x,
+    #     f="../onnx/fcos_resnet50_fpn_qint8.onnx",
+    #     opset_version=13,
+    # )  # failed

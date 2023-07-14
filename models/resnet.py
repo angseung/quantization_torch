@@ -384,14 +384,7 @@ def resnet34(pretrained=False, progress=True, quantize=False, is_qat=False, **kw
     )
 
 
-def resnet50(
-    pretrained=False,
-    progress=True,
-    quantize=False,
-    is_qat=False,
-    backbone_only=False,
-    **kwargs
-):
+def resnet50(pretrained=False, progress=True, quantize=False, is_qat=False, **kwargs):
     r"""ResNet-50 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_
 
