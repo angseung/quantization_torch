@@ -19,7 +19,6 @@ from torchvision.ops import (
     sigmoid_focal_loss,
 )
 
-# from torchvision.ops.feature_pyramid_network import LastLevelP6P7
 from torchvision.transforms._presets import ObjectDetection
 from torchvision.utils import _log_api_usage_once
 from torchvision.models.resnet import ResNet50_Weights

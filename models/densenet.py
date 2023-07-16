@@ -6,7 +6,6 @@ import re
 from collections import OrderedDict
 from functools import partial
 from typing import Any, List, Optional, Tuple
-import platform
 
 import torch
 import torch.nn as nn
@@ -296,6 +295,7 @@ def _densenet(
     progress: bool,
     quantize: bool,
     is_qat: bool,
+    skip_fuse: Optional[bool] = False,
     **kwargs: Any,
 ) -> QuantizableDenseNet:
     if weights is not None:
@@ -311,6 +311,10 @@ def _densenet(
         _load_state_dict(model=model, weights=weights, progress=progress)
 
     model.eval()
+
+    if not skip_fuse:
+        # TODO: Implement a fuser function
+        pass
 
     if quantize:
         if is_qat:

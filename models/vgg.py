@@ -171,6 +171,7 @@ def _vgg(
     progress: bool,
     quantize: bool,
     is_qat: bool,
+    skip_fuse: Optional[bool] = False,
     **kwargs: Any
 ) -> QuantizableVGG:
     backend = get_platform_aware_qconfig()
@@ -190,15 +191,16 @@ def _vgg(
 
     model.eval()
 
+    if not skip_fuse:
+        model.fuse_model(is_qat=is_qat)
+
     if quantize:
         if is_qat:
-            model.fuse_model(is_qat=is_qat)
             model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.train()
             torch.ao.quantization.prepare_qat(model, inplace=True)
 
         else:
-            model.fuse_model(is_qat=is_qat)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model, inplace=True)
 

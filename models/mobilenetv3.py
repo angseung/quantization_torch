@@ -2,6 +2,7 @@
 it overrides torchvision.models.quantization.mobilenetv3
 """
 
+import copy
 from functools import partial
 from typing import Any, List, Optional, Union
 
@@ -143,6 +144,7 @@ def _mobilenet_v3_model(
     progress: bool,
     quantize: bool,
     is_qat: bool,
+    skip_fuse: Optional[bool] = False,
     **kwargs: Any,
 ) -> QuantizableMobileNetV3:
     if weights is not None:
@@ -160,22 +162,25 @@ def _mobilenet_v3_model(
         block=QuantizableInvertedResidual,
         **kwargs,
     )
-    _replace_relu(model)
-    model.eval()
-
-    if quantize:
-        if is_qat:
-            model.fuse_model(is_qat=True)
-            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
-            model.train()
-            torch.ao.quantization.prepare_qat(model, inplace=True)
-        else:
-            model.fuse_model(is_qat=False)
-            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
-            torch.ao.quantization.prepare(model, inplace=True)
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress))
+    _replace_relu(model)
+
+    model.eval()
+
+    if skip_fuse:
+        model.fuse_model(is_qat=is_qat)
+
+    if quantize:
+        if is_qat:
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+
+        else:
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     return model
 
@@ -275,8 +280,6 @@ def mobilenet_v3_large(
 
 
 if __name__ == "__main__":
-    import copy
-
     model = mobilenet_v3_large(quantize=True, is_qat=True)
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
