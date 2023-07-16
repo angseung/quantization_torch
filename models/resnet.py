@@ -24,6 +24,7 @@ __all__ = [
     "resnext101_32x8d",
     "wide_resnet50_2",
     "wide_resnet101_2",
+    "fuse_resnet",
 ]
 
 
@@ -319,12 +320,12 @@ def _resnet(arch, block, layers, pretrained, progress, quantize, is_qat, **kwarg
 
     if quantize:
         if is_qat:
-            model.fuse_model(is_qat=True)
+            # model.fuse_model(is_qat=True)
             model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.train()
             torch.ao.quantization.prepare_qat(model, inplace=True)
         else:
-            model.fuse_model(is_qat=False)
+            # model.fuse_model(is_qat=False)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model, inplace=True)
 

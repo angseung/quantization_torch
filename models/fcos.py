@@ -30,7 +30,7 @@ from torchvision.models.detection import _utils as det_utils
 from torchvision.models.detection.anchor_utils import AnchorGenerator
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
 
-from models.resnet import resnet50
+from models.resnet import resnet50, fuse_resnet
 from utils.backbone_utils import _resnet_fpn_extractor, _validate_trainable_layers
 from utils.quantization_utils import get_platform_aware_qconfig
 from ops.feature_pyramid_network import LastLevelP6P7
@@ -899,9 +899,10 @@ def fcos_resnet50_fpn(
     model = QuantizableFCOS(backbone, num_classes, **kwargs)
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
 
     model.eval()
+    fuse_fcos(model, is_qat=is_qat)
 
     if quantize:
         if is_qat:
@@ -925,11 +926,16 @@ def fcos_resnet50_fpn(
 
 
 def fuse_fcos(model: nn.Module, is_qat: bool = False) -> None:
-    pass
+    fuse_resnet(model.backbone.body, is_qat=is_qat)
 
 
 if __name__ == "__main__":
-    model = fcos_resnet50_fpn(quantize=True, is_qat=False)
+    model = fcos_resnet50_fpn(
+        weights=FCOS_ResNet50_FPN_Weights,
+        weights_backbone=ResNet50_Weights,
+        quantize=True,
+        is_qat=False,
+    )
     model.eval()
     model_fp = copy.deepcopy(model)
     x = [torch.randn(3, 300, 400), torch.randn(3, 500, 400)]
