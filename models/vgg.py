@@ -856,8 +856,18 @@ def fuse_vgg(model: nn.Module, version: str, is_qat: bool = False) -> None:
 
 if __name__ == "__main__":
     dummy_input = torch.randn(1, 3, 224, 224)
+    # model_bn = vgg11_bn(quantize=True, is_qat=False)
+    # model = vgg11(quantize=True, is_qat=False)
+
+    # model_bn = vgg13_bn(quantize=True, is_qat=False)
+    # model = vgg13(quantize=True, is_qat=False)
+
+    # model_bn = vgg16_bn(quantize=True, is_qat=False)
+    # model = vgg16(quantize=True, is_qat=False)
+
     model_bn = vgg19_bn(quantize=True, is_qat=False)
     model = vgg19(quantize=True, is_qat=False)
+
     model_bn_fp = copy.deepcopy(model_bn)
     model_fp = copy.deepcopy(model)
 

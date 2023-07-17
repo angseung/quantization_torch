@@ -1,5 +1,3 @@
-# Model Quantization with PyTorch
-
 # 1. PTQ/QAT 대상으로 선정한 모델
 
 ## 1.1. PyTorch
@@ -40,9 +38,9 @@
 | ConvNeXt | N | 양자화 미지원 |
 | RegNet X | N | Y |
 | RegNet Y | N | 양자화 미지원 |
-| VGG16 | N | Y |
-| VGG16_BN | N | Y |
-- EfficientNet 계열: Stride ≠ 1인 Pointwise Convolution
+| VGG | N | Y |
+| VGG_BN | N | Y |
+- EfficientNet 계열: Stride ≠ 1인 Pointwise Convolution의 qint8 연산 미지원
 - ConvNext 계열: GeLU 활성화 함수 및 Layer Normalization의 qint8 연산 미지원
 - RegNet Y 계열: SEBlock Tensor-Mul의 qint8 연산 미지원
 
@@ -76,7 +74,7 @@
     - stride ≠ 1인 Pointwise Convolution을 사용하는 EfficientNet, EfficientDet, MobileNetV1 등 모델들은 PyTorch에서 양자화 적용 불가
     - Depthwise Convolution은 stride에 관계 없이 양자화 및 Fusing 가능
 
-[https://github.com/pytorch/pytorch/issues/74540](https://github.com/pytorch/pytorch/issues/74540)
+https://github.com/pytorch/pytorch/issues/74540
 
 - Tensor Element-wise Multiply 연산 미지원 문제
 
@@ -166,56 +164,56 @@
 
 - 1차 지원 모델군
 
-| Model | Quantization Support | FP32 model ONNX Export Support | Quantized model ONNX Export Support | ONNX opset |
-| --- | --- | --- | --- | --- |
-| ResNet18 | PTQ, QAT | Y | Y | 13 |
-| ResNet34 | PTQ, QAT | Y | Y | 13 |
-| ResNet50 | PTQ, QAT | Y | Y | 13 |
-| ResNet101 | PTQ, QAT | Y | Y | 13 |
-| ResNet152 | PTQ, QAT | Y | Y | 13 |
-| DenseNet121 | PTQ, QAT | Y | N | N/A |
-| DenseNet161 | PTQ, QAT | Y | N | N/A |
-| DenseNet169 | PTQ, QAT | Y | N | N/A |
-| DenseNet201 | PTQ, QAT | Y | N | N/A |
-| EfficientNetB0 | N | Y | N | 13 |
-| EfficientNetB1 | N | Y | N | 13 |
-| EfficientNetB2 | N | Y | N | 13 |
-| EfficientNetB3 | N | Y | N | 13 |
-| EfficientNetB4 | N | Y | N | 13 |
-| EfficientNetB5 | N | Y | N | 13 |
-| EfficientNetB6 | N | Y | N | 13 |
-| EfficientNetB7 | N | Y | N | 13 |
-| MobileNetV2 | PTQ, QAT | Y | Y | 13 |
-| MobileNetV3 | PTQ, QAT | Y | Y | 13 |
-| WideResNet50 | PTQ, QAT | Y | Y | 13 |
-| WideResNet101 | PTQ, QAT | Y | Y | 13 |
-| ResNext50 | PTQ, QAT | Y | Y | 13 |
-| ResNext101 | PTQ, QAT | Y | Y | 13 |
-| YoloV3 | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
-| YoloV4 | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
-| YoloV5 | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
+| Model | Pretrained | Quantization Support | FP32 model ONNX Export Support | Quantized model ONNX Export Support | ONNX opset |
+| --- | --- | --- | --- | --- | --- |
+| ResNet18 | Y | PTQ, QAT | Y | Y | 13 |
+| ResNet34 | Y | PTQ, QAT | Y | Y | 13 |
+| ResNet50 | Y | PTQ, QAT | Y | Y | 13 |
+| ResNet101 | Y | PTQ, QAT | Y | Y | 13 |
+| ResNet152 | Y | PTQ, QAT | Y | Y | 13 |
+| DenseNet121 | Y | PTQ, QAT | Y | N | N/A |
+| DenseNet161 | Y | PTQ, QAT | Y | N | N/A |
+| DenseNet169 | Y | PTQ, QAT | Y | N | N/A |
+| DenseNet201 | Y | PTQ, QAT | Y | N | N/A |
+| EfficientNetB0 | Y | N | Y | N | 13 |
+| EfficientNetB1 | Y | N | Y | N | 13 |
+| EfficientNetB2 | Y | N | Y | N | 13 |
+| EfficientNetB3 | Y | N | Y | N | 13 |
+| EfficientNetB4 | Y | N | Y | N | 13 |
+| EfficientNetB5 | Y | N | Y | N | 13 |
+| EfficientNetB6 | Y | N | Y | N | 13 |
+| EfficientNetB7 | Y | N | Y | N | 13 |
+| MobileNetV2 | Y | PTQ, QAT | Y | Y | 13 |
+| MobileNetV3 | Y | PTQ, QAT | Y | Y | 13 |
+| WideResNet50 | Y | PTQ, QAT | Y | Y | 13 |
+| WideResNet101 | Y | PTQ, QAT | Y | Y | 13 |
+| ResNext50 | Y | PTQ, QAT | Y | Y | 13 |
+| ResNext101 | Y | PTQ, QAT | Y | Y | 13 |
+| YoloV3 | N | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
+| YoloV4 | N | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
+| YoloV5 | N | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
 
 - 2차 지원 모델군
 
-| Model | Quantization Support | FP32 model ONNX Export Support | Quantized model ONNX Export Support | ONNX opset |
-| --- | --- | --- | --- | --- |
-| SqueezeNet 1.0 | PTQ, QAT | Y | Y | 13 |
-| SqueezeNet 1.1 | PTQ, QAT | Y | Y | 13 |
-| MNASNet_0,5 | PTQ, QAT | Y | Y | 13 |
-| MNASNet_0,75 | PTQ, QAT | Y | Y | 13 |
-| MNASNet_1.0 | PTQ, QAT | Y | Y | 13 |
-| MNASNet_1.3 | PTQ, QAT | Y | Y | 13 |
-| ConvNeXt | N | Y | N | 13 |
-| RegNet X | PTQ, QAT | Y | Y | 13 |
-| RegNet Y | N | Y | N | 13 |
-| RetinaNet_ResNet50_FPN | PTQ, QAT | Y | N | 13 |
-| RetinaNet_ResNet50_FPN_V2 | PTQ, QAT | Y | N | 13 |
-| VGG16 | PTQ, QAT | Y | Y | 13 |
-| VGG16_BN | PTQ, QAT | Y | Y | 13 |
-| SSD300_VGG16 | PTQ, QAT | Y | N | 13 |
-| SSDLite320_MobileNetV3_Large | PTQ, QAT | Y | N | 13 |
-| FCOS | PTQ, QAT | Y | N | 13 |
-| FPN |  |  |  |  |
-| DeepLabV3 |  |  |  |  |
-| LRASPP |  |  |  |  |
-| Mask R-CNN |  |  |  |  |
+| Model | Pretrained | Quantization Support | FP32 model ONNX Export Support | Quantized model ONNX Export Support | ONNX opset |
+| --- | --- | --- | --- | --- | --- |
+| SqueezeNet 1.0 |  | PTQ, QAT | Y | Y | 13 |
+| SqueezeNet 1.1 |  | PTQ, QAT | Y | Y | 13 |
+| MNASNet_0,5 |  | PTQ, QAT | Y | Y | 13 |
+| MNASNet_0,75 |  | PTQ, QAT | Y | Y | 13 |
+| MNASNet_1.0 |  | PTQ, QAT | Y | Y | 13 |
+| MNASNet_1.3 |  | PTQ, QAT | Y | Y | 13 |
+| ConvNeXt |  | N | Y | N | 13 |
+| RegNet X |  | PTQ, QAT | Y | Y | 13 |
+| RegNet Y |  | N | Y | N | 13 |
+| RetinaNet_ResNet50_FPN |  | PTQ, QAT | Y | N | 13 |
+| RetinaNet_ResNet50_FPN_V2 |  | PTQ, QAT | Y | N | 13 |
+| VGG16 |  | PTQ, QAT | Y | Y | 13 |
+| VGG16_BN |  | PTQ, QAT | Y | Y | 13 |
+| SSD300_VGG16 |  | PTQ, QAT | Y | N | 13 |
+| SSDLite320_MobileNetV3_Large |  | PTQ, QAT | Y | N | 13 |
+| FCOS |  | PTQ, QAT | Y | N | 13 |
+| FPN |  |  |  |  |  |
+| DeepLabV3 |  |  |  |  |  |
+| LRASPP |  |  |  |  |  |
+| Mask R-CNN |  |  |  |  |  |
