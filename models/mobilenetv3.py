@@ -169,7 +169,7 @@ def _mobilenet_v3_model(
 
     model.eval()
 
-    if skip_fuse:
+    if not skip_fuse:
         model.fuse_model(is_qat=is_qat)
 
     if quantize:
