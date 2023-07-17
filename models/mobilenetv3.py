@@ -45,7 +45,7 @@ class QuantizableSqueezeExcitation(SqueezeExcitation):
     def forward(self, input: Tensor) -> Tensor:
         return self.skip_mul.mul(self._scale(input), input)
 
-    def fuse_model(self, is_qat: Optional[bool] = None) -> None:
+    def fuse_model(self, is_qat: bool = False) -> None:
         _fuse_modules(self, ["fc1", "activation"], is_qat, inplace=True)
 
     def _load_from_state_dict(
@@ -126,7 +126,7 @@ class QuantizableMobileNetV3(MobileNetV3):
         x = self.dequant(x)
         return x
 
-    def fuse_model(self, is_qat: Optional[bool] = None) -> None:
+    def fuse_model(self, is_qat: bool = False) -> None:
         for m in self.modules():
             if type(m) is Conv2dNormActivation:
                 modules_to_fuse = ["0", "1"]

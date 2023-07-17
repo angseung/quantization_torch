@@ -370,7 +370,7 @@ class QuantizableSSD(nn.Module):
             / N,
         }
 
-    def fuse_model(self, is_qat: bool = False):
+    def fuse_model(self, is_qat: bool = False) -> None:
         fuse_ssd(self, is_qat=is_qat)
 
     def forward(

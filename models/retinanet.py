@@ -775,7 +775,7 @@ class QuantizableRetinaNet(nn.Module):
             return losses, detections
         return self.eager_outputs(losses, detections)
 
-    def fuse_model(self, is_qat: bool = False):
+    def fuse_model(self, is_qat: bool = False) -> None:
         fuse_retinanet(self, is_qat=is_qat)
 
 

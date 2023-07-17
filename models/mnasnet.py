@@ -221,7 +221,7 @@ class QuantizableMNASNet(torch.nn.Module):
         x = self.dequant(x)
         return x
 
-    def fuse_model(self, is_qat: bool = False):
+    def fuse_model(self, is_qat: bool = False) -> None:
         fuse_mnasnet(self, is_qat=is_qat)
 
     def _load_from_state_dict(

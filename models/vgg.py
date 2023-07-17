@@ -3,6 +3,7 @@ it overrides torchvision.models.vgg
 """
 
 import copy
+import inspect
 from functools import partial
 from typing import Any, cast, Dict, List, Optional, Union
 
@@ -80,8 +81,8 @@ class QuantizableVGG(nn.Module):
                     nn.init.normal_(m.weight, 0, 0.01)
                     nn.init.constant_(m.bias, 0)
 
-    def fuse_model(self, is_qat: bool = False):
-        fuse_vgg(self, is_qat=is_qat)
+    def fuse_model(self, version: str, is_qat: bool = False) -> None:
+        fuse_vgg(self, version=version, is_qat=is_qat)
 
     def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:
         x = self.features(x)
@@ -193,7 +194,8 @@ def _vgg(
     model.eval()
 
     if not skip_fuse:
-        model.fuse_model(is_qat=is_qat)
+        version = inspect.stack()[1][3][:5]
+        model.fuse_model(is_qat=is_qat, version=version)
 
     if quantize:
         if is_qat:
@@ -677,9 +679,9 @@ def vgg19_bn(
     return _vgg("E", True, weights, progress, quantize, is_qat, **kwargs)
 
 
-def fuse_vgg(model: nn.Module, version: str = "vgg16", is_qat: bool = False) -> None:
+def fuse_vgg(model: nn.Module, version: str, is_qat: bool = False) -> None:
     if version == "vgg16":
-        if isinstance(model.features[1], nn.BatchNorm2d):
+        if isinstance(model.features[1], nn.BatchNorm2d):  # vgg16_bn model
             _fuse_modules(
                 model.features,
                 modules_to_fuse=[
@@ -700,7 +702,7 @@ def fuse_vgg(model: nn.Module, version: str = "vgg16", is_qat: bool = False) -> 
                 is_qat=is_qat,
                 inplace=True,
             )
-        else:
+        else:  # original vgg16 model
             _fuse_modules(
                 model.features,
                 modules_to_fuse=[
@@ -747,6 +749,7 @@ if __name__ == "__main__":
     mse_bn = cal_mse(dummy_output, dummy_output_fp, norm=True)
 
     # from utils.onnx_utils import convert_onnx
+
     # convert_onnx(model_bn, "../onnx/vgg_bn_qint8.onnx", opset=13)  # success
     # convert_onnx(model_bn_fp, "../onnx/vgg_bn_fp32.onnx", opset=13)  # success
     # convert_onnx(model, "../onnx/vgg_qint8.onnx", opset=13)  # success

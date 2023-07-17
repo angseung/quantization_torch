@@ -450,7 +450,7 @@ class RegNet(nn.Module):
 
         return x
 
-    def fuse_model(self, is_qat: bool = False):
+    def fuse_model(self, is_qat: bool = False) -> None:
         fuse_regnet(self)
 
 

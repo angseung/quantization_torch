@@ -386,7 +386,7 @@ class QuantizableEfficientNet(nn.Module):
                 nn.init.uniform_(m.weight, -init_range, init_range)
                 nn.init.zeros_(m.bias)
 
-    def fuse_model(self, is_qat: bool = False):
+    def fuse_model(self, is_qat: bool = False) -> None:
         fuse_efficientnet(self, is_qat)
 
     def _forward_impl(self, x: Tensor) -> Tensor:

@@ -128,7 +128,7 @@ class QuantizableSqueezeNet(nn.Module):
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
 
-    def fuse_model(self, is_qat: bool):
+    def fuse_model(self, is_qat: bool = False) -> None:
         fuse_squeezenet(self, is_qat)
 
     def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:

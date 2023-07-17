@@ -291,7 +291,7 @@ class QuantizableResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def fuse_model(self, is_qat: bool = False):
+    def fuse_model(self, is_qat: bool = False) -> None:
         fuse_resnet(self, is_qat=is_qat)
 
     def _forward_impl(self, x: Tensor) -> Tensor:
