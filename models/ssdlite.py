@@ -463,7 +463,7 @@ if __name__ == "__main__":
         weights=SSDLite320_MobileNet_V3_Large_Weights.COCO_V1,
         weights_backbone=MobileNet_V3_Large_Weights.IMAGENET1K_V1,
         quantize=True,
-        is_qat=False
+        is_qat=False,
     )
     model_fp = copy.deepcopy(model)
     model(dummy_input)

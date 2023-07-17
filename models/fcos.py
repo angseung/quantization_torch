@@ -912,15 +912,13 @@ def fcos_resnet50_fpn(
             )
             model.head.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.train()
-            torch.ao.quantization.prepare_qat(model.backbone, inplace=True)
-            torch.ao.quantization.prepare_qat(model.head, inplace=True)
+            torch.ao.quantization.prepare_qat(model, inplace=True)
 
         else:
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.head.qconfig = torch.ao.quantization.get_default_qconfig(backend)
-            torch.ao.quantization.prepare(model.backbone, inplace=True)
-            torch.ao.quantization.prepare(model.head, inplace=True)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     return model
 
@@ -931,8 +929,8 @@ def fuse_fcos(model: nn.Module, is_qat: bool = False) -> None:
 
 if __name__ == "__main__":
     model = fcos_resnet50_fpn(
-        weights=FCOS_ResNet50_FPN_Weights,
-        weights_backbone=ResNet50_Weights,
+        weights=FCOS_ResNet50_FPN_Weights.COCO_V1,
+        weights_backbone=ResNet50_Weights.IMAGENET1K_V1,
         quantize=True,
         is_qat=False,
     )
