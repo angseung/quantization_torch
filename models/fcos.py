@@ -888,6 +888,7 @@ def fcos_resnet50_fpn(
         norm_layer=norm_layer,
         quantize=quantize,
         is_qat=is_qat,
+        skip_fuse=True,
     )
     backbone = _resnet_fpn_extractor(
         backbone,
