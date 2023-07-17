@@ -1,3 +1,7 @@
+"""
+it overrides torchvision.models.detection.fcos
+"""
+
 import time
 import copy
 import math
@@ -15,7 +19,6 @@ from torchvision.ops import (
     sigmoid_focal_loss,
 )
 
-# from torchvision.ops.feature_pyramid_network import LastLevelP6P7
 from torchvision.transforms._presets import ObjectDetection
 from torchvision.utils import _log_api_usage_once
 from torchvision.models.resnet import ResNet50_Weights
@@ -26,7 +29,7 @@ from torchvision.models.detection import _utils as det_utils
 from torchvision.models.detection.anchor_utils import AnchorGenerator
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
 
-from models.resnet import resnet50
+from models.resnet import resnet50, fuse_resnet
 from utils.backbone_utils import _resnet_fpn_extractor, _validate_trainable_layers
 from utils.quantization_utils import get_platform_aware_qconfig
 from ops.feature_pyramid_network import LastLevelP6P7
@@ -885,6 +888,7 @@ def fcos_resnet50_fpn(
         norm_layer=norm_layer,
         quantize=quantize,
         is_qat=is_qat,
+        skip_fuse=True,
     )
     backbone = _resnet_fpn_extractor(
         backbone,
@@ -895,9 +899,10 @@ def fcos_resnet50_fpn(
     model = QuantizableFCOS(backbone, num_classes, **kwargs)
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
 
     model.eval()
+    fuse_fcos(model, is_qat=is_qat)
 
     if quantize:
         if is_qat:
@@ -907,25 +912,28 @@ def fcos_resnet50_fpn(
             )
             model.head.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.train()
-            torch.ao.quantization.prepare_qat(model.backbone, inplace=True)
-            torch.ao.quantization.prepare_qat(model.head, inplace=True)
+            torch.ao.quantization.prepare_qat(model, inplace=True)
 
         else:
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.head.qconfig = torch.ao.quantization.get_default_qconfig(backend)
-            torch.ao.quantization.prepare(model.backbone, inplace=True)
-            torch.ao.quantization.prepare(model.head, inplace=True)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     return model
 
 
 def fuse_fcos(model: nn.Module, is_qat: bool = False) -> None:
-    pass
+    fuse_resnet(model.backbone.body, is_qat=is_qat)
 
 
 if __name__ == "__main__":
-    model = fcos_resnet50_fpn(quantize=True, is_qat=False)
+    model = fcos_resnet50_fpn(
+        weights=FCOS_ResNet50_FPN_Weights.COCO_V1,
+        weights_backbone=ResNet50_Weights.IMAGENET1K_V1,
+        quantize=True,
+        is_qat=False,
+    )
     model.eval()
     model_fp = copy.deepcopy(model)
     x = [torch.randn(3, 300, 400), torch.randn(3, 500, 400)]

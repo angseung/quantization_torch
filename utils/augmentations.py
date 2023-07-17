@@ -1,8 +1,3 @@
-# YOLOv3 🚀 by Ultralytics, GPL-3.0 license
-"""
-Image augmentation functions
-"""
-
 import math
 import random
 from typing import *

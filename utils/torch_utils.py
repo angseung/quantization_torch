@@ -1,8 +1,3 @@
-# YOLOv3 🚀 by Ultralytics, GPL-3.0 license
-"""
-PyTorch utils
-"""
-
 import datetime
 import math
 import os

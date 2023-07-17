@@ -1,8 +1,3 @@
-# YOLOv3 🚀 by Ultralytics, GPL-3.0 license
-"""
-General utils
-"""
-
 from typing import Tuple
 import contextlib
 import glob

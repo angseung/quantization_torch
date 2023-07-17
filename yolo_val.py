@@ -1,11 +1,3 @@
-# YOLOv3 🚀 by Ultralytics, GPL-3.0 license
-"""
-Validate a trained  model accuracy on a custom dataset
-
-Usage:
-    $ python yolo_val.py --data coco128.yaml --weights weights/yolov5m-qat.pt --img 320 --normalize
-"""
-
 import argparse
 import json
 import os

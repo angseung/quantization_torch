@@ -1,11 +1,3 @@
-# YOLOv3 🚀 by Ultralytics, GPL-3.0 license
-"""
-Run inference on images, videos, directories, streams, etc.
-
-Usage:
-    $ python yolo_inference.py --weights weights/yolov5m-qat.pt --source data/path
-"""
-
 import argparse
 import os
 import sys

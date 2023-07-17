@@ -2,8 +2,8 @@
 it overrides torchvision.models.convnext
 """
 
-from functools import partial
 import copy
+from functools import partial
 from typing import Any, Callable, List, Optional, Sequence
 
 import torch
@@ -16,7 +16,6 @@ from torchvision.transforms._presets import ImageClassification
 from torchvision.utils import _log_api_usage_once
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torch.ao.nn.quantized import FloatFunctional
-from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
@@ -216,6 +215,7 @@ def _convnext(
     progress: bool,
     quantize: bool,
     is_qat: bool,
+    skip_fuse: Optional[bool] = False,
     **kwargs: Any,
 ) -> QuantizableConvNeXt:
     backend = get_platform_aware_qconfig()
@@ -234,14 +234,15 @@ def _convnext(
 
     model.eval()
 
+    if not skip_fuse:
+        model.fuse_model(is_qat=is_qat)
+
     if quantize:
         if is_qat:
-            model.fuse_model(is_qat=True)
             model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.train()
             torch.ao.quantization.prepare_qat(model, inplace=True)
         else:
-            model.fuse_model(is_qat=False)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             torch.ao.quantization.prepare(model, inplace=True)
 

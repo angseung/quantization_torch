@@ -373,6 +373,7 @@ def ssdlite320_mobilenet_v3_large(
         progress=progress,
         norm_layer=norm_layer,
         reduced_tail=reduce_tail,
+        skip_fuse=True,
         **kwargs,
     )
     if weights_backbone is None:
@@ -417,29 +418,26 @@ def ssdlite320_mobilenet_v3_large(
     )
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
 
     model.eval()
+    fuse_ssdlite(model, is_qat=is_qat)
 
     if quantize:
         if is_qat:
-            fuse_ssdlite(model, is_qat=is_qat)
             model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
                 backend
             )
             model.head.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.train()
-            torch.ao.quantization.prepare_qat(model.backbone, inplace=True)
-            torch.ao.quantization.prepare_qat(model.head, inplace=True)
+            torch.ao.quantization.prepare_qat(model, inplace=True)
 
         else:
-            fuse_ssdlite(model, is_qat=is_qat)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.head.qconfig = torch.ao.quantization.get_default_qconfig(backend)
-            torch.ao.quantization.prepare(model.backbone, inplace=True)
-            torch.ao.quantization.prepare(model.head, inplace=True)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     return model
 
@@ -461,7 +459,12 @@ def fuse_ssdlite(model: nn.Module, is_qat: bool = False) -> None:
 
 if __name__ == "__main__":
     dummy_input = torch.randn(1, 3, 224, 224)
-    model = ssdlite320_mobilenet_v3_large(quantize=True, is_qat=False)
+    model = ssdlite320_mobilenet_v3_large(
+        weights=SSDLite320_MobileNet_V3_Large_Weights.COCO_V1,
+        weights_backbone=MobileNet_V3_Large_Weights.IMAGENET1K_V1,
+        quantize=True,
+        is_qat=False,
+    )
     model_fp = copy.deepcopy(model)
     model(dummy_input)
     torch.ao.quantization.convert(model, inplace=True)
