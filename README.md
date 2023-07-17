@@ -64,7 +64,7 @@
 | SSD300_VGG16 | N | Y |
 | SSDLite320_MobileNetV3_Large | N | Y |
 | FCOS | N | Y |
-| Faster_RCNN | N |  |
+| Faster R-CNN | N |  |
 
 ### 1.1.3. Segmentation
 
@@ -145,8 +145,14 @@ https://github.com/pytorch/pytorch/issues/74540
 | ConvNeXt |  |  |  |
 | RegNet X |  |  |  |
 | RegNet Y |  |  |  |
+| VGG11 |  |  |  |
+| VGG11_BN |  |  |  |
+| VGG13 |  |  |  |
+| VGG13_BN |  |  |  |
 | VGG16 |  |  |  |
 | VGG16_BN |  |  |  |
+| VGG19 |  |  |  |
+| VGG19_BN |  |  |  |
 
 - Detection 모델
 
@@ -157,19 +163,20 @@ https://github.com/pytorch/pytorch/issues/74540
 | SSD300_VGG16 |  |  |  |
 | SSDLite320_MobileNetV3_Large |  |  |  |
 | FCOS |  |  |  |
+| Faster R-CNN |  |  |  |
 
 - Segmentation 모델
 
 | model | before (s) | after (s) | ratio |
 | --- | --- | --- | --- |
-| FPN |  |  |  |
+| FCN |  |  |  |
 | DeepLabV3 |  |  |  |
 | LRASPP |  |  |  |
 | Mask R-CNN |  |  |  |
 
 # 3. ONNX Export Test
 
-- 1차 지원 모델군
+## 3.1. 1차 지원 모델군
 
 | Model | Pretrained | Quantization Support | FP32 model ONNX Export Support | Quantized model ONNX Export Support | ONNX opset |
 | --- | --- | --- | --- | --- | --- |
@@ -199,28 +206,30 @@ https://github.com/pytorch/pytorch/issues/74540
 | YoloV3 | N | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
 | YoloV4 | N | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
 | YoloV5 | N | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
+- YoloV3~V5: Swish → ReLU 활성으로 변경함에 따라 기존 모델 가중치 호환성 이슈 존재
 
-- 2차 지원 모델군
+## 3.2. 2차 지원 모델군
 
 | Model | Pretrained | Quantization Support | FP32 model ONNX Export Support | Quantized model ONNX Export Support | ONNX opset |
 | --- | --- | --- | --- | --- | --- |
-| SqueezeNet 1.0 |  | PTQ, QAT | Y | Y | 13 |
-| SqueezeNet 1.1 |  | PTQ, QAT | Y | Y | 13 |
-| MNASNet_0,5 |  | PTQ, QAT | Y | Y | 13 |
-| MNASNet_0,75 |  | PTQ, QAT | Y | Y | 13 |
-| MNASNet_1.0 |  | PTQ, QAT | Y | Y | 13 |
-| MNASNet_1.3 |  | PTQ, QAT | Y | Y | 13 |
-| ConvNeXt |  | N | Y | N | 13 |
-| RegNet X |  | PTQ, QAT | Y | Y | 13 |
-| RegNet Y |  | N | Y | N | 13 |
-| RetinaNet_ResNet50_FPN |  | PTQ, QAT | Y | N | 13 |
-| RetinaNet_ResNet50_FPN_V2 |  | PTQ, QAT | Y | N | 13 |
-| VGG16 |  | PTQ, QAT | Y | Y | 13 |
-| VGG16_BN |  | PTQ, QAT | Y | Y | 13 |
-| SSD300_VGG16 |  | PTQ, QAT | Y | N | 13 |
-| SSDLite320_MobileNetV3_Large |  | PTQ, QAT | Y | N | 13 |
-| FCOS |  | PTQ, QAT | Y | N | 13 |
-| FPN |  |  |  |  |  |
+| SqueezeNet 1.0 | Y | PTQ, QAT | Y | Y | 13 |
+| SqueezeNet 1.1 | Y | PTQ, QAT | Y | Y | 13 |
+| MNASNet_0,5 | Y | PTQ, QAT | Y | Y | 13 |
+| MNASNet_0,75 | Y | PTQ, QAT | Y | Y | 13 |
+| MNASNet_1.0 | Y | PTQ, QAT | Y | Y | 13 |
+| MNASNet_1.3 | Y | PTQ, QAT | Y | Y | 13 |
+| ConvNeXt | Y | N | Y | N | 13 |
+| RegNet X | Y | PTQ, QAT | Y | Y | 13 |
+| RegNet Y | Y | N | Y | N | 13 |
+| RetinaNet_ResNet50_FPN | Y | PTQ, QAT | Y | N | 13 |
+| RetinaNet_ResNet50_FPN_V2 | Y | PTQ, QAT | Y | N | 13 |
+| VGG16 | Y | PTQ, QAT | Y | Y | 13 |
+| VGG16_BN | Y | PTQ, QAT | Y | Y | 13 |
+| SSD300_VGG16 | Y | PTQ, QAT | Y | N | 13 |
+| SSDLite320_MobileNetV3_Large | N | PTQ, QAT | Y | N | 13 |
+| FCOS | Y | PTQ, QAT | Y | N | 13 |
+| FCN |  |  |  |  |  |
 | DeepLabV3 |  |  |  |  |  |
 | LRASPP |  |  |  |  |  |
 | Mask R-CNN |  |  |  |  |  |
+- SSDLite: ReLU6 → ReLU로 변경함에 따라 기존 모델 가중치 호환성 이슈 존재

@@ -13,7 +13,7 @@ from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.ops import MultiScaleRoIAlign
 from torchvision.ops import misc as misc_nn_ops
 from torchvision.transforms._presets import ObjectDetection
-from torchvision.models._api import register_model, Weights, WeightsEnum
+from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _COCO_CATEGORIES
 from torchvision.models._utils import _ovewrite_value_param, handle_legacy_interface
 from torchvision.models.detection._utils import overwrite_eps
@@ -583,6 +583,10 @@ def fasterrcnn_resnet50_fpn(
     .. autoclass:: torchvision.models.detection.FasterRCNN_ResNet50_FPN_Weights
         :members:
     """
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     weights = FasterRCNN_ResNet50_FPN_Weights.verify(weights)
     weights_backbone = ResNet50_Weights.verify(weights_backbone)
 
@@ -598,7 +602,7 @@ def fasterrcnn_resnet50_fpn(
     trainable_backbone_layers = _validate_trainable_layers(
         is_trained, trainable_backbone_layers, 5, 3
     )
-    norm_layer = misc_nn_ops.FrozenBatchNorm2d if is_trained else nn.BatchNorm2d
+    norm_layer = nn.BatchNorm2d  # FrozenBatchNorm or BatchNorm
 
     backbone = resnet50(
         weights=weights_backbone, progress=progress, norm_layer=norm_layer
@@ -659,6 +663,10 @@ def fasterrcnn_resnet50_fpn_v2(
     .. autoclass:: torchvision.models.detection.FasterRCNN_ResNet50_FPN_V2_Weights
         :members:
     """
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     weights = FasterRCNN_ResNet50_FPN_V2_Weights.verify(weights)
     weights_backbone = ResNet50_Weights.verify(weights_backbone)
 
@@ -814,6 +822,10 @@ def fasterrcnn_mobilenet_v3_large_320_fpn(
     .. autoclass:: torchvision.models.detection.FasterRCNN_MobileNet_V3_Large_320_FPN_Weights
         :members:
     """
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     weights = FasterRCNN_MobileNet_V3_Large_320_FPN_Weights.verify(weights)
     weights_backbone = MobileNet_V3_Large_Weights.verify(weights_backbone)
 
@@ -889,6 +901,10 @@ def fasterrcnn_mobilenet_v3_large_fpn(
     .. autoclass:: torchvision.models.detection.FasterRCNN_MobileNet_V3_Large_FPN_Weights
         :members:
     """
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     weights = FasterRCNN_MobileNet_V3_Large_FPN_Weights.verify(weights)
     weights_backbone = MobileNet_V3_Large_Weights.verify(weights_backbone)
 

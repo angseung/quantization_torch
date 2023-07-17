@@ -6,11 +6,12 @@ import copy
 from functools import partial
 from typing import Any, Optional
 
+import torch
 from torch import nn
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.transforms._presets import SemanticSegmentation
-from torchvision.models._api import register_model, Weights, WeightsEnum
+from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _VOC_CATEGORIES
 from torchvision.models._utils import (
     _ovewrite_value_param,
@@ -138,7 +139,6 @@ def _fcn_resnet(
     return FCN(backbone, classifier, aux_classifier)
 
 
-@register_model()
 @handle_legacy_interface(
     weights=("pretrained", FCN_ResNet50_Weights.COCO_WITH_VOC_LABELS_V1),
     weights_backbone=("pretrained_backbone", ResNet50_Weights.IMAGENET1K_V1),
@@ -177,6 +177,9 @@ def fcn_resnet50(
     .. autoclass:: torchvision.models.segmentation.FCN_ResNet50_Weights
         :members:
     """
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
 
     weights = FCN_ResNet50_Weights.verify(weights)
     weights_backbone = ResNet50_Weights.verify(weights_backbone)
@@ -196,12 +199,13 @@ def fcn_resnet50(
     model = _fcn_resnet(backbone, num_classes, aux_loss)
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
+
+    model.eval()
 
     return model
 
 
-@register_model()
 @handle_legacy_interface(
     weights=("pretrained", FCN_ResNet101_Weights.COCO_WITH_VOC_LABELS_V1),
     weights_backbone=("pretrained_backbone", ResNet101_Weights.IMAGENET1K_V1),

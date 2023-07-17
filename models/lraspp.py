@@ -7,13 +7,14 @@ from collections import OrderedDict
 from functools import partial
 from typing import Any, Dict, Optional
 
+import torch
 from torch import nn, Tensor
 from torch.nn import functional as F
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.transforms._presets import SemanticSegmentation
 from torchvision.utils import _log_api_usage_once
-from torchvision.models._api import register_model, Weights, WeightsEnum
+from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _VOC_CATEGORIES
 from torchvision.models._utils import (
     _ovewrite_value_param,
@@ -156,7 +157,6 @@ class LRASPP_MobileNet_V3_Large_Weights(WeightsEnum):
     DEFAULT = COCO_WITH_VOC_LABELS_V1
 
 
-@register_model()
 @handle_legacy_interface(
     weights=("pretrained", LRASPP_MobileNet_V3_Large_Weights.COCO_WITH_VOC_LABELS_V1),
     weights_backbone=("pretrained_backbone", MobileNet_V3_Large_Weights.IMAGENET1K_V1),
@@ -199,6 +199,10 @@ def lraspp_mobilenet_v3_large(
     if kwargs.pop("aux_loss", False):
         raise NotImplementedError("This model does not use auxiliary loss")
 
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     weights = LRASPP_MobileNet_V3_Large_Weights.verify(weights)
     weights_backbone = MobileNet_V3_Large_Weights.verify(weights_backbone)
 
@@ -214,7 +218,9 @@ def lraspp_mobilenet_v3_large(
     model = _lraspp_mobilenetv3(backbone, num_classes)
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
+
+    model.eval()
 
     return model
 

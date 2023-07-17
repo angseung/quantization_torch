@@ -511,6 +511,10 @@ def maskrcnn_resnet50_fpn(
     .. autoclass:: torchvision.models.detection.MaskRCNN_ResNet50_FPN_Weights
         :members:
     """
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     weights = MaskRCNN_ResNet50_FPN_Weights.verify(weights)
     weights_backbone = ResNet50_Weights.verify(weights_backbone)
 
@@ -584,6 +588,10 @@ def maskrcnn_resnet50_fpn_v2(
     .. autoclass:: torchvision.models.detection.MaskRCNN_ResNet50_FPN_V2_Weights
         :members:
     """
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     weights = MaskRCNN_ResNet50_FPN_V2_Weights.verify(weights)
     weights_backbone = ResNet50_Weights.verify(weights_backbone)
 
@@ -630,7 +638,9 @@ def maskrcnn_resnet50_fpn_v2(
     )
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
+
+    model.eval()
 
     return model
 

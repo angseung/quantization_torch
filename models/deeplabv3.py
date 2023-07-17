@@ -299,6 +299,10 @@ def deeplabv3_resnet50(
     .. autoclass:: torchvision.models.segmentation.DeepLabV3_ResNet50_Weights
         :members:
     """
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     weights = DeepLabV3_ResNet50_Weights.verify(weights)
     weights_backbone = ResNet50_Weights.verify(weights_backbone)
 
@@ -358,6 +362,10 @@ def deeplabv3_resnet101(
     .. autoclass:: torchvision.models.segmentation.DeepLabV3_ResNet101_Weights
         :members:
     """
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     weights = DeepLabV3_ResNet101_Weights.verify(weights)
     weights_backbone = ResNet101_Weights.verify(weights_backbone)
 
@@ -420,6 +428,10 @@ def deeplabv3_mobilenet_v3_large(
     .. autoclass:: torchvision.models.segmentation.DeepLabV3_MobileNet_V3_Large_Weights
         :members:
     """
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     weights = DeepLabV3_MobileNet_V3_Large_Weights.verify(weights)
     weights_backbone = MobileNet_V3_Large_Weights.verify(weights_backbone)
 
@@ -436,7 +448,9 @@ def deeplabv3_mobilenet_v3_large(
     model = _deeplabv3_mobilenetv3(backbone, num_classes, aux_loss)
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
+
+    model.eval()
 
     return model
 
