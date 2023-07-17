@@ -109,8 +109,7 @@ class QuantizableBasicBlock(nn.Module):
         if self.downsample is not None:
             identity = self.downsample(x)
 
-        out = self.skip_add.add(out, identity)
-        out = self.relu(out)
+        out = self.skip_add.add_relu(out, identity)
 
         return out
 
