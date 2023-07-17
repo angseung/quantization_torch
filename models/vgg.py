@@ -680,7 +680,87 @@ def vgg19_bn(
 
 
 def fuse_vgg(model: nn.Module, version: str, is_qat: bool = False) -> None:
-    if version == "vgg16":
+    _fuse_modules(
+        model.classifier,
+        modules_to_fuse=[
+            ["0", "1"],
+            ["3", "4"],
+        ],
+        is_qat=is_qat,
+        inplace=True,
+    )
+
+    if version == "vgg11":
+        if isinstance(model.features[1], nn.BatchNorm2d):  # vgg11_bn model
+            _fuse_modules(
+                model.features,
+                modules_to_fuse=[
+                    ["0", "1", "2"],
+                    ["4", "5", "6"],
+                    ["8", "9", "10"],
+                    ["11", "12", "13"],
+                    ["15", "16", "17"],
+                    ["18", "19", "20"],
+                    ["22", "23", "24"],
+                    ["25", "26", "27"],
+                ],
+                is_qat=is_qat,
+                inplace=True,
+            )
+        else:  # original vgg11 model
+            _fuse_modules(
+                model.features,
+                modules_to_fuse=[
+                    ["0", "1"],
+                    ["3", "4"],
+                    ["6", "7"],
+                    ["8", "9"],
+                    ["11", "12"],
+                    ["13", "14"],
+                    ["16", "17"],
+                    ["18", "19"],
+                ],
+                is_qat=is_qat,
+                inplace=True,
+            )
+    elif version == "vgg13":
+        if isinstance(model.features[1], nn.BatchNorm2d):  # vgg13_bn model
+            _fuse_modules(
+                model.features,
+                modules_to_fuse=[
+                    ["0", "1", "2"],
+                    ["3", "4", "5"],
+                    ["7", "8", "9"],
+                    ["10", "11", "12"],
+                    ["14", "15", "16"],
+                    ["17", "18", "19"],
+                    ["21", "22", "23"],
+                    ["24", "25", "26"],
+                    ["28", "29", "30"],
+                    ["31", "32", "33"],
+                ],
+                is_qat=is_qat,
+                inplace=True,
+            )
+        else:  # original vgg13 model
+            _fuse_modules(
+                model.features,
+                modules_to_fuse=[
+                    ["0", "1"],
+                    ["2", "3"],
+                    ["5", "6"],
+                    ["7", "8"],
+                    ["10", "11"],
+                    ["12", "13"],
+                    ["15", "16"],
+                    ["17", "18"],
+                    ["20", "21"],
+                    ["22", "23"],
+                ],
+                is_qat=is_qat,
+                inplace=True,
+            )
+    elif version == "vgg16":
         if isinstance(model.features[1], nn.BatchNorm2d):  # vgg16_bn model
             _fuse_modules(
                 model.features,
@@ -723,14 +803,61 @@ def fuse_vgg(model: nn.Module, version: str, is_qat: bool = False) -> None:
                 is_qat=is_qat,
                 inplace=True,
             )
-    else:
-        raise NotImplementedError
+    elif version == "vgg19":
+        if isinstance(model.features[1], nn.BatchNorm2d):  # vgg19_bn model
+            _fuse_modules(
+                model.features,
+                modules_to_fuse=[
+                    ["0", "1", "2"],
+                    ["3", "4", "5"],
+                    ["7", "8", "9"],
+                    ["10", "11", "12"],
+                    ["14", "15", "16"],
+                    ["17", "18", "19"],
+                    ["20", "21", "22"],
+                    ["23", "24", "25"],
+                    ["27", "28", "29"],
+                    ["30", "31", "32"],
+                    ["33", "34", "35"],
+                    ["36", "37", "38"],
+                    ["40", "41", "42"],
+                    ["43", "44", "45"],
+                    ["46", "47", "48"],
+                    ["49", "50", "51"],
+                ],
+                is_qat=is_qat,
+                inplace=True,
+            )
+        else:  # original vgg19 model
+            _fuse_modules(
+                model.features,
+                modules_to_fuse=[
+                    ["0", "1"],
+                    ["2", "3"],
+                    ["5", "6"],
+                    ["7", "8"],
+                    ["10", "11"],
+                    ["12", "13"],
+                    ["14", "15"],
+                    ["16", "17"],
+                    ["19", "20"],
+                    ["21", "22"],
+                    ["23", "24"],
+                    ["25", "26"],
+                    ["28", "29"],
+                    ["30", "31"],
+                    ["32", "33"],
+                    ["34", "35"],
+                ],
+                is_qat=is_qat,
+                inplace=True,
+            )
 
 
 if __name__ == "__main__":
     dummy_input = torch.randn(1, 3, 224, 224)
-    model_bn = vgg16_bn(quantize=True, is_qat=False)
-    model = vgg16(quantize=True, is_qat=False)
+    model_bn = vgg19_bn(quantize=True, is_qat=False)
+    model = vgg19(quantize=True, is_qat=False)
     model_bn_fp = copy.deepcopy(model_bn)
     model_fp = copy.deepcopy(model)
 
