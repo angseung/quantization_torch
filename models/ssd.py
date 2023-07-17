@@ -371,7 +371,7 @@ class QuantizableSSD(nn.Module):
         }
 
     def fuse_model(self, is_qat: bool = False):
-        fuse_model(self, is_qat=is_qat)
+        fuse_ssd(self, is_qat=is_qat)
 
     def forward(
         self, images: List[Tensor], targets: Optional[List[Dict[str, Tensor]]] = None
@@ -765,7 +765,11 @@ def ssd300_vgg16(
 
     # Use custom backbones more appropriate for SSD
     backbone = vgg16(
-        weights=weights_backbone, progress=progress, quantize=quantize, is_qat=is_qat
+        weights=weights_backbone,
+        progress=progress,
+        quantize=quantize,
+        is_qat=is_qat,
+        skip_fuse=True,
     )
     backbone = _vgg_extractor(backbone, False, trainable_backbone_layers)
     anchor_generator = DefaultBoxGenerator(
@@ -789,34 +793,54 @@ def ssd300_vgg16(
     )
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
 
     model.eval()
+    model.fuse_model(is_qat=is_qat)
 
     if quantize:
         if is_qat:
-            model.fuse_model(is_qat=is_qat)
             model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
                 backend
             )
             model.head.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.train()
-            torch.ao.quantization.prepare_qat(model.backbone, inplace=True)
-            torch.ao.quantization.prepare_qat(model.head, inplace=True)
+            torch.ao.quantization.prepare_qat(model, inplace=True)
 
         else:
-            model.fuse_model(is_qat=is_qat)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.head.qconfig = torch.ao.quantization.get_default_qconfig(backend)
-            torch.ao.quantization.prepare(model.backbone, inplace=True)
-            torch.ao.quantization.prepare(model.head, inplace=True)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     return model
 
 
-def fuse_model(model: nn.Module, is_qat: bool = False) -> None:
+def fuse_ssd(model: nn.Module, is_qat: bool = False) -> None:
+    _fuse_modules(
+        model.backbone.features,
+        modules_to_fuse=[
+            ["0", "1"],
+            ["2", "3"],
+            ["5", "6"],
+            ["7", "8"],
+            ["10", "11"],
+            ["12", "13"],
+            ["14", "15"],
+            ["17", "18"],
+            ["19", "20"],
+            ["21", "22"],
+        ],
+        is_qat=is_qat,
+        inplace=True,
+    )
+    _fuse_modules(
+        model.backbone.extra[0],
+        modules_to_fuse=[["1", "2"], ["3", "4"], ["5", "6"]],
+        is_qat=is_qat,
+        inplace=True,
+    )
     _fuse_modules(
         model.backbone.extra[0][-1],
         modules_to_fuse=[["1", "2"], ["3", "4"]],
@@ -851,7 +875,12 @@ def fuse_model(model: nn.Module, is_qat: bool = False) -> None:
 
 if __name__ == "__main__":
     dummy_input = torch.randn(1, 3, 224, 224)
-    model = ssd300_vgg16(quantize=True, is_qat=False)
+    model = ssd300_vgg16(
+        weights=SSD300_VGG16_Weights.COCO_V1,
+        weights_backbone=VGG16_Weights.IMAGENET1K_V1,
+        quantize=True,
+        is_qat=False,
+    )
     model_fp = copy.deepcopy(model)
     model(dummy_input)
     torch.ao.quantization.convert(model, inplace=True)

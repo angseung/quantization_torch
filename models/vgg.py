@@ -37,6 +37,7 @@ __all__ = [
     "vgg16_bn",
     "vgg19",
     "vgg19_bn",
+    "fuse_vgg",
 ]
 
 

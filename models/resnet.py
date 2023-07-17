@@ -40,6 +40,7 @@ __all__ = [
     "resnext101_64x4d",
     "wide_resnet50_2",
     "wide_resnet101_2",
+    "fuse_resnet",
 ]
 
 

@@ -420,26 +420,23 @@ def ssdlite320_mobilenet_v3_large(
         model.load_state_dict(weights.get_state_dict(progress=progress))
 
     model.eval()
+    fuse_ssdlite(model, is_qat=is_qat)
 
     if quantize:
         if is_qat:
-            fuse_ssdlite(model, is_qat=is_qat)
             model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
                 backend
             )
             model.head.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.train()
-            torch.ao.quantization.prepare_qat(model.backbone, inplace=True)
-            torch.ao.quantization.prepare_qat(model.head, inplace=True)
+            torch.ao.quantization.prepare_qat(model, inplace=True)
 
         else:
-            fuse_ssdlite(model, is_qat=is_qat)
             model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
             model.head.qconfig = torch.ao.quantization.get_default_qconfig(backend)
-            torch.ao.quantization.prepare(model.backbone, inplace=True)
-            torch.ao.quantization.prepare(model.head, inplace=True)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     return model
 
