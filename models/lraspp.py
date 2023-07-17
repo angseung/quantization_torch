@@ -1,9 +1,16 @@
+"""
+it overrides torchvision.models.segmentation.lraspp
+"""
+
+import copy
 from collections import OrderedDict
 from functools import partial
 from typing import Any, Dict, Optional
 
 from torch import nn, Tensor
 from torch.nn import functional as F
+from torch.ao.quantization import DeQuantStub, QuantStub
+from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.transforms._presets import SemanticSegmentation
 from torchvision.utils import _log_api_usage_once
 from torchvision.models._api import register_model, Weights, WeightsEnum
@@ -19,6 +26,7 @@ from models.mobilenetv3 import (
     MobileNet_V3_Large_Weights,
     QuantizableMobileNetV3,
 )
+from utils.quantization_utils import get_platform_aware_qconfig
 
 
 __all__ = ["LRASPP", "LRASPP_MobileNet_V3_Large_Weights", "lraspp_mobilenet_v3_large"]
@@ -209,3 +217,7 @@ def lraspp_mobilenet_v3_large(
         model.load_state_dict(weights.get_state_dict(progress=progress))
 
     return model
+
+
+if __name__ == "__main__":
+    dummy_input = torch.randn(1, 3, 224, 224)

@@ -1,7 +1,14 @@
+"""
+it overrides torchvision.models.segmentation.fcn
+"""
+
+import copy
 from functools import partial
 from typing import Any, Optional
 
 from torch import nn
+from torch.ao.quantization import DeQuantStub, QuantStub
+from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.transforms._presets import SemanticSegmentation
 from torchvision.models._api import register_model, Weights, WeightsEnum
 from torchvision.models._meta import _VOC_CATEGORIES
@@ -19,6 +26,7 @@ from models.resnet import (
     resnet50,
     ResNet50_Weights,
 )
+from utils.quantization_utils import get_platform_aware_qconfig
 
 
 __all__ = [
@@ -254,3 +262,7 @@ def fcn_resnet101(
         model.load_state_dict(weights.get_state_dict(progress=progress))
 
     return model
+
+
+if __name__ == "__main__":
+    dummy_input = torch.randn(1, 3, 224, 224)

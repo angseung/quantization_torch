@@ -1,8 +1,15 @@
+"""
+it overrides torchvision.models.detection.faster_rcnn
+"""
+
+import copy
 from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torch.ao.quantization import DeQuantStub, QuantStub
+from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.ops import MultiScaleRoIAlign
 from torchvision.ops import misc as misc_nn_ops
 from torchvision.transforms._presets import ObjectDetection
@@ -23,6 +30,7 @@ from utils.backbone_utils import (
     _resnet_fpn_extractor,
     _validate_trainable_layers,
 )
+from utils.quantization_utils import get_platform_aware_qconfig
 
 
 __all__ = [
@@ -897,3 +905,7 @@ def fasterrcnn_mobilenet_v3_large_fpn(
         trainable_backbone_layers=trainable_backbone_layers,
         **kwargs,
     )
+
+
+if __name__ == "__main__":
+    dummy_input = torch.randn(1, 3, 224, 224)

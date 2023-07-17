@@ -1,9 +1,16 @@
+"""
+it overrides torchvision.models.segmentation.deeplabv3
+"""
+
+import copy
 from functools import partial
 from typing import Any, List, Optional
 
 import torch
 from torch import nn
 from torch.nn import functional as F
+from torch.ao.quantization import DeQuantStub, QuantStub
+from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.transforms._presets import SemanticSegmentation
 from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _VOC_CATEGORIES
@@ -27,6 +34,7 @@ from models.resnet import (
     ResNet50_Weights,
 )
 from models.fcn import FCNHead
+from utils.quantization_utils import get_platform_aware_qconfig
 
 
 __all__ = [
@@ -431,3 +439,7 @@ def deeplabv3_mobilenet_v3_large(
         model.load_state_dict(weights.get_state_dict(progress=progress))
 
     return model
+
+
+if __name__ == "__main__":
+    dummy_input = torch.randn(1, 3, 224, 224)

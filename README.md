@@ -1,4 +1,4 @@
-# 1. PTQ/QAT 대상으로 선정한 모델
+# 1. 양자화 대상 모델
 
 ## 1.1. PyTorch
 
@@ -38,8 +38,14 @@
 | ConvNeXt | N | 양자화 미지원 |
 | RegNet X | N | Y |
 | RegNet Y | N | 양자화 미지원 |
-| VGG | N | Y |
-| VGG_BN | N | Y |
+| VGG11 | N | Y |
+| VGG11_BN | N | Y |
+| VGG13 | N | Y |
+| VGG13_BN | N | Y |
+| VGG16 | N | Y |
+| VGG16_BN | N | Y |
+| VGG19 | N | Y |
+| VGG19_BN | N | Y |
 - EfficientNet 계열: Stride ≠ 1인 Pointwise Convolution의 qint8 연산 미지원
 - ConvNext 계열: GeLU 활성화 함수 및 Layer Normalization의 qint8 연산 미지원
 - RegNet Y 계열: SEBlock Tensor-Mul의 qint8 연산 미지원
@@ -58,12 +64,13 @@
 | SSD300_VGG16 | N | Y |
 | SSDLite320_MobileNetV3_Large | N | Y |
 | FCOS | N | Y |
+| Faster_RCNN | N |  |
 
 ### 1.1.3. Segmentation
 
 | Model | Quantized version is available in torchvision | Implemented Manually |
 | --- | --- | --- |
-| FPN | N |  |
+| FCN | N |  |
 | DeepLabV3 | N |  |
 | LRASPP | N |  |
 | Mask R-CNN | N |  |

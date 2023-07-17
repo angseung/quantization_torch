@@ -1,7 +1,14 @@
+"""
+it overrides torchvision.models.detection.mask_rcnn
+"""
+
+import copy
 from collections import OrderedDict
 from typing import Any, Callable, Optional
 
 from torch import nn
+from torch.ao.quantization import DeQuantStub, QuantStub
+from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.ops import MultiScaleRoIAlign
 from torchvision.ops import misc as misc_nn_ops
 from torchvision.transforms._presets import ObjectDetection
@@ -18,6 +25,7 @@ from models.faster_rcnn import (
     RPNHead,
 )
 from utils.backbone_utils import _resnet_fpn_extractor, _validate_trainable_layers
+from utils.quantization_utils import get_platform_aware_qconfig
 
 
 __all__ = [
@@ -625,3 +633,7 @@ def maskrcnn_resnet50_fpn_v2(
         model.load_state_dict(weights.get_state_dict(progress=progress))
 
     return model
+
+
+if __name__ == "__main__":
+    dummy_input = torch.randn(1, 3, 224, 224)
