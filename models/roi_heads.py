@@ -864,7 +864,9 @@ class RoIHeads(nn.Module):
         box_features = self.box_roi_pool(features, proposals, image_shapes)
         box_features = self.dequant(self.box_head(self.quant(box_features)))
         class_logits, box_regression = self.box_predictor(self.quant(box_features))
-        class_logits, box_regression = self.dequant(class_logits), self.dequant(box_regression)
+        class_logits, box_regression = self.dequant(class_logits), self.dequant(
+            box_regression
+        )
 
         result: List[Dict[str, torch.Tensor]] = []
         losses = {}

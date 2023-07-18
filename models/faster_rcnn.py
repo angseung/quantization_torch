@@ -3,6 +3,7 @@ it overrides torchvision.models.detection.faster_rcnn
 """
 
 import copy
+import time
 from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch
@@ -508,6 +509,8 @@ def fasterrcnn_resnet50_fpn(
     num_classes: Optional[int] = None,
     weights_backbone: Optional[ResNet50_Weights] = ResNet50_Weights.IMAGENET1K_V1,
     trainable_backbone_layers: Optional[int] = None,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> FasterRCNN:
     """
@@ -582,6 +585,8 @@ def fasterrcnn_resnet50_fpn(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) layers starting from
             final block. Valid values are between 0 and 5, with 5 meaning all backbone layers are
             trainable. If ``None`` is passed (the default) this value is set to 3.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.detection.faster_rcnn.FasterRCNN``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/faster_rcnn.py>`_
@@ -612,7 +617,7 @@ def fasterrcnn_resnet50_fpn(
     norm_layer = nn.BatchNorm2d  # FrozenBatchNorm or BatchNorm
 
     backbone = resnet50(
-        weights=weights_backbone, progress=progress, norm_layer=norm_layer
+        weights=weights_backbone, progress=progress, norm_layer=norm_layer, quantize=quantize, is_qat=is_qat, skip_fuse=True,
     )
     backbone = _resnet_fpn_extractor(backbone, trainable_backbone_layers)
     model = FasterRCNN(backbone, num_classes=num_classes, **kwargs)
@@ -623,6 +628,27 @@ def fasterrcnn_resnet50_fpn(
             overwrite_eps(model, 0.0)
 
     model.eval()
+    model.fuse_model(is_qat=is_qat)
+
+    if quantize:
+        if is_qat:
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.roi_heads.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.rpn.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+
+        else:
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.roi_heads.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.rpn.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     return model
 
@@ -638,6 +664,8 @@ def fasterrcnn_resnet50_fpn_v2(
     num_classes: Optional[int] = None,
     weights_backbone: Optional[ResNet50_Weights] = None,
     trainable_backbone_layers: Optional[int] = None,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> FasterRCNN:
     """
@@ -664,6 +692,8 @@ def fasterrcnn_resnet50_fpn_v2(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) layers starting from
             final block. Valid values are between 0 and 5, with 5 meaning all backbone layers are
             trainable. If ``None`` is passed (the default) this value is set to 3.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.detection.faster_rcnn.FasterRCNN``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/faster_rcnn.py>`_
@@ -692,7 +722,7 @@ def fasterrcnn_resnet50_fpn_v2(
         is_trained, trainable_backbone_layers, 5, 3
     )
 
-    backbone = resnet50(weights=weights_backbone, progress=progress)
+    backbone = resnet50(weights=weights_backbone, progress=progress, quantize=quantize, is_qat=is_qat, skip_fuse=True)
     backbone = _resnet_fpn_extractor(
         backbone, trainable_backbone_layers, norm_layer=nn.BatchNorm2d
     )
@@ -718,9 +748,30 @@ def fasterrcnn_resnet50_fpn_v2(
     )
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
 
     model.eval()
+    model.fuse_model(is_qat=is_qat)
+
+    if quantize:
+        if is_qat:
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.roi_heads.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.rpn.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+
+        else:
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.roi_heads.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.rpn.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     return model
 
@@ -763,6 +814,8 @@ def _fasterrcnn_mobilenet_v3_large_fpn(
         weights=weights_backbone,
         progress=progress,
         norm_layer=norm_layer,
+        quantize=quantize,
+        is_qat=is_qat,
         skip_fuse=True,
     )
     backbone = _mobilenet_extractor(backbone, True, trainable_backbone_layers)
@@ -981,8 +1034,23 @@ def fuse_faster_rcnn(model: nn.Module, is_qat: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    model = fasterrcnn_mobilenet_v3_large_fpn(
-        weights=FasterRCNN_MobileNet_V3_Large_FPN_Weights.DEFAULT,
+    # model = fasterrcnn_resnet50_fpn(
+    #     weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT,
+    #     quantize=True,
+    #     is_qat=False,
+    # )
+    # model = fasterrcnn_resnet50_fpn_v2(
+    #     weights=FasterRCNN_ResNet50_FPN_V2_Weights.DEFAULT,
+    #     quantize=True,
+    #     is_qat=False,
+    # )
+    # model = fasterrcnn_mobilenet_v3_large_fpn(
+    #     weights=FasterRCNN_MobileNet_V3_Large_FPN_Weights.DEFAULT,
+    #     quantize=True,
+    #     is_qat=False,
+    # )
+    model = fasterrcnn_mobilenet_v3_large_320_fpn(
+        weights=FasterRCNN_MobileNet_V3_Large_320_FPN_Weights.DEFAULT,
         quantize=True,
         is_qat=False,
     )
@@ -993,5 +1061,25 @@ if __name__ == "__main__":
     model(x)
     torch.ao.quantization.convert(model, inplace=True)
 
+    start = time.time()
     predictions = model(x)
+    elapsed_quant = time.time() - start
+
+    start = time.time()
     predictions_fp = model_fp(x)
+    elapsed_fp = time.time() - start
+
+    print(f"latency_quant: {elapsed_quant: .2f}, latency_fp: {elapsed_fp: .2f}")
+
+    # torch.onnx.export(
+    #     model_fp,
+    #     x,
+    #     f="../onnx/fasterrcnn_mobilenet_v3_large_fpn_fp.onnx",
+    #     opset_version=13,
+    # )  # success
+    # torch.onnx.export(
+    #     model,
+    #     x,
+    #     f="../onnx/fasterrcnn_mobilenet_v3_large_fpn_qint8.onnx",
+    #     opset_version=13,
+    # )  # failed
