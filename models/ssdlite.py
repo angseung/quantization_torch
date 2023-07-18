@@ -120,8 +120,7 @@ class QuantizableSSDLiteHead(nn.Module):
             in_channels, num_anchors, norm_layer
         )
         self.quant = QuantStub()
-        self.dequant_bbox = DeQuantStub()
-        self.dequant_class = DeQuantStub()
+        self.dequant = DeQuantStub()
 
     def forward(self, x: List[Tensor]) -> Dict[str, Tensor]:
         x = [self.quant(xi) for xi in x]
@@ -129,8 +128,8 @@ class QuantizableSSDLiteHead(nn.Module):
         class_logits = self.classification_head(x)
 
         return {
-            "bbox_regression": self.dequant_bbox(bbox_regression),
-            "cls_logits": self.dequant_class(class_logits),
+            "bbox_regression": self.dequant(bbox_regression),
+            "cls_logits": self.dequant(class_logits),
         }
 
 

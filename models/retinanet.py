@@ -11,6 +11,7 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
+import torch
 from torch import nn, Tensor
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torch.ao.nn.quantized import FloatFunctional
@@ -103,8 +104,7 @@ class QuantizableRetinaNetHead(nn.Module):
             norm_layer=norm_layer,
         )
         self.quant = QuantStub()
-        self.dequant_class = DeQuantStub()
-        self.dequant_bbox = DeQuantStub()
+        self.dequant = DeQuantStub()
 
     def compute_loss(self, targets, head_outputs, anchors, matched_idxs):
         # type: (List[Dict[str, Tensor]], Dict[str, Tensor], List[Tensor], List[Tensor]) -> Dict[str, Tensor]
@@ -124,8 +124,8 @@ class QuantizableRetinaNetHead(nn.Module):
         bbox_regression = self.regression_head(x)
 
         return {
-            "cls_logits": self.dequant_class(class_logits),
-            "bbox_regression": self.dequant_bbox(bbox_regression),
+            "cls_logits": self.dequant(class_logits),
+            "bbox_regression": self.dequant(bbox_regression),
         }
 
 

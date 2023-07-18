@@ -74,9 +74,7 @@ class QuantizableFCOSHead(nn.Module):
         )
 
         self.quant = QuantStub()
-        self.dequant_class = DeQuantStub()
-        self.dequant_bbox = DeQuantStub()
-        self.dequant_bbox_ctr = DeQuantStub()
+        self.dequant = DeQuantStub()
 
     def compute_loss(
         self,
@@ -170,9 +168,9 @@ class QuantizableFCOSHead(nn.Module):
         bbox_regression, bbox_ctrness = self.regression_head(x)
 
         return {
-            "cls_logits": self.dequant_class(cls_logits),
-            "bbox_regression": self.dequant_bbox(bbox_regression),
-            "bbox_ctrness": self.dequant_bbox_ctr(bbox_ctrness),
+            "cls_logits": self.dequant(cls_logits),
+            "bbox_regression": self.dequant(bbox_regression),
+            "bbox_ctrness": self.dequant(bbox_ctrness),
         }
 
 
