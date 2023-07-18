@@ -130,8 +130,10 @@ https://github.com/pytorch/pytorch/issues/74540
 | --- | --- | --- | --- |
 | YoloV3 | 2.111 | 1.010 | 0.48  |
 | YoloV4 | 4.367 | 1.433 | 0.33  |
+| YoloV5n |  |  |  |
 | YoloV5m | 0.777 | 0.332 | 0.43  |
 | Yolov5l | 1.617 | 0.677 | 0.42  |
+| YoloV5x |  |  |  |
 
 ## 2.2. 2차 양자화 대상 모델 추론시간 비교
 
@@ -141,13 +143,13 @@ https://github.com/pytorch/pytorch/issues/74540
 | --- | --- | --- | --- |
 | SqueezeNet 1.0 |  |  |  |
 | SqueezeNet 1.1 |  |  |  |
-| MNASNet_0,5 |  |  |  |
-| MNASNet_0,75 |  |  |  |
-| MNASNet_1.0 |  |  |  |
-| MNASNet_1.3 |  |  |  |
-| ConvNeXt |  |  |  |
+| MNASNet 0,5 |  |  |  |
+| MNASNet 0,75 |  |  |  |
+| MNASNet 1.0 |  |  |  |
+| MNASNet 1.3 |  |  |  |
+| ConvNeXt |  | N/A | N/A |
 | RegNet X |  |  |  |
-| RegNet Y |  |  |  |
+| RegNet Y |  | N/A | N/A |
 | VGG11 |  |  |  |
 | VGG11_BN |  |  |  |
 | VGG13 |  |  |  |
