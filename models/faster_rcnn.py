@@ -277,11 +277,15 @@ class QuantizableFasterRCNN(GeneralizedRCNN):
         if box_head is None:
             resolution = box_roi_pool.output_size[0]
             representation_size = 1024
-            box_head = QuantizableTwoMLPHead(out_channels * resolution ** 2, representation_size)
+            box_head = QuantizableTwoMLPHead(
+                out_channels * resolution**2, representation_size
+            )
 
         if box_predictor is None:
             representation_size = 1024
-            box_predictor = QuantizableFastRCNNPredictor(representation_size, num_classes)
+            box_predictor = QuantizableFastRCNNPredictor(
+                representation_size, num_classes
+            )
 
         roi_heads = QuantizableRoIHeads(
             # Box

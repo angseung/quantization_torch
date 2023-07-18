@@ -48,7 +48,7 @@
 | VGG19_BN | N | Y |
 - EfficientNet 계열: Stride ≠ 1인 Pointwise Convolution의 qint8 연산 미지원
 - ConvNext 계열: GeLU 활성화 함수 및 Layer Normalization의 qint8 연산 미지원
-- RegNet Y 계열: SEBlock Tensor-Mul의 qint8 연산 미지원
+- RegNet Y 계열: SEBlock의 forward path 중 Tensor-Mul의 qint8 연산 미지원
 
  
 
@@ -58,13 +58,16 @@
 | --- | --- | --- |
 | YoloV3 | N | Y |
 | YoloV4 | N | Y |
-| YoloV5 | N | Y |
+| YoloV5n | N | Y |
+| YoloV5m | N | Y |
+| YoloV5l | N | Y |
+| YoloV5x | N | Y |
 | RetinaNet_ResNet50_FPN | N | Y |
 | RetinaNet_ResNet50_FPN_V2 | N | Y |
 | SSD300_VGG16 | N | Y |
 | SSDLite320_MobileNetV3_Large | N | Y |
 | FCOS | N | Y |
-| Faster R-CNN | N |  |
+| Faster R-CNN | N | Y |
 
 ### 1.1.3. Segmentation
 
@@ -119,7 +122,7 @@ https://github.com/pytorch/pytorch/issues/74540
 | model | before (s) | after (s) | ratio |
 | --- | --- | --- | --- |
 | mobilenet_v2 | 1.42 | 0.75 | 0.53 |
-| mobilenet_v3 | 1.67 | 0.75 | 0.44 |
+| mobilenet_v3_large | 1.67 | 0.75 | 0.44 |
 
 - Yolo 계열
 
@@ -205,7 +208,10 @@ https://github.com/pytorch/pytorch/issues/74540
 | ResNext101 | Y | PTQ, QAT | Y | Y | 13 |
 | YoloV3 | N | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
 | YoloV4 | N | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
-| YoloV5 | N | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
+| YoloV5n | N | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
+| YoloV5m | N | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
+| YoloV5l | N | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
+| YoloV5x | N | PTQ (Backbone only) | Y | Y (Backbone only) | 13 |
 - YoloV3~V5: Swish → ReLU 활성으로 변경함에 따라 기존 모델 가중치 호환성 이슈 존재
 
 ## 3.2. 2차 지원 모델군
