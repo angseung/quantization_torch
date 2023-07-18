@@ -32,13 +32,13 @@ from utils.backbone_utils import (
     _resnet_fpn_extractor,
     _validate_trainable_layers,
 )
-from models.roi_heads import RoIHeads
-from models.rpn import RegionProposalNetwork, RPNHead
+from models.roi_heads import QuantizableRoIHeads
+from models.rpn import QuantizableRegionProposalNetwork, QuantizableRPNHead
 from utils.quantization_utils import get_platform_aware_qconfig
 
 
 __all__ = [
-    "FasterRCNN",
+    "QuantizableFasterRCNN",
     "FasterRCNN_ResNet50_FPN_Weights",
     "FasterRCNN_ResNet50_FPN_V2_Weights",
     "FasterRCNN_MobileNet_V3_Large_FPN_Weights",
@@ -56,7 +56,7 @@ def _default_anchorgen():
     return AnchorGenerator(anchor_sizes, aspect_ratios)
 
 
-class FasterRCNN(GeneralizedRCNN):
+class QuantizableFasterRCNN(GeneralizedRCNN):
     """
     Implements Faster R-CNN.
 
@@ -245,7 +245,7 @@ class FasterRCNN(GeneralizedRCNN):
         if rpn_anchor_generator is None:
             rpn_anchor_generator = _default_anchorgen()
         if rpn_head is None:
-            rpn_head = RPNHead(
+            rpn_head = QuantizableRPNHead(
                 out_channels, rpn_anchor_generator.num_anchors_per_location()[0]
             )
 
@@ -256,7 +256,7 @@ class FasterRCNN(GeneralizedRCNN):
             training=rpn_post_nms_top_n_train, testing=rpn_post_nms_top_n_test
         )
 
-        rpn = RegionProposalNetwork(
+        rpn = QuantizableRegionProposalNetwork(
             rpn_anchor_generator,
             rpn_head,
             rpn_fg_iou_thresh,
@@ -277,13 +277,13 @@ class FasterRCNN(GeneralizedRCNN):
         if box_head is None:
             resolution = box_roi_pool.output_size[0]
             representation_size = 1024
-            box_head = TwoMLPHead(out_channels * resolution**2, representation_size)
+            box_head = QuantizableTwoMLPHead(out_channels * resolution ** 2, representation_size)
 
         if box_predictor is None:
             representation_size = 1024
-            box_predictor = FastRCNNPredictor(representation_size, num_classes)
+            box_predictor = QuantizableFastRCNNPredictor(representation_size, num_classes)
 
-        roi_heads = RoIHeads(
+        roi_heads = QuantizableRoIHeads(
             # Box
             box_roi_pool,
             box_head,
@@ -312,7 +312,7 @@ class FasterRCNN(GeneralizedRCNN):
         fuse_faster_rcnn(self, is_qat=is_qat)
 
 
-class TwoMLPHead(nn.Module):
+class QuantizableTwoMLPHead(nn.Module):
     """
     Standard heads for FPN-based models
 
@@ -336,7 +336,7 @@ class TwoMLPHead(nn.Module):
         return x
 
 
-class FastRCNNConvFCHead(nn.Sequential):
+class QuantizableFastRCNNConvFCHead(nn.Sequential):
     def __init__(
         self,
         input_size: Tuple[int, int, int],
@@ -379,7 +379,7 @@ class FastRCNNConvFCHead(nn.Sequential):
                     nn.init.zeros_(layer.bias)
 
 
-class FastRCNNPredictor(nn.Module):
+class QuantizableFastRCNNPredictor(nn.Module):
     """
     Standard classification + bounding box regression layers
     for Fast R-CNN.
@@ -511,7 +511,7 @@ def fasterrcnn_resnet50_fpn(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> FasterRCNN:
+) -> QuantizableFasterRCNN:
     """
     Faster R-CNN model with a ResNet-50-FPN backbone from the `Faster R-CNN: Towards Real-Time Object
     Detection with Region Proposal Networks <https://arxiv.org/abs/1506.01497>`__
@@ -624,7 +624,7 @@ def fasterrcnn_resnet50_fpn(
         skip_fuse=True,
     )
     backbone = _resnet_fpn_extractor(backbone, trainable_backbone_layers)
-    model = FasterRCNN(backbone, num_classes=num_classes, **kwargs)
+    model = QuantizableFasterRCNN(backbone, num_classes=num_classes, **kwargs)
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
@@ -671,7 +671,7 @@ def fasterrcnn_resnet50_fpn_v2(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> FasterRCNN:
+) -> QuantizableFasterRCNN:
     """
     Constructs an improved Faster R-CNN model with a ResNet-50-FPN backbone from `Benchmarking Detection
     Transfer Learning with Vision Transformers <https://arxiv.org/abs/2111.11429>`__ paper.
@@ -737,18 +737,18 @@ def fasterrcnn_resnet50_fpn_v2(
         backbone, trainable_backbone_layers, norm_layer=nn.BatchNorm2d
     )
     rpn_anchor_generator = _default_anchorgen()
-    rpn_head = RPNHead(
+    rpn_head = QuantizableRPNHead(
         backbone.out_channels,
         rpn_anchor_generator.num_anchors_per_location()[0],
         conv_depth=2,
     )
-    box_head = FastRCNNConvFCHead(
+    box_head = QuantizableFastRCNNConvFCHead(
         (backbone.out_channels, 7, 7),
         [256, 256, 256, 256],
         [1024],
         norm_layer=nn.BatchNorm2d,
     )
-    model = FasterRCNN(
+    model = QuantizableFasterRCNN(
         backbone,
         num_classes=num_classes,
         rpn_anchor_generator=rpn_anchor_generator,
@@ -801,7 +801,7 @@ def _fasterrcnn_mobilenet_v3_large_fpn(
     quantize: bool,
     is_qat: bool,
     **kwargs: Any,
-) -> FasterRCNN:
+) -> QuantizableFasterRCNN:
     backend = get_platform_aware_qconfig()
     if backend == "qnnpack":
         torch.backends.quantized.engine = "qnnpack"
@@ -839,7 +839,7 @@ def _fasterrcnn_mobilenet_v3_large_fpn(
         ),
     ) * 3
     aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
-    model = FasterRCNN(
+    model = QuantizableFasterRCNN(
         backbone,
         num_classes,
         rpn_anchor_generator=AnchorGenerator(anchor_sizes, aspect_ratios),
@@ -891,7 +891,7 @@ def fasterrcnn_mobilenet_v3_large_320_fpn(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> FasterRCNN:
+) -> QuantizableFasterRCNN:
     """
     Low resolution Faster R-CNN model with a MobileNetV3-Large backbone tuned for mobile use cases.
 
@@ -972,7 +972,7 @@ def fasterrcnn_mobilenet_v3_large_fpn(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> FasterRCNN:
+) -> QuantizableFasterRCNN:
     """
     Constructs a high resolution Faster R-CNN model with a MobileNetV3-Large FPN backbone.
 

@@ -12,7 +12,7 @@ from torchvision.models.detection.anchor_utils import AnchorGenerator  # noqa: 4
 from torchvision.models.detection.image_list import ImageList
 
 
-class RPNHead(nn.Module):
+class QuantizableRPNHead(nn.Module):
     """
     Adds a simple RPN Head with classification and regression heads
 
@@ -127,7 +127,7 @@ def concat_box_prediction_layers(
     return box_cls, box_regression
 
 
-class RegionProposalNetwork(torch.nn.Module):
+class QuantizableRegionProposalNetwork(torch.nn.Module):
     """
     Implements Region Proposal Network (RPN).
 

@@ -33,7 +33,7 @@ from models.resnet import (
     resnet50,
     ResNet50_Weights,
 )
-from models.fcn import FCNHead
+from models.fcn import QuantizableFCNHead
 from utils.quantization_utils import get_platform_aware_qconfig
 
 
@@ -158,7 +158,7 @@ def _deeplabv3_resnet(
         return_layers["layer3"] = "aux"
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
-    aux_classifier = FCNHead(1024, num_classes) if aux else None
+    aux_classifier = QuantizableFCNHead(1024, num_classes) if aux else None
     classifier = DeepLabHead(2048, num_classes)
     return DeepLabV3(backbone, classifier, aux_classifier)
 
@@ -258,7 +258,7 @@ def _deeplabv3_mobilenetv3(
         return_layers[str(aux_pos)] = "aux"
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
-    aux_classifier = FCNHead(aux_inplanes, num_classes) if aux else None
+    aux_classifier = QuantizableFCNHead(aux_inplanes, num_classes) if aux else None
     classifier = DeepLabHead(out_inplanes, num_classes)
     return DeepLabV3(backbone, classifier, aux_classifier)
 

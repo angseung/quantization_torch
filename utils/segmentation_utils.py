@@ -7,7 +7,7 @@ from torch.nn import functional as F
 from torchvision.utils import _log_api_usage_once
 
 
-class _SimpleSegmentationModel(nn.Module):
+class _QuantizableSimpleSegmentationModel(nn.Module):
     __constants__ = ["aux_classifier"]
 
     def __init__(

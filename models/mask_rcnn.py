@@ -21,9 +21,9 @@ from torchvision.models.detection._utils import overwrite_eps
 from models.resnet import resnet50, ResNet50_Weights
 from models.faster_rcnn import (
     _default_anchorgen,
-    FasterRCNN,
-    FastRCNNConvFCHead,
-    RPNHead,
+    QuantizableFasterRCNN,
+    QuantizableFastRCNNConvFCHead,
+    QuantizableRPNHead,
 )
 from utils.backbone_utils import _resnet_fpn_extractor, _validate_trainable_layers
 from utils.quantization_utils import get_platform_aware_qconfig
@@ -38,7 +38,7 @@ __all__ = [
 ]
 
 
-class MaskRCNN(FasterRCNN):
+class MaskRCNN(QuantizableFasterRCNN):
     """
     Implements Mask R-CNN.
 
@@ -614,12 +614,12 @@ def maskrcnn_resnet50_fpn_v2(
         backbone, trainable_backbone_layers, norm_layer=nn.BatchNorm2d
     )
     rpn_anchor_generator = _default_anchorgen()
-    rpn_head = RPNHead(
+    rpn_head = QuantizableRPNHead(
         backbone.out_channels,
         rpn_anchor_generator.num_anchors_per_location()[0],
         conv_depth=2,
     )
-    box_head = FastRCNNConvFCHead(
+    box_head = QuantizableFastRCNNConvFCHead(
         (backbone.out_channels, 7, 7),
         [256, 256, 256, 256],
         [1024],

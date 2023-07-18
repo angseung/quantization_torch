@@ -556,7 +556,7 @@ def paste_masks_in_image(masks, boxes, img_shape, padding=1):
     return ret
 
 
-class RoIHeads(nn.Module):
+class QuantizableRoIHeads(nn.Module):
     __annotations__ = {
         "box_coder": det_utils.BoxCoder,
         "proposal_matcher": det_utils.Matcher,

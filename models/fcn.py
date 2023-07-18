@@ -30,11 +30,11 @@ from models.resnet import (
     fuse_resnet,
 )
 from utils.quantization_utils import get_platform_aware_qconfig
-from utils.segmentation_utils import _SimpleSegmentationModel
+from utils.segmentation_utils import _QuantizableSimpleSegmentationModel
 
 
 __all__ = [
-    "FCN",
+    "QuantizableFCN",
     "FCN_ResNet50_Weights",
     "FCN_ResNet101_Weights",
     "fcn_resnet50",
@@ -42,7 +42,7 @@ __all__ = [
 ]
 
 
-class FCN(_SimpleSegmentationModel):
+class QuantizableFCN(_QuantizableSimpleSegmentationModel):
     """
     Implements FCN model from
     `"Fully Convolutional Networks for Semantic Segmentation"
@@ -74,7 +74,7 @@ class FCN(_SimpleSegmentationModel):
         return result
 
 
-class FCNHead(nn.Sequential):
+class QuantizableFCNHead(nn.Sequential):
     def __init__(self, in_channels: int, channels: int) -> None:
         inter_channels = in_channels // 4
         layers = [
@@ -144,15 +144,15 @@ def _fcn_resnet(
     backbone: QuantizableResNet,
     num_classes: int,
     aux: Optional[bool],
-) -> FCN:
+) -> QuantizableFCN:
     return_layers = {"layer4": "out"}
     if aux:
         return_layers["layer3"] = "aux"
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
-    aux_classifier = FCNHead(1024, num_classes) if aux else None
-    classifier = FCNHead(2048, num_classes)
-    return FCN(backbone, classifier, aux_classifier)
+    aux_classifier = QuantizableFCNHead(1024, num_classes) if aux else None
+    classifier = QuantizableFCNHead(2048, num_classes)
+    return QuantizableFCN(backbone, classifier, aux_classifier)
 
 
 @handle_legacy_interface(
@@ -169,7 +169,7 @@ def fcn_resnet50(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> FCN:
+) -> QuantizableFCN:
     """Fully-Convolutional Network model with a ResNet-50 backbone from the `Fully Convolutional
     Networks for Semantic Segmentation <https://arxiv.org/abs/1411.4038>`_ paper.
 
@@ -265,7 +265,7 @@ def fcn_resnet101(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> FCN:
+) -> QuantizableFCN:
     """Fully-Convolutional Network model with a ResNet-101 backbone from the `Fully Convolutional
     Networks for Semantic Segmentation <https://arxiv.org/abs/1411.4038>`_ paper.
 
