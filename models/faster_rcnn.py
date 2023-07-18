@@ -19,17 +19,21 @@ from torchvision.models._utils import _ovewrite_value_param, handle_legacy_inter
 from torchvision.models.detection._utils import overwrite_eps
 from torchvision.models.detection.anchor_utils import AnchorGenerator
 from torchvision.models.detection.generalized_rcnn import GeneralizedRCNN
-from torchvision.models.detection.roi_heads import RoIHeads
-from torchvision.models.detection.rpn import RegionProposalNetwork, RPNHead
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
 
-from models.mobilenetv3 import mobilenet_v3_large, MobileNet_V3_Large_Weights, fuse_mobilenetv3
+from models.mobilenetv3 import (
+    mobilenet_v3_large,
+    MobileNet_V3_Large_Weights,
+    fuse_mobilenetv3,
+)
 from models.resnet import resnet50, ResNet50_Weights
 from utils.backbone_utils import (
     _mobilenet_extractor,
     _resnet_fpn_extractor,
     _validate_trainable_layers,
 )
+from models.roi_heads import RoIHeads
+from models.rpn import RegionProposalNetwork, RPNHead
 from utils.quantization_utils import get_platform_aware_qconfig
 
 
@@ -791,7 +795,9 @@ def _fasterrcnn_mobilenet_v3_large_fpn(
             model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
                 backend
             )
-            model.roi_heads.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.roi_heads.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
             model.rpn.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
             model.train()
             torch.ao.quantization.prepare_qat(model, inplace=True)
@@ -863,10 +869,6 @@ def fasterrcnn_mobilenet_v3_large_320_fpn(
     .. autoclass:: torchvision.models.detection.FasterRCNN_MobileNet_V3_Large_320_FPN_Weights
         :members:
     """
-    backend = get_platform_aware_qconfig()
-    if backend == "qnnpack":
-        torch.backends.quantized.engine = "qnnpack"
-
     weights = FasterRCNN_MobileNet_V3_Large_320_FPN_Weights.verify(weights)
     weights_backbone = MobileNet_V3_Large_Weights.verify(weights_backbone)
 
@@ -948,10 +950,6 @@ def fasterrcnn_mobilenet_v3_large_fpn(
     .. autoclass:: torchvision.models.detection.FasterRCNN_MobileNet_V3_Large_FPN_Weights
         :members:
     """
-    backend = get_platform_aware_qconfig()
-    if backend == "qnnpack":
-        torch.backends.quantized.engine = "qnnpack"
-
     weights = FasterRCNN_MobileNet_V3_Large_FPN_Weights.verify(weights)
     weights_backbone = MobileNet_V3_Large_Weights.verify(weights_backbone)
 
@@ -974,7 +972,12 @@ def fasterrcnn_mobilenet_v3_large_fpn(
 
 def fuse_faster_rcnn(model: nn.Module, is_qat: bool = False) -> None:
     fuse_mobilenetv3(model.backbone.body, is_qat=is_qat)
-    _fuse_modules(model.rpn.head.conv[0], modules_to_fuse=[["0", "1"]], is_qat=is_qat, inplace=True)
+    _fuse_modules(
+        model.rpn.head.conv[0],
+        modules_to_fuse=[["0", "1"]],
+        is_qat=is_qat,
+        inplace=True,
+    )
 
 
 if __name__ == "__main__":
@@ -984,5 +987,11 @@ if __name__ == "__main__":
         is_qat=False,
     )
     model.eval()
-    x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
+    model_fp = copy.deepcopy(model)
+
+    x = [torch.randn(3, 300, 400), torch.randn(3, 500, 400)]
+    model(x)
+    torch.ao.quantization.convert(model, inplace=True)
+
     predictions = model(x)
+    predictions_fp = model_fp(x)
