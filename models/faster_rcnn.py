@@ -9,7 +9,6 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.ao.quantization import DeQuantStub, QuantStub
 from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.ops import MultiScaleRoIAlign
 from torchvision.ops import misc as misc_nn_ops
@@ -617,7 +616,12 @@ def fasterrcnn_resnet50_fpn(
     norm_layer = nn.BatchNorm2d  # FrozenBatchNorm or BatchNorm
 
     backbone = resnet50(
-        weights=weights_backbone, progress=progress, norm_layer=norm_layer, quantize=quantize, is_qat=is_qat, skip_fuse=True,
+        weights=weights_backbone,
+        progress=progress,
+        norm_layer=norm_layer,
+        quantize=quantize,
+        is_qat=is_qat,
+        skip_fuse=True,
     )
     backbone = _resnet_fpn_extractor(backbone, trainable_backbone_layers)
     model = FasterRCNN(backbone, num_classes=num_classes, **kwargs)
@@ -722,7 +726,13 @@ def fasterrcnn_resnet50_fpn_v2(
         is_trained, trainable_backbone_layers, 5, 3
     )
 
-    backbone = resnet50(weights=weights_backbone, progress=progress, quantize=quantize, is_qat=is_qat, skip_fuse=True)
+    backbone = resnet50(
+        weights=weights_backbone,
+        progress=progress,
+        quantize=quantize,
+        is_qat=is_qat,
+        skip_fuse=True,
+    )
     backbone = _resnet_fpn_extractor(
         backbone, trainable_backbone_layers, norm_layer=nn.BatchNorm2d
     )
