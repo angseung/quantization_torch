@@ -228,7 +228,8 @@ https://github.com/pytorch/pytorch/issues/74540
 | SSD300_VGG16 | Y | PTQ, QAT | Y | N | 13 |
 | SSDLite320_MobileNetV3_Large | N | PTQ, QAT | Y | N | 13 |
 | FCOS | Y | PTQ, QAT | Y | N | 13 |
-| FCN |  |  |  |  |  |
+| Faster R-CNN | Y | PTQ, QAT | Y | N | 13 |
+| FCN | Y | PTQ, QAT | Y | N | 13 |
 | DeepLabV3 |  |  |  |  |  |
 | LRASPP |  |  |  |  |  |
 | Mask R-CNN |  |  |  |  |  |
