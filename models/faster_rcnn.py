@@ -23,7 +23,7 @@ from torchvision.models.detection.roi_heads import RoIHeads
 from torchvision.models.detection.rpn import RegionProposalNetwork, RPNHead
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
 
-from models.mobilenetv3 import mobilenet_v3_large, MobileNet_V3_Large_Weights
+from models.mobilenetv3 import mobilenet_v3_large, MobileNet_V3_Large_Weights, fuse_mobilenetv3
 from models.resnet import resnet50, ResNet50_Weights
 from utils.backbone_utils import (
     _mobilenet_extractor,
@@ -303,6 +303,9 @@ class FasterRCNN(GeneralizedRCNN):
         )
 
         super().__init__(backbone, rpn, roi_heads, transform)
+
+    def fuse_model(self, is_qat: bool = False):
+        fuse_faster_rcnn(self, is_qat=is_qat)
 
 
 class TwoMLPHead(nn.Module):
@@ -611,9 +614,11 @@ def fasterrcnn_resnet50_fpn(
     model = FasterRCNN(backbone, num_classes=num_classes, **kwargs)
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
         if weights == FasterRCNN_ResNet50_FPN_Weights.COCO_V1:
             overwrite_eps(model, 0.0)
+
+    model.eval()
 
     return model
 
@@ -711,6 +716,8 @@ def fasterrcnn_resnet50_fpn_v2(
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress))
 
+    model.eval()
+
     return model
 
 
@@ -726,8 +733,14 @@ def _fasterrcnn_mobilenet_v3_large_fpn(
     num_classes: Optional[int],
     weights_backbone: Optional[MobileNet_V3_Large_Weights],
     trainable_backbone_layers: Optional[int],
+    quantize: bool,
+    is_qat: bool,
     **kwargs: Any,
 ) -> FasterRCNN:
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     if weights is not None:
         weights_backbone = None
         num_classes = _ovewrite_value_param(
@@ -740,10 +753,13 @@ def _fasterrcnn_mobilenet_v3_large_fpn(
     trainable_backbone_layers = _validate_trainable_layers(
         is_trained, trainable_backbone_layers, 6, 3
     )
-    norm_layer = misc_nn_ops.FrozenBatchNorm2d if is_trained else nn.BatchNorm2d
+    norm_layer = nn.BatchNorm2d
 
     backbone = mobilenet_v3_large(
-        weights=weights_backbone, progress=progress, norm_layer=norm_layer
+        weights=weights_backbone,
+        progress=progress,
+        norm_layer=norm_layer,
+        skip_fuse=True,
     )
     backbone = _mobilenet_extractor(backbone, True, trainable_backbone_layers)
     anchor_sizes = (
@@ -764,7 +780,28 @@ def _fasterrcnn_mobilenet_v3_large_fpn(
     )
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
+
+    model.eval()
+    model.fuse_model(is_qat=is_qat)
+
+    if quantize:
+        if is_qat:
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.roi_heads.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.rpn.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+
+        else:
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.roi_heads.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.rpn.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     return model
 
@@ -782,6 +819,8 @@ def fasterrcnn_mobilenet_v3_large_320_fpn(
         MobileNet_V3_Large_Weights
     ] = MobileNet_V3_Large_Weights.IMAGENET1K_V1,
     trainable_backbone_layers: Optional[int] = None,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> FasterRCNN:
     """
@@ -814,6 +853,8 @@ def fasterrcnn_mobilenet_v3_large_320_fpn(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) layers starting from
             final block. Valid values are between 0 and 6, with 6 meaning all backbone layers are
             trainable. If ``None`` is passed (the default) this value is set to 3.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.detection.faster_rcnn.FasterRCNN``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/faster_rcnn.py>`_
@@ -844,6 +885,8 @@ def fasterrcnn_mobilenet_v3_large_320_fpn(
         num_classes=num_classes,
         weights_backbone=weights_backbone,
         trainable_backbone_layers=trainable_backbone_layers,
+        quantize=quantize,
+        is_qat=is_qat,
         **kwargs,
     )
 
@@ -861,6 +904,8 @@ def fasterrcnn_mobilenet_v3_large_fpn(
         MobileNet_V3_Large_Weights
     ] = MobileNet_V3_Large_Weights.IMAGENET1K_V1,
     trainable_backbone_layers: Optional[int] = None,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> FasterRCNN:
     """
@@ -893,6 +938,8 @@ def fasterrcnn_mobilenet_v3_large_fpn(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) layers starting from
             final block. Valid values are between 0 and 6, with 6 meaning all backbone layers are
             trainable. If ``None`` is passed (the default) this value is set to 3.
+        quantize
+        is_qat
         **kwargs: parameters passed to the ``torchvision.models.detection.faster_rcnn.FasterRCNN``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/faster_rcnn.py>`_
@@ -919,9 +966,23 @@ def fasterrcnn_mobilenet_v3_large_fpn(
         num_classes=num_classes,
         weights_backbone=weights_backbone,
         trainable_backbone_layers=trainable_backbone_layers,
+        quantize=quantize,
+        is_qat=is_qat,
         **kwargs,
     )
 
 
+def fuse_faster_rcnn(model: nn.Module, is_qat: bool = False) -> None:
+    fuse_mobilenetv3(model.backbone.body, is_qat=is_qat)
+    _fuse_modules(model.rpn.head.conv[0], modules_to_fuse=[["0", "1"]], is_qat=is_qat, inplace=True)
+
+
 if __name__ == "__main__":
-    dummy_input = torch.randn(1, 3, 224, 224)
+    model = fasterrcnn_mobilenet_v3_large_fpn(
+        weights=FasterRCNN_MobileNet_V3_Large_FPN_Weights.DEFAULT,
+        quantize=True,
+        is_qat=False,
+    )
+    model.eval()
+    x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
+    predictions = model(x)

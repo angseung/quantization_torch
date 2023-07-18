@@ -6,6 +6,7 @@ import copy
 from collections import OrderedDict
 from typing import Any, Callable, Optional
 
+import torch
 from torch import nn
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torchvision.models.quantization.utils import _fuse_modules
