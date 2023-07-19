@@ -3,6 +3,7 @@ it overrides torchvision.models.detection.mask_rcnn
 """
 
 import copy
+import time
 from collections import OrderedDict
 from typing import Any, Callable, Optional
 
@@ -18,7 +19,7 @@ from torchvision.models._meta import _COCO_CATEGORIES
 from torchvision.models._utils import _ovewrite_value_param, handle_legacy_interface
 from torchvision.models.detection._utils import overwrite_eps
 
-from models.resnet import resnet50, ResNet50_Weights
+from models.resnet import resnet50, ResNet50_Weights, fuse_resnet
 from models.faster_rcnn import (
     _default_anchorgen,
     QuantizableFasterRCNN,
@@ -283,6 +284,9 @@ class MaskRCNN(QuantizableFasterRCNN):
         self.roi_heads.mask_head = mask_head
         self.roi_heads.mask_predictor = mask_predictor
 
+    def fuse_model(self, is_qat: bool = False):
+        fuse_mask_rcnn(self, is_qat=is_qat)
+
 
 class MaskRCNNHeads(nn.Sequential):
     _version = 2
@@ -441,6 +445,8 @@ def maskrcnn_resnet50_fpn(
     num_classes: Optional[int] = None,
     weights_backbone: Optional[ResNet50_Weights] = ResNet50_Weights.IMAGENET1K_V1,
     trainable_backbone_layers: Optional[int] = None,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> MaskRCNN:
     """Mask R-CNN model with a ResNet-50-FPN backbone from the `Mask R-CNN
@@ -504,6 +510,8 @@ def maskrcnn_resnet50_fpn(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) layers starting from
             final block. Valid values are between 0 and 5, with 5 meaning all backbone layers are
             trainable. If ``None`` is passed (the default) this value is set to 3.
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.detection.mask_rcnn.MaskRCNN``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/mask_rcnn.py>`_
@@ -512,9 +520,8 @@ def maskrcnn_resnet50_fpn(
     .. autoclass:: torchvision.models.detection.MaskRCNN_ResNet50_FPN_Weights
         :members:
     """
-    backend = get_platform_aware_qconfig()
-    if backend == "qnnpack":
-        torch.backends.quantized.engine = "qnnpack"
+    backend = "qnnpack"
+    torch.backends.quantized.engine = "qnnpack"
 
     weights = MaskRCNN_ResNet50_FPN_Weights.verify(weights)
     weights_backbone = ResNet50_Weights.verify(weights_backbone)
@@ -531,18 +538,46 @@ def maskrcnn_resnet50_fpn(
     trainable_backbone_layers = _validate_trainable_layers(
         is_trained, trainable_backbone_layers, 5, 3
     )
-    norm_layer = misc_nn_ops.FrozenBatchNorm2d if is_trained else nn.BatchNorm2d
+    norm_layer = nn.BatchNorm2d
 
     backbone = resnet50(
-        weights=weights_backbone, progress=progress, norm_layer=norm_layer
+        weights=weights_backbone,
+        progress=progress,
+        norm_layer=norm_layer,
+        quantize=quantize,
+        is_qat=is_qat,
+        skip_fuse=True,
     )
     backbone = _resnet_fpn_extractor(backbone, trainable_backbone_layers)
     model = MaskRCNN(backbone, num_classes=num_classes, **kwargs)
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
         if weights == MaskRCNN_ResNet50_FPN_Weights.COCO_V1:
             overwrite_eps(model, 0.0)
+
+    model.eval()
+    model.fuse_model(is_qat=is_qat)
+
+    if quantize:
+        if is_qat:
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.roi_heads.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.rpn.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+
+        else:
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.roi_heads.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.rpn.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            torch.ao.quantization.prepare(model, inplace=True)
 
     return model
 
@@ -558,6 +593,8 @@ def maskrcnn_resnet50_fpn_v2(
     num_classes: Optional[int] = None,
     weights_backbone: Optional[ResNet50_Weights] = None,
     trainable_backbone_layers: Optional[int] = None,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> MaskRCNN:
     """Improved Mask R-CNN model with a ResNet-50-FPN backbone from the `Benchmarking Detection Transfer
@@ -581,6 +618,8 @@ def maskrcnn_resnet50_fpn_v2(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) layers starting from
             final block. Valid values are between 0 and 5, with 5 meaning all backbone layers are
             trainable. If ``None`` is passed (the default) this value is set to 3.
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.detection.mask_rcnn.MaskRCNN``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/mask_rcnn.py>`_
@@ -609,7 +648,13 @@ def maskrcnn_resnet50_fpn_v2(
         is_trained, trainable_backbone_layers, 5, 3
     )
 
-    backbone = resnet50(weights=weights_backbone, progress=progress)
+    backbone = resnet50(
+        weights=weights_backbone,
+        progress=progress,
+        quantize=quantize,
+        is_qat=is_qat,
+        skip_fuse=True,
+    )
     backbone = _resnet_fpn_extractor(
         backbone, trainable_backbone_layers, norm_layer=nn.BatchNorm2d
     )
@@ -646,5 +691,78 @@ def maskrcnn_resnet50_fpn_v2(
     return model
 
 
+def fuse_mask_rcnn(model: nn.Module, is_qat: bool = False) -> None:
+    fuse_resnet(model.backbone.body, is_qat=is_qat)
+    _fuse_modules(
+        model.rpn.head.conv[0],
+        modules_to_fuse=[["0", "1"]],
+        is_qat=is_qat,
+        inplace=True,
+    )
+    _fuse_modules(
+        model.roi_heads.mask_head[0],
+        modules_to_fuse=[["0", "1"]],
+        is_qat=is_qat,
+        inplace=True,
+    )
+    _fuse_modules(
+        model.roi_heads.mask_head[1],
+        modules_to_fuse=[["0", "1"]],
+        is_qat=is_qat,
+        inplace=True,
+    )
+    _fuse_modules(
+        model.roi_heads.mask_head[2],
+        modules_to_fuse=[["0", "1"]],
+        is_qat=is_qat,
+        inplace=True,
+    )
+    _fuse_modules(
+        model.roi_heads.mask_head[3],
+        modules_to_fuse=[["0", "1"]],
+        is_qat=is_qat,
+        inplace=True,
+    )
+
+
 if __name__ == "__main__":
-    dummy_input = torch.randn(1, 3, 224, 224)
+    x = [torch.randn(3, 300, 400), torch.randn(3, 500, 400)]
+    model = maskrcnn_resnet50_fpn(
+        weights=MaskRCNN_ResNet50_FPN_Weights.DEFAULT,
+        weights_backbone=ResNet50_Weights.DEFAULT,
+        quantize=True,
+        is_qat=False,
+    )
+    # model = maskrcnn_resnet50_fpn_v2(
+    #     weights=MaskRCNN_ResNet50_FPN_V2_Weights.DEFAULT,
+    #     weights_backbone=ResNet50_Weights.DEFAULT,
+    #     quantize=True,
+    #     is_qat=False,
+    # )
+    model.eval()
+    model_fp = copy.deepcopy(model)
+    model(x)
+    # torch.ao.quantization.convert(model, inplace=True)
+    #
+    # start = time.time()
+    # predictions = model(x)
+    # elapsed_quant = time.time() - start
+    #
+    # start = time.time()
+    # predictions_fp = model_fp(x)
+    # elapsed_fp = time.time() - start
+    #
+    # print(f"latency_quant: {elapsed_quant: .2f}, latency_fp: {elapsed_fp: .2f}")
+
+    # torch.onnx.export(
+    #     model_fp,
+    #     x,
+    #     f="../onnx/lraspp_mobilenetv3_fp.onnx",
+    #     opset_version=13,
+    # )  # success
+    # torch.onnx.export(
+    #     model,
+    #     x,
+    #     f="../onnx/lraspp_mobilenetv3_qint8.onnx",
+    #     opset_version=13,
+    # )  # failed

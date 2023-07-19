@@ -252,3 +252,4 @@ https://github.com/pytorch/pytorch/issues/74540
 | DeepLabV3_ResNet101 | Y | PTQ, QAT | Y | N | 13 |
 | Mask R-CNN |  |  |  |  |  |
 | LRASPP | Y | PTQ, QAT | Y | N | 13 |
+- SSDLite: ReLU6 → ReLU로 변경함에 따라 기존 모델 가중치 호환성 이슈 존재
