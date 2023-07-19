@@ -310,6 +310,8 @@ def deeplabv3_resnet50(
     num_classes: Optional[int] = None,
     aux_loss: Optional[bool] = None,
     weights_backbone: Optional[ResNet50_Weights] = ResNet50_Weights.IMAGENET1K_V1,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> DeepLabV3:
     """Constructs a DeepLabV3 model with a ResNet-50 backbone.
@@ -330,11 +332,17 @@ def deeplabv3_resnet50(
         aux_loss (bool, optional): If True, it uses an auxiliary loss
         weights_backbone (:class:`~torchvision.models.ResNet50_Weights`, optional): The pretrained weights for the
             backbone
+        quantize
+        is_qat
         **kwargs: unused
 
     .. autoclass:: torchvision.models.segmentation.DeepLabV3_ResNet50_Weights
         :members:
     """
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     weights = DeepLabV3_ResNet50_Weights.verify(weights)
     weights_backbone = ResNet50_Weights.verify(weights_backbone)
 
@@ -353,7 +361,36 @@ def deeplabv3_resnet50(
     model = _deeplabv3_resnet(backbone, num_classes, aux_loss)
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
+
+    model.eval()
+    model.fuse_model(is_qat=is_qat)
+
+    if quantize:
+        if is_qat:
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.backbone.classifier = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.backbone.aux_classifier = (
+                torch.ao.quantization.get_default_qat_qconfig(backend)
+            )
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+
+        else:
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.classifier.qconfig = torch.ao.quantization.get_default_qconfig(
+                backend
+            )
+            model.aux_classifier.qconfig = torch.ao.quantization.get_default_qconfig(
+                backend
+            )
+            torch.ao.quantization.prepare(model, inplace=True)
 
     return model
 
@@ -369,6 +406,8 @@ def deeplabv3_resnet101(
     num_classes: Optional[int] = None,
     aux_loss: Optional[bool] = None,
     weights_backbone: Optional[ResNet101_Weights] = ResNet101_Weights.IMAGENET1K_V1,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> DeepLabV3:
     """Constructs a DeepLabV3 model with a ResNet-101 backbone.
@@ -389,6 +428,8 @@ def deeplabv3_resnet101(
         aux_loss (bool, optional): If True, it uses an auxiliary loss
         weights_backbone (:class:`~torchvision.models.ResNet101_Weights`, optional): The pretrained weights for the
             backbone
+        quantize
+        is_qat
         **kwargs: unused
 
     .. autoclass:: torchvision.models.segmentation.DeepLabV3_ResNet101_Weights
@@ -416,7 +457,36 @@ def deeplabv3_resnet101(
     model = _deeplabv3_resnet(backbone, num_classes, aux_loss)
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
+
+    model.eval()
+    model.fuse_model(is_qat=is_qat)
+
+    if quantize:
+        if is_qat:
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.backbone.classifier = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.backbone.aux_classifier = (
+                torch.ao.quantization.get_default_qat_qconfig(backend)
+            )
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+
+        else:
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.classifier.qconfig = torch.ao.quantization.get_default_qconfig(
+                backend
+            )
+            model.aux_classifier.qconfig = torch.ao.quantization.get_default_qconfig(
+                backend
+            )
+            torch.ao.quantization.prepare(model, inplace=True)
 
     return model
 
@@ -555,6 +625,18 @@ if __name__ == "__main__":
         quantize=True,
         is_qat=False,
     )
+    # model = deeplabv3_resnet50(
+    #     weights=DeepLabV3_ResNet50_Weights.DEFAULT,
+    #     weights_backbone=ResNet50_Weights.DEFAULT,
+    #     quantize=True,
+    #     is_qat=False,
+    # )
+    # model = deeplabv3_resnet101(
+    #     weights=DeepLabV3_ResNet101_Weights.DEFAULT,
+    #     weights_backbone=ResNet101_Weights.DEFAULT,
+    #     quantize=True,
+    #     is_qat=False,
+    # )
     model.eval()
     model_fp = copy.deepcopy(model)
     model(x)
@@ -569,3 +651,16 @@ if __name__ == "__main__":
     elapsed_fp = time.time() - start
 
     print(f"latency_quant: {elapsed_quant: .2f}, latency_fp: {elapsed_fp: .2f}")
+
+    # torch.onnx.export(
+    #     model_fp,
+    #     x,
+    #     f="../onnx/deeplabv3_fp.onnx",
+    #     opset_version=13,
+    # )  # success
+    # torch.onnx.export(
+    #     model,
+    #     x,
+    #     f="../onnx/deeplabv3_qint8.onnx",
+    #     opset_version=13,
+    # )  # failed
