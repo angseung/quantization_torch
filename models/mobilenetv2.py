@@ -45,7 +45,7 @@ class QuantizableInvertedResidual(InvertedResidual):
         else:
             return self.conv(x)
 
-    def fuse_model(self, is_qat: Optional[bool] = None) -> None:
+    def fuse_model(self, is_qat: bool = False) -> None:
         for idx in range(len(self.conv)):
             if type(self.conv[idx]) is nn.Conv2d:
                 _fuse_modules(self.conv, [str(idx), str(idx + 1)], is_qat, inplace=True)
@@ -69,12 +69,8 @@ class QuantizableMobileNetV2(MobileNetV2):
         x = self.dequant(x)
         return x
 
-    def fuse_model(self, is_qat: Optional[bool] = None) -> None:
-        for m in self.modules():
-            if type(m) is Conv2dNormActivation:
-                _fuse_modules(m, ["0", "1", "2"], is_qat, inplace=True)
-            if type(m) is QuantizableInvertedResidual:
-                m.fuse_model(is_qat)
+    def fuse_model(self, is_qat: bool = False) -> None:
+        fuse_mobilenetv2(self, is_qat=is_qat)
 
 
 class MobileNet_V2_QuantizedWeights(WeightsEnum):
@@ -189,6 +185,14 @@ def mobilenet_v2(
             torch.ao.quantization.prepare(model, inplace=True)
 
     return model
+
+
+def fuse_mobilenetv2(model: nn.Module, is_qat: bool = False) -> None:
+    for m in model.modules():
+        if type(m) is Conv2dNormActivation:
+            _fuse_modules(m, ["0", "1", "2"], is_qat=is_qat, inplace=True)
+        if type(m) is QuantizableInvertedResidual:
+            m.fuse_model(is_qat)
 
 
 if __name__ == "__main__":

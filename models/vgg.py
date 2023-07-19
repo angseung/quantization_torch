@@ -3,6 +3,7 @@ it overrides torchvision.models.vgg
 """
 
 import copy
+import inspect
 from functools import partial
 from typing import Any, cast, Dict, List, Optional, Union
 
@@ -80,8 +81,8 @@ class QuantizableVGG(nn.Module):
                     nn.init.normal_(m.weight, 0, 0.01)
                     nn.init.constant_(m.bias, 0)
 
-    def fuse_model(self, is_qat: bool = False):
-        fuse_vgg(self, is_qat=is_qat)
+    def fuse_model(self, version: str, is_qat: bool = False) -> None:
+        fuse_vgg(self, version=version, is_qat=is_qat)
 
     def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:
         x = self.features(x)
@@ -193,7 +194,8 @@ def _vgg(
     model.eval()
 
     if not skip_fuse:
-        model.fuse_model(is_qat=is_qat)
+        version = inspect.stack()[1][3][:5]
+        model.fuse_model(is_qat=is_qat, version=version)
 
     if quantize:
         if is_qat:
@@ -424,8 +426,8 @@ def vgg11(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -458,8 +460,8 @@ def vgg11_bn(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -492,8 +494,8 @@ def vgg13(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -526,8 +528,8 @@ def vgg13_bn(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -560,8 +562,8 @@ def vgg16(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -594,8 +596,8 @@ def vgg16_bn(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -628,8 +630,8 @@ def vgg19(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -662,8 +664,8 @@ def vgg19_bn(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -677,9 +679,89 @@ def vgg19_bn(
     return _vgg("E", True, weights, progress, quantize, is_qat, **kwargs)
 
 
-def fuse_vgg(model: nn.Module, version: str = "vgg16", is_qat: bool = False) -> None:
-    if version == "vgg16":
-        if isinstance(model.features[1], nn.BatchNorm2d):
+def fuse_vgg(model: nn.Module, version: str, is_qat: bool = False) -> None:
+    _fuse_modules(
+        model.classifier,
+        modules_to_fuse=[
+            ["0", "1"],
+            ["3", "4"],
+        ],
+        is_qat=is_qat,
+        inplace=True,
+    )
+
+    if version == "vgg11":
+        if isinstance(model.features[1], nn.BatchNorm2d):  # vgg11_bn model
+            _fuse_modules(
+                model.features,
+                modules_to_fuse=[
+                    ["0", "1", "2"],
+                    ["4", "5", "6"],
+                    ["8", "9", "10"],
+                    ["11", "12", "13"],
+                    ["15", "16", "17"],
+                    ["18", "19", "20"],
+                    ["22", "23", "24"],
+                    ["25", "26", "27"],
+                ],
+                is_qat=is_qat,
+                inplace=True,
+            )
+        else:  # original vgg11 model
+            _fuse_modules(
+                model.features,
+                modules_to_fuse=[
+                    ["0", "1"],
+                    ["3", "4"],
+                    ["6", "7"],
+                    ["8", "9"],
+                    ["11", "12"],
+                    ["13", "14"],
+                    ["16", "17"],
+                    ["18", "19"],
+                ],
+                is_qat=is_qat,
+                inplace=True,
+            )
+    elif version == "vgg13":
+        if isinstance(model.features[1], nn.BatchNorm2d):  # vgg13_bn model
+            _fuse_modules(
+                model.features,
+                modules_to_fuse=[
+                    ["0", "1", "2"],
+                    ["3", "4", "5"],
+                    ["7", "8", "9"],
+                    ["10", "11", "12"],
+                    ["14", "15", "16"],
+                    ["17", "18", "19"],
+                    ["21", "22", "23"],
+                    ["24", "25", "26"],
+                    ["28", "29", "30"],
+                    ["31", "32", "33"],
+                ],
+                is_qat=is_qat,
+                inplace=True,
+            )
+        else:  # original vgg13 model
+            _fuse_modules(
+                model.features,
+                modules_to_fuse=[
+                    ["0", "1"],
+                    ["2", "3"],
+                    ["5", "6"],
+                    ["7", "8"],
+                    ["10", "11"],
+                    ["12", "13"],
+                    ["15", "16"],
+                    ["17", "18"],
+                    ["20", "21"],
+                    ["22", "23"],
+                ],
+                is_qat=is_qat,
+                inplace=True,
+            )
+    elif version == "vgg16":
+        if isinstance(model.features[1], nn.BatchNorm2d):  # vgg16_bn model
             _fuse_modules(
                 model.features,
                 modules_to_fuse=[
@@ -700,7 +782,7 @@ def fuse_vgg(model: nn.Module, version: str = "vgg16", is_qat: bool = False) -> 
                 is_qat=is_qat,
                 inplace=True,
             )
-        else:
+        else:  # original vgg16 model
             _fuse_modules(
                 model.features,
                 modules_to_fuse=[
@@ -721,14 +803,71 @@ def fuse_vgg(model: nn.Module, version: str = "vgg16", is_qat: bool = False) -> 
                 is_qat=is_qat,
                 inplace=True,
             )
-    else:
-        raise NotImplementedError
+    elif version == "vgg19":
+        if isinstance(model.features[1], nn.BatchNorm2d):  # vgg19_bn model
+            _fuse_modules(
+                model.features,
+                modules_to_fuse=[
+                    ["0", "1", "2"],
+                    ["3", "4", "5"],
+                    ["7", "8", "9"],
+                    ["10", "11", "12"],
+                    ["14", "15", "16"],
+                    ["17", "18", "19"],
+                    ["20", "21", "22"],
+                    ["23", "24", "25"],
+                    ["27", "28", "29"],
+                    ["30", "31", "32"],
+                    ["33", "34", "35"],
+                    ["36", "37", "38"],
+                    ["40", "41", "42"],
+                    ["43", "44", "45"],
+                    ["46", "47", "48"],
+                    ["49", "50", "51"],
+                ],
+                is_qat=is_qat,
+                inplace=True,
+            )
+        else:  # original vgg19 model
+            _fuse_modules(
+                model.features,
+                modules_to_fuse=[
+                    ["0", "1"],
+                    ["2", "3"],
+                    ["5", "6"],
+                    ["7", "8"],
+                    ["10", "11"],
+                    ["12", "13"],
+                    ["14", "15"],
+                    ["16", "17"],
+                    ["19", "20"],
+                    ["21", "22"],
+                    ["23", "24"],
+                    ["25", "26"],
+                    ["28", "29"],
+                    ["30", "31"],
+                    ["32", "33"],
+                    ["34", "35"],
+                ],
+                is_qat=is_qat,
+                inplace=True,
+            )
 
 
 if __name__ == "__main__":
     dummy_input = torch.randn(1, 3, 224, 224)
-    model_bn = vgg16_bn(quantize=True, is_qat=False)
-    model = vgg16(quantize=True, is_qat=False)
+    # model_bn = vgg11_bn(quantize=True, is_qat=False)
+    # model = vgg11(quantize=True, is_qat=False)
+
+    # model_bn = vgg13_bn(quantize=True, is_qat=False)
+    # model = vgg13(quantize=True, is_qat=False)
+
+    # model_bn = vgg16_bn(quantize=True, is_qat=False)
+    # model = vgg16(quantize=True, is_qat=False)
+
+    model_bn = vgg19_bn(quantize=True, is_qat=False)
+    model = vgg19(quantize=True, is_qat=False)
+
     model_bn_fp = copy.deepcopy(model_bn)
     model_fp = copy.deepcopy(model)
 
@@ -747,6 +886,7 @@ if __name__ == "__main__":
     mse_bn = cal_mse(dummy_output, dummy_output_fp, norm=True)
 
     # from utils.onnx_utils import convert_onnx
+
     # convert_onnx(model_bn, "../onnx/vgg_bn_qint8.onnx", opset=13)  # success
     # convert_onnx(model_bn_fp, "../onnx/vgg_bn_fp32.onnx", opset=13)  # success
     # convert_onnx(model, "../onnx/vgg_qint8.onnx", opset=13)  # success

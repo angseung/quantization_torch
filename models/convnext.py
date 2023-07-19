@@ -204,7 +204,7 @@ class QuantizableConvNeXt(nn.Module):
         x = self.dequant(x)
         return x
 
-    def fuse_model(self, is_qat: bool = False):
+    def fuse_model(self, is_qat: bool = False) -> None:
         fuse_convnext(self, is_qat=is_qat)
 
 

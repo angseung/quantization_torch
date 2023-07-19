@@ -128,7 +128,7 @@ class QuantizableSqueezeNet(nn.Module):
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
 
-    def fuse_model(self, is_qat: bool):
+    def fuse_model(self, is_qat: bool = False) -> None:
         fuse_squeezenet(self, is_qat)
 
     def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:
@@ -252,8 +252,8 @@ def squeezenet1_0(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.squeezenet.SqueezeNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/squeezenet.py>`_
@@ -289,8 +289,8 @@ def squeezenet1_1(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.squeezenet.SqueezeNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/squeezenet.py>`_

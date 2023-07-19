@@ -11,6 +11,7 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
+import torch
 from torch import nn, Tensor
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torch.ao.nn.quantized import FloatFunctional
@@ -103,8 +104,7 @@ class QuantizableRetinaNetHead(nn.Module):
             norm_layer=norm_layer,
         )
         self.quant = QuantStub()
-        self.dequant_class = DeQuantStub()
-        self.dequant_bbox = DeQuantStub()
+        self.dequant = DeQuantStub()
 
     def compute_loss(self, targets, head_outputs, anchors, matched_idxs):
         # type: (List[Dict[str, Tensor]], Dict[str, Tensor], List[Tensor], List[Tensor]) -> Dict[str, Tensor]
@@ -124,8 +124,8 @@ class QuantizableRetinaNetHead(nn.Module):
         bbox_regression = self.regression_head(x)
 
         return {
-            "cls_logits": self.dequant_class(class_logits),
-            "bbox_regression": self.dequant_bbox(bbox_regression),
+            "cls_logits": self.dequant(class_logits),
+            "bbox_regression": self.dequant(bbox_regression),
         }
 
 
@@ -775,7 +775,7 @@ class QuantizableRetinaNet(nn.Module):
             return losses, detections
         return self.eager_outputs(losses, detections)
 
-    def fuse_model(self, is_qat: bool = False):
+    def fuse_model(self, is_qat: bool = False) -> None:
         fuse_retinanet(self, is_qat=is_qat)
 
 
@@ -895,8 +895,8 @@ def retinanet_resnet50_fpn(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) layers starting from final block.
             Valid values are between 0 and 5, with 5 meaning all backbone layers are trainable. If ``None`` is
             passed (the default) this value is set to 3.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.detection.RetinaNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/retinanet.py>`_
@@ -1006,8 +1006,8 @@ def retinanet_resnet50_fpn_v2(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) layers starting from final block.
             Valid values are between 0 and 5, with 5 meaning all backbone layers are trainable. If ``None`` is
             passed (the default) this value is set to 3.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.detection.RetinaNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/retinanet.py>`_

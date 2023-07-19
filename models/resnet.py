@@ -109,8 +109,7 @@ class QuantizableBasicBlock(nn.Module):
         if self.downsample is not None:
             identity = self.downsample(x)
 
-        out = self.skip_add.add(out, identity)
-        out = self.relu(out)
+        out = self.skip_add.add_relu(out, identity)
 
         return out
 
@@ -291,7 +290,7 @@ class QuantizableResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def fuse_model(self, is_qat: bool = False):
+    def fuse_model(self, is_qat: bool = False) -> None:
         fuse_resnet(self, is_qat=is_qat)
 
     def _forward_impl(self, x: Tensor) -> Tensor:
@@ -737,7 +736,12 @@ class Wide_ResNet101_2_Weights(WeightsEnum):
 
 @handle_legacy_interface(weights=("pretrained", ResNet18_Weights.IMAGENET1K_V1))
 def resnet18(
-    *, weights: Optional[ResNet18_Weights] = None, progress: bool = True, **kwargs: Any
+    *,
+    weights: Optional[ResNet18_Weights] = None,
+    progress: bool = True,
+    quantize: bool = True,
+    is_qat: bool = False,
+    **kwargs: Any,
 ) -> QuantizableResNet:
     """ResNet-18 from `Deep Residual Learning for Image Recognition <https://arxiv.org/pdf/1512.03385.pdf>`__.
 
@@ -749,6 +753,8 @@ def resnet18(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -759,12 +765,25 @@ def resnet18(
     """
     weights = ResNet18_Weights.verify(weights)
 
-    return _resnet(QuantizableBasicBlock, [2, 2, 2, 2], weights, progress, **kwargs)
+    return _resnet(
+        QuantizableBasicBlock,
+        [2, 2, 2, 2],
+        weights,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs,
+    )
 
 
 @handle_legacy_interface(weights=("pretrained", ResNet34_Weights.IMAGENET1K_V1))
 def resnet34(
-    *, weights: Optional[ResNet34_Weights] = None, progress: bool = True, **kwargs: Any
+    *,
+    weights: Optional[ResNet34_Weights] = None,
+    progress: bool = True,
+    quantize: bool = True,
+    is_qat: bool = False,
+    **kwargs: Any,
 ) -> QuantizableResNet:
     """ResNet-34 from `Deep Residual Learning for Image Recognition <https://arxiv.org/pdf/1512.03385.pdf>`__.
 
@@ -776,6 +795,8 @@ def resnet34(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -786,12 +807,25 @@ def resnet34(
     """
     weights = ResNet34_Weights.verify(weights)
 
-    return _resnet(QuantizableBasicBlock, [3, 4, 6, 3], weights, progress, **kwargs)
+    return _resnet(
+        QuantizableBasicBlock,
+        [3, 4, 6, 3],
+        weights,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs,
+    )
 
 
 @handle_legacy_interface(weights=("pretrained", ResNet50_Weights.IMAGENET1K_V1))
 def resnet50(
-    *, weights: Optional[ResNet50_Weights] = None, progress: bool = True, **kwargs: Any
+    *,
+    weights: Optional[ResNet50_Weights] = None,
+    progress: bool = True,
+    quantize: bool = True,
+    is_qat: bool = False,
+    **kwargs: Any,
 ) -> QuantizableResNet:
     """ResNet-50 from `Deep Residual Learning for Image Recognition <https://arxiv.org/pdf/1512.03385.pdf>`__.
 
@@ -809,6 +843,8 @@ def resnet50(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -819,12 +855,25 @@ def resnet50(
     """
     weights = ResNet50_Weights.verify(weights)
 
-    return _resnet(QuantizableBottleneck, [3, 4, 6, 3], weights, progress, **kwargs)
+    return _resnet(
+        QuantizableBottleneck,
+        [3, 4, 6, 3],
+        weights,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs,
+    )
 
 
 @handle_legacy_interface(weights=("pretrained", ResNet101_Weights.IMAGENET1K_V1))
 def resnet101(
-    *, weights: Optional[ResNet101_Weights] = None, progress: bool = True, **kwargs: Any
+    *,
+    weights: Optional[ResNet101_Weights] = None,
+    progress: bool = True,
+    quantize: bool = True,
+    is_qat: bool = False,
+    **kwargs: Any,
 ) -> QuantizableResNet:
     """ResNet-101 from `Deep Residual Learning for Image Recognition <https://arxiv.org/pdf/1512.03385.pdf>`__.
 
@@ -842,6 +891,8 @@ def resnet101(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -852,12 +903,25 @@ def resnet101(
     """
     weights = ResNet101_Weights.verify(weights)
 
-    return _resnet(QuantizableBottleneck, [3, 4, 23, 3], weights, progress, **kwargs)
+    return _resnet(
+        QuantizableBottleneck,
+        [3, 4, 23, 3],
+        weights,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs,
+    )
 
 
 @handle_legacy_interface(weights=("pretrained", ResNet152_Weights.IMAGENET1K_V1))
 def resnet152(
-    *, weights: Optional[ResNet152_Weights] = None, progress: bool = True, **kwargs: Any
+    *,
+    weights: Optional[ResNet152_Weights] = None,
+    progress: bool = True,
+    quantize: bool = True,
+    is_qat: bool = False,
+    **kwargs: Any,
 ) -> QuantizableResNet:
     """ResNet-152 from `Deep Residual Learning for Image Recognition <https://arxiv.org/pdf/1512.03385.pdf>`__.
 
@@ -875,6 +939,8 @@ def resnet152(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -885,7 +951,15 @@ def resnet152(
     """
     weights = ResNet152_Weights.verify(weights)
 
-    return _resnet(QuantizableBottleneck, [3, 8, 36, 3], weights, progress, **kwargs)
+    return _resnet(
+        QuantizableBottleneck,
+        [3, 8, 36, 3],
+        weights,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs,
+    )
 
 
 @handle_legacy_interface(weights=("pretrained", ResNeXt50_32X4D_Weights.IMAGENET1K_V1))
@@ -893,6 +967,8 @@ def resnext50_32x4d(
     *,
     weights: Optional[ResNeXt50_32X4D_Weights] = None,
     progress: bool = True,
+    quantize: bool = True,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> QuantizableResNet:
     """ResNeXt-50 32x4d model from
@@ -906,6 +982,8 @@ def resnext50_32x4d(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -917,7 +995,15 @@ def resnext50_32x4d(
 
     _ovewrite_named_param(kwargs, "groups", 32)
     _ovewrite_named_param(kwargs, "width_per_group", 4)
-    return _resnet(QuantizableBottleneck, [3, 4, 6, 3], weights, progress, **kwargs)
+    return _resnet(
+        QuantizableBottleneck,
+        [3, 4, 6, 3],
+        weights,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs,
+    )
 
 
 @handle_legacy_interface(weights=("pretrained", ResNeXt101_32X8D_Weights.IMAGENET1K_V1))
@@ -925,6 +1011,8 @@ def resnext101_32x8d(
     *,
     weights: Optional[ResNeXt101_32X8D_Weights] = None,
     progress: bool = True,
+    quantize: bool = True,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> QuantizableResNet:
     """ResNeXt-101 32x8d model from
@@ -938,6 +1026,8 @@ def resnext101_32x8d(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -949,7 +1039,15 @@ def resnext101_32x8d(
 
     _ovewrite_named_param(kwargs, "groups", 32)
     _ovewrite_named_param(kwargs, "width_per_group", 8)
-    return _resnet(QuantizableBottleneck, [3, 4, 23, 3], weights, progress, **kwargs)
+    return _resnet(
+        QuantizableBottleneck,
+        [3, 4, 23, 3],
+        weights,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs,
+    )
 
 
 @handle_legacy_interface(weights=("pretrained", ResNeXt101_64X4D_Weights.IMAGENET1K_V1))
@@ -957,6 +1055,8 @@ def resnext101_64x4d(
     *,
     weights: Optional[ResNeXt101_64X4D_Weights] = None,
     progress: bool = True,
+    quantize: bool = True,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> QuantizableResNet:
     """ResNeXt-101 64x4d model from
@@ -970,6 +1070,8 @@ def resnext101_64x4d(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -981,7 +1083,15 @@ def resnext101_64x4d(
 
     _ovewrite_named_param(kwargs, "groups", 64)
     _ovewrite_named_param(kwargs, "width_per_group", 4)
-    return _resnet(QuantizableBottleneck, [3, 4, 23, 3], weights, progress, **kwargs)
+    return _resnet(
+        QuantizableBottleneck,
+        [3, 4, 23, 3],
+        weights,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs,
+    )
 
 
 @handle_legacy_interface(weights=("pretrained", Wide_ResNet50_2_Weights.IMAGENET1K_V1))
@@ -989,6 +1099,8 @@ def wide_resnet50_2(
     *,
     weights: Optional[Wide_ResNet50_2_Weights] = None,
     progress: bool = True,
+    quantize: bool = True,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> QuantizableResNet:
     """Wide ResNet-50-2 model from
@@ -1007,6 +1119,8 @@ def wide_resnet50_2(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -1017,7 +1131,15 @@ def wide_resnet50_2(
     weights = Wide_ResNet50_2_Weights.verify(weights)
 
     _ovewrite_named_param(kwargs, "width_per_group", 64 * 2)
-    return _resnet(QuantizableBottleneck, [3, 4, 6, 3], weights, progress, **kwargs)
+    return _resnet(
+        QuantizableBottleneck,
+        [3, 4, 6, 3],
+        weights,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs,
+    )
 
 
 @handle_legacy_interface(weights=("pretrained", Wide_ResNet101_2_Weights.IMAGENET1K_V1))
@@ -1025,6 +1147,8 @@ def wide_resnet101_2(
     *,
     weights: Optional[Wide_ResNet101_2_Weights] = None,
     progress: bool = True,
+    quantize: bool = True,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> QuantizableResNet:
     """Wide ResNet-101-2 model from
@@ -1043,6 +1167,8 @@ def wide_resnet101_2(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -1053,7 +1179,15 @@ def wide_resnet101_2(
     weights = Wide_ResNet101_2_Weights.verify(weights)
 
     _ovewrite_named_param(kwargs, "width_per_group", 64 * 2)
-    return _resnet(QuantizableBottleneck, [3, 4, 23, 3], weights, progress, **kwargs)
+    return _resnet(
+        QuantizableBottleneck,
+        [3, 4, 23, 3],
+        weights,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs,
+    )
 
 
 def fuse_resnet(model: nn.Module, is_qat: bool = False) -> None:

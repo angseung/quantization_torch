@@ -120,8 +120,7 @@ class QuantizableSSDLiteHead(nn.Module):
             in_channels, num_anchors, norm_layer
         )
         self.quant = QuantStub()
-        self.dequant_bbox = DeQuantStub()
-        self.dequant_class = DeQuantStub()
+        self.dequant = DeQuantStub()
 
     def forward(self, x: List[Tensor]) -> Dict[str, Tensor]:
         x = [self.quant(xi) for xi in x]
@@ -129,8 +128,8 @@ class QuantizableSSDLiteHead(nn.Module):
         class_logits = self.classification_head(x)
 
         return {
-            "bbox_regression": self.dequant_bbox(bbox_regression),
-            "cls_logits": self.dequant_class(class_logits),
+            "bbox_regression": self.dequant(bbox_regression),
+            "cls_logits": self.dequant(class_logits),
         }
 
 
@@ -327,8 +326,8 @@ def ssdlite320_mobilenet_v3_large(
             backbone layers are trainable. If ``None`` is passed (the default) this value is
             set to 6.
         norm_layer (callable, optional): Module specifying the normalization layer to use.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.detection.ssd.SSD``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/ssd.py>`_

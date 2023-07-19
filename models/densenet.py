@@ -254,7 +254,7 @@ class QuantizableDenseNet(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.constant_(m.bias, 0)
 
-    def fuse_model(self, is_qat: bool = False):
+    def fuse_model(self, is_qat: bool = False) -> None:
         raise NotImplementedError
 
     def forward(self, x: Tensor) -> Tensor:

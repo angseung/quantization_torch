@@ -441,7 +441,7 @@ class QuantizableYoloBackbone(nn.Module):
 
         self.dequant = torch.ao.quantization.DeQuantStub()
 
-    def fuse_model(self, is_qat: bool = False):
+    def fuse_model(self, is_qat: bool = False) -> None:
         fuse_yolo(self.model, is_qat=is_qat)
 
     def _forward_impl_v3(self, x: torch.Tensor) -> List[torch.Tensor]:

@@ -31,6 +31,7 @@ __all__ = [
     "mobilenet_v3_large",
     "MobileNet_V3_Large_Weights",
     "QuantizableSqueezeExcitation",
+    "fuse_mobilenetv3",
 ]
 
 
@@ -45,7 +46,7 @@ class QuantizableSqueezeExcitation(SqueezeExcitation):
     def forward(self, input: Tensor) -> Tensor:
         return self.skip_mul.mul(self._scale(input), input)
 
-    def fuse_model(self, is_qat: Optional[bool] = None) -> None:
+    def fuse_model(self, is_qat: bool = False) -> None:
         _fuse_modules(self, ["fc1", "activation"], is_qat, inplace=True)
 
     def _load_from_state_dict(
@@ -126,15 +127,8 @@ class QuantizableMobileNetV3(MobileNetV3):
         x = self.dequant(x)
         return x
 
-    def fuse_model(self, is_qat: Optional[bool] = None) -> None:
-        for m in self.modules():
-            if type(m) is Conv2dNormActivation:
-                modules_to_fuse = ["0", "1"]
-                if len(m) == 3 and type(m[2]) is nn.ReLU:
-                    modules_to_fuse.append("2")
-                _fuse_modules(m, modules_to_fuse, is_qat, inplace=True)
-            elif type(m) is QuantizableSqueezeExcitation:
-                m.fuse_model(is_qat)
+    def fuse_model(self, is_qat: bool = False) -> None:
+        fuse_mobilenetv3(self, is_qat=is_qat)
 
 
 def _mobilenet_v3_model(
@@ -277,6 +271,17 @@ def mobilenet_v3_large(
         is_qat,
         **kwargs,
     )
+
+
+def fuse_mobilenetv3(model: nn.Module, is_qat: bool = False) -> None:
+    for m in model.modules():
+        if type(m) is Conv2dNormActivation:
+            modules_to_fuse = ["0", "1"]
+            if len(m) == 3 and type(m[2]) is nn.ReLU:
+                modules_to_fuse.append("2")
+            _fuse_modules(m, modules_to_fuse, is_qat, inplace=True)
+        elif type(m) is QuantizableSqueezeExcitation:
+            m.fuse_model(is_qat)
 
 
 if __name__ == "__main__":
