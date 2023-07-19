@@ -58,7 +58,7 @@ class QuantizableFCN(_QuantizableSimpleSegmentationModel):
         aux_classifier (nn.Module, optional): auxiliary classifier used during training
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.quant = QuantStub()
         self.dequant = DeQuantStub()

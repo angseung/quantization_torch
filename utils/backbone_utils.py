@@ -8,12 +8,10 @@ import torch
 from torch import nn, Tensor
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torchvision.ops import misc as misc_nn_ops
-
-# from torchvision.ops.feature_pyramid_network import ExtraFPNBlock, FeaturePyramidNetwork, LastLevelMaxPool
-
 from torchvision.models import mobilenet, resnet
 from torchvision.models._api import _get_enum_from_fn, WeightsEnum
 from torchvision.models._utils import handle_legacy_interface, IntermediateLayerGetter
+
 from ops.feature_pyramid_network import (
     ExtraFPNBlock,
     FeaturePyramidNetwork,

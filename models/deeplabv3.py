@@ -3,10 +3,13 @@ it overrides torchvision.models.segmentation.deeplabv3
 """
 
 import copy
+import time
 from functools import partial
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
+from collections import OrderedDict
 
 import torch
+from torch import Tensor
 from torch import nn
 from torch.nn import functional as F
 from torch.ao.quantization import DeQuantStub, QuantStub
@@ -19,12 +22,12 @@ from torchvision.models._utils import (
     handle_legacy_interface,
     IntermediateLayerGetter,
 )
-from torchvision.models.segmentation._utils import _SimpleSegmentationModel
 
 from models.mobilenetv3 import (
     mobilenet_v3_large,
     MobileNet_V3_Large_Weights,
     QuantizableMobileNetV3,
+    fuse_mobilenetv3,
 )
 from models.resnet import (
     QuantizableResNet,
@@ -35,6 +38,7 @@ from models.resnet import (
 )
 from models.fcn import QuantizableFCNHead
 from utils.quantization_utils import get_platform_aware_qconfig
+from utils.segmentation_utils import _QuantizableSimpleSegmentationModel
 
 
 __all__ = [
@@ -48,7 +52,7 @@ __all__ = [
 ]
 
 
-class DeepLabV3(_SimpleSegmentationModel):
+class DeepLabV3(_QuantizableSimpleSegmentationModel):
     """
     Implements DeepLabV3 model from
     `"Rethinking Atrous Convolution for Semantic Image Segmentation"
@@ -64,10 +68,38 @@ class DeepLabV3(_SimpleSegmentationModel):
         aux_classifier (nn.Module, optional): auxiliary classifier used during training
     """
 
-    pass
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self.quant = QuantStub()
+        self.dequant = DeQuantStub()
+
+    def fuse_model(self, is_qat: bool = False) -> None:
+        fuse_deeplabv3(self, is_qat=is_qat)
+
+    def _forward_impl(self, x: Tensor) -> Dict[str, Tensor]:
+        input_shape = x.shape[-2:]
+        x = self.quant(x)
+        features = self.backbone(x)
+
+        result = OrderedDict()
+        x = features["out"]
+        x = self.classifier(x)
+        x = F.interpolate(x, size=input_shape, mode="bilinear", align_corners=False)
+        result["out"] = self.dequant(x)
+
+        if self.aux_classifier is not None:
+            x = features["aux"]
+            x = self.aux_classifier(x)
+            x = F.interpolate(x, size=input_shape, mode="bilinear", align_corners=False)
+            result["aux"] = self.dequant(x)
+
+        return result
+
+    def forward(self, x: Tensor) -> Dict[str, Tensor]:
+        return self._forward_impl(x)
 
 
-class DeepLabHead(nn.Sequential):
+class QuanttizableDeepLabHead(nn.Sequential):
     def __init__(self, in_channels: int, num_classes: int) -> None:
         super().__init__(
             ASPP(in_channels, [12, 24, 36]),
@@ -153,13 +185,17 @@ def _deeplabv3_resnet(
     num_classes: int,
     aux: Optional[bool],
 ) -> DeepLabV3:
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
     return_layers = {"layer4": "out"}
     if aux:
         return_layers["layer3"] = "aux"
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
     aux_classifier = QuantizableFCNHead(1024, num_classes) if aux else None
-    classifier = DeepLabHead(2048, num_classes)
+    classifier = QuanttizableDeepLabHead(2048, num_classes)
     return DeepLabV3(backbone, classifier, aux_classifier)
 
 
@@ -259,7 +295,7 @@ def _deeplabv3_mobilenetv3(
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
     aux_classifier = QuantizableFCNHead(aux_inplanes, num_classes) if aux else None
-    classifier = DeepLabHead(out_inplanes, num_classes)
+    classifier = QuanttizableDeepLabHead(out_inplanes, num_classes)
     return DeepLabV3(backbone, classifier, aux_classifier)
 
 
@@ -299,10 +335,6 @@ def deeplabv3_resnet50(
     .. autoclass:: torchvision.models.segmentation.DeepLabV3_ResNet50_Weights
         :members:
     """
-    backend = get_platform_aware_qconfig()
-    if backend == "qnnpack":
-        torch.backends.quantized.engine = "qnnpack"
-
     weights = DeepLabV3_ResNet50_Weights.verify(weights)
     weights_backbone = ResNet50_Weights.verify(weights_backbone)
 
@@ -405,6 +437,8 @@ def deeplabv3_mobilenet_v3_large(
     weights_backbone: Optional[
         MobileNet_V3_Large_Weights
     ] = MobileNet_V3_Large_Weights.IMAGENET1K_V1,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> DeepLabV3:
     """Constructs a DeepLabV3 model with a MobileNetV3-Large backbone.
@@ -423,6 +457,8 @@ def deeplabv3_mobilenet_v3_large(
         aux_loss (bool, optional): If True, it uses an auxiliary loss
         weights_backbone (:class:`~torchvision.models.MobileNet_V3_Large_Weights`, optional): The pretrained weights
             for the backbone
+        quantize
+        is_qat
         **kwargs: unused
 
     .. autoclass:: torchvision.models.segmentation.DeepLabV3_MobileNet_V3_Large_Weights
@@ -444,16 +480,92 @@ def deeplabv3_mobilenet_v3_large(
     elif num_classes is None:
         num_classes = 21
 
-    backbone = mobilenet_v3_large(weights=weights_backbone, dilated=True)
+    backbone = mobilenet_v3_large(
+        weights=weights_backbone,
+        dilated=True,
+        quantize=quantize,
+        is_qat=is_qat,
+        skip_fuse=True,
+    )
     model = _deeplabv3_mobilenetv3(backbone, num_classes, aux_loss)
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
 
     model.eval()
+    model.fuse_model(is_qat=is_qat)
+
+    if quantize:
+        if is_qat:
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.backbone.classifier = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.backbone.aux_classifier = (
+                torch.ao.quantization.get_default_qat_qconfig(backend)
+            )
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+
+        else:
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.classifier.qconfig = torch.ao.quantization.get_default_qconfig(
+                backend
+            )
+            model.aux_classifier.qconfig = torch.ao.quantization.get_default_qconfig(
+                backend
+            )
+            torch.ao.quantization.prepare(model, inplace=True)
 
     return model
 
 
+def fuse_deeplabv3(model: nn.Module, is_qat: bool = False) -> None:
+    fuse_mobilenetv3(model.backbone, is_qat=is_qat)
+    _fuse_modules(model.aux_classifier, [["0", "1", "2"]], is_qat=is_qat, inplace=True)
+    _fuse_modules(model.classifier, [["1", "2", "3"]], is_qat=is_qat, inplace=True)
+    _fuse_modules(
+        model.classifier[0].convs[0], [["0", "1", "2"]], is_qat=is_qat, inplace=True
+    )
+    _fuse_modules(
+        model.classifier[0].project, [["0", "1", "2"]], is_qat=is_qat, inplace=True
+    )
+    fuse_deeplabv3_head(model.classifier, is_qat=is_qat)
+
+
+def fuse_deeplabv3_head(model: nn.Module, is_qat: bool = False) -> None:
+    for module_name, module in model.named_children():
+        if isinstance(module, ASPPConv):
+            _fuse_modules(module, [["0", "1", "2"]], is_qat=is_qat, inplace=True)
+        elif isinstance(module, ASPPPooling):
+            _fuse_modules(module, [["1", "2", "3"]], is_qat=is_qat, inplace=True)
+        else:
+            fuse_deeplabv3_head(module, is_qat=is_qat)
+
+
 if __name__ == "__main__":
-    dummy_input = torch.randn(1, 3, 224, 224)
+    x = torch.randn(1, 3, 224, 224)
+    model = deeplabv3_mobilenet_v3_large(
+        weights=DeepLabV3_MobileNet_V3_Large_Weights.DEFAULT,
+        weights_backbone=MobileNet_V3_Large_Weights.DEFAULT,
+        quantize=True,
+        is_qat=False,
+    )
+    model.eval()
+    model_fp = copy.deepcopy(model)
+    model(x)
+    torch.ao.quantization.convert(model, inplace=True)
+
+    start = time.time()
+    predictions = model(x)
+    elapsed_quant = time.time() - start
+
+    start = time.time()
+    predictions_fp = model_fp(x)
+    elapsed_fp = time.time() - start
+
+    print(f"latency_quant: {elapsed_quant: .2f}, latency_fp: {elapsed_fp: .2f}")
