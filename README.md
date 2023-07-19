@@ -80,8 +80,9 @@
 | DeepLabV3_ResNet50 | N | Y |
 | DeepLabV3_ResNet101 | N | Y |
 | LRASPP_MobileNetV3 | N | Y |
-| Mask R-CNN_ResNet50_FPN | N |  |
-| Mask R-CNN_ResNet50_FPN_V2 | N |  |
+| Mask R-CNN_ResNet50_FPN | N | N |
+| Mask R-CNN_ResNet50_FPN_V2 | N | N |
+- R-CNN의 Transposed Convolution은 qnnpack에서만 양자화 가능하며, 이는 ARM 아키텍쳐에서만 실행 가능함
 
 ## 1.1.4. Issue
 
@@ -184,8 +185,9 @@ https://github.com/pytorch/pytorch/issues/74540
 | DeepLabV3_MobileNetV3 |  |  |  |
 | DeepLabV3_ResNet50 |  |  |  |
 | DeepLabV3_ResNet101 |  |  |  |
-| LRASPP |  |  |  |
-| Mask R-CNN |  |  |  |
+| LRASPP_MobileNetV3 |  |  |  |
+| Mask R-CNN_ResNet50_FPN |  |  |  |
+| Mask R-CNN_ResNet50_FPN_V2 |  |  |  |
 
 # 3. ONNX Export Test
 
@@ -250,6 +252,8 @@ https://github.com/pytorch/pytorch/issues/74540
 | DeepLabV3_MobileNetV3 | Y | PTQ, QAT | Y | N | 13 |
 | DeepLabV3_ResNet50 | Y | PTQ, QAT | Y | N | 13 |
 | DeepLabV3_ResNet101 | Y | PTQ, QAT | Y | N | 13 |
-| Mask R-CNN |  |  |  |  |  |
+| Mask R-CNN_ResNet50_FPN | Y | PTQ, QAT (ARM Only) | Y | N | 13 |
+| Mask R-CNN_ResNet50_FPN_V2 | Y | PTQ, QAT (ARM Only) | Y | N | 13 |
 | LRASPP | Y | PTQ, QAT | Y | N | 13 |
 - SSDLite: ReLU6 → ReLU로 변경함에 따라 기존 모델 가중치 호환성 이슈 존재
+- Mask R-CNN 계열: ARM 아키텍쳐에서만 양자화 기능 지원
