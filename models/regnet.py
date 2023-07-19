@@ -61,6 +61,16 @@ __all__ = [
 ]
 
 
+class QuantizableSqueezeExcitation(SqueezeExcitation):
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self.skip_mul = FloatFunctional()
+
+    def forward(self, input: Tensor) -> Tensor:
+        scale = self._scale(input)
+        return self.skip_mul.mul(scale, input)
+
+
 class SimpleStemIN(Conv2dNormActivation):
     """Simple stem for ImageNet: 3x3, BN, ReLU."""
 
@@ -121,7 +131,7 @@ class BottleneckTransform(nn.Sequential):
             # The SE reduction ratio is defined with respect to the
             # beginning of the block
             width_se_out = int(round(se_ratio * width_in))
-            layers["se"] = SqueezeExcitation(
+            layers["se"] = QuantizableSqueezeExcitation(
                 input_channels=w_b,
                 squeeze_channels=width_se_out,
                 activation=activation_layer,
@@ -1864,23 +1874,23 @@ def fuse_regnet(model: nn.Module, is_qat: bool = False) -> None:
 
 if __name__ == "__main__":
     models = [
-        # regnet_y_400mf(quantize=True, is_qat=False),  # SqueezeExcitation does not support quantization
-        # regnet_y_800mf(quantize=True, is_qat=False),
-        # regnet_y_1_6gf(quantize=True, is_qat=False),
-        # regnet_y_3_2gf(quantize=True, is_qat=False),
-        # regnet_y_8gf(quantize=True, is_qat=False),
-        # regnet_y_16gf(quantize=True, is_qat=False),
-        # regnet_y_32gf(quantize=True, is_qat=False),
-        # regnet_y_128gf(quantize=True, is_qat=False),
-        regnet_x_400mf(
-            quantize=True, is_qat=False
-        ),  # it can load weight, but advanced calibration is needed
-        regnet_x_800mf(quantize=True, is_qat=False),
-        regnet_x_1_6gf(quantize=True, is_qat=False),
-        regnet_x_3_2gf(quantize=True, is_qat=False),
-        regnet_x_8gf(quantize=True, is_qat=False),
-        regnet_x_16gf(quantize=True, is_qat=False),
-        regnet_x_32gf(quantize=True, is_qat=False),
+        regnet_y_400mf(quantize=True, is_qat=False),  # SqueezeExcitation does not support quantization
+        regnet_y_800mf(quantize=True, is_qat=False),
+        regnet_y_1_6gf(quantize=True, is_qat=False),
+        regnet_y_3_2gf(quantize=True, is_qat=False),
+        regnet_y_8gf(quantize=True, is_qat=False),
+        regnet_y_16gf(quantize=True, is_qat=False),
+        regnet_y_32gf(quantize=True, is_qat=False),
+        regnet_y_128gf(quantize=True, is_qat=False),
+        # regnet_x_400mf(
+        #     quantize=True, is_qat=False
+        # ),  # it can load weight, but advanced calibration is needed
+        # regnet_x_800mf(quantize=True, is_qat=False),
+        # regnet_x_1_6gf(quantize=True, is_qat=False),
+        # regnet_x_3_2gf(quantize=True, is_qat=False),
+        # regnet_x_8gf(quantize=True, is_qat=False),
+        # regnet_x_16gf(quantize=True, is_qat=False),
+        # regnet_x_32gf(quantize=True, is_qat=False),
     ]
 
     for i, model in enumerate(models):
@@ -1893,7 +1903,7 @@ if __name__ == "__main__":
         mse = cal_mse(dummy_output, dummy_output_fp, norm=False)
         print(f"mse: {mse: .6f}")
 
-        from utils.onnx_utils import convert_onnx
-
-        convert_onnx(model, f"../onnx/regnet_{i: 03d}_qint8.onnx", opset=13)
-        convert_onnx(model_fp, f"../onnx/regnet_{i: 03d}_fp32.onnx", opset=13)
+        # from utils.onnx_utils import convert_onnx
+        #
+        # convert_onnx(model, f"../onnx/regnet_{i: 03d}_qint8.onnx", opset=13)
+        # convert_onnx(model_fp, f"../onnx/regnet_{i: 03d}_fp32.onnx", opset=13)
