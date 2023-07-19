@@ -520,8 +520,9 @@ def maskrcnn_resnet50_fpn(
     .. autoclass:: torchvision.models.detection.MaskRCNN_ResNet50_FPN_Weights
         :members:
     """
-    backend = "qnnpack"
-    torch.backends.quantized.engine = "qnnpack"
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
 
     weights = MaskRCNN_ResNet50_FPN_Weights.verify(weights)
     weights_backbone = ResNet50_Weights.verify(weights_backbone)
