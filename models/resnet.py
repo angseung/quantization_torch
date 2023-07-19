@@ -753,8 +753,8 @@ def resnet18(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -795,8 +795,8 @@ def resnet34(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -843,8 +843,8 @@ def resnet50(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -891,8 +891,8 @@ def resnet101(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -939,8 +939,8 @@ def resnet152(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -982,8 +982,8 @@ def resnext50_32x4d(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -1026,8 +1026,8 @@ def resnext101_32x8d(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -1070,8 +1070,8 @@ def resnext101_64x4d(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -1119,8 +1119,8 @@ def wide_resnet50_2(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_
@@ -1167,8 +1167,8 @@ def wide_resnet101_2(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.resnet.ResNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py>`_

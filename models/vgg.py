@@ -426,8 +426,8 @@ def vgg11(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -460,8 +460,8 @@ def vgg11_bn(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -494,8 +494,8 @@ def vgg13(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -528,8 +528,8 @@ def vgg13_bn(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -562,8 +562,8 @@ def vgg16(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -596,8 +596,8 @@ def vgg16_bn(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -630,8 +630,8 @@ def vgg19(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_
@@ -664,8 +664,8 @@ def vgg19_bn(
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the
             download to stderr. Default is True.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.vgg.VGG``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/vgg.py>`_

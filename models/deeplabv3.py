@@ -332,8 +332,8 @@ def deeplabv3_resnet50(
         aux_loss (bool, optional): If True, it uses an auxiliary loss
         weights_backbone (:class:`~torchvision.models.ResNet50_Weights`, optional): The pretrained weights for the
             backbone
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: unused
 
     .. autoclass:: torchvision.models.segmentation.DeepLabV3_ResNet50_Weights
@@ -428,8 +428,8 @@ def deeplabv3_resnet101(
         aux_loss (bool, optional): If True, it uses an auxiliary loss
         weights_backbone (:class:`~torchvision.models.ResNet101_Weights`, optional): The pretrained weights for the
             backbone
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: unused
 
     .. autoclass:: torchvision.models.segmentation.DeepLabV3_ResNet101_Weights
@@ -527,8 +527,8 @@ def deeplabv3_mobilenet_v3_large(
         aux_loss (bool, optional): If True, it uses an auxiliary loss
         weights_backbone (:class:`~torchvision.models.MobileNet_V3_Large_Weights`, optional): The pretrained weights
             for the backbone
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: unused
 
     .. autoclass:: torchvision.models.segmentation.DeepLabV3_MobileNet_V3_Large_Weights

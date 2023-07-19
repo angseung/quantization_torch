@@ -326,8 +326,8 @@ def ssdlite320_mobilenet_v3_large(
             backbone layers are trainable. If ``None`` is passed (the default) this value is
             set to 6.
         norm_layer (callable, optional): Module specifying the normalization layer to use.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.detection.ssd.SSD``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/ssd.py>`_

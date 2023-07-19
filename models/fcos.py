@@ -849,8 +849,8 @@ def fcos_resnet50_fpn(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) resnet layers starting
             from final block. Valid values are between 0 and 5, with 5 meaning all backbone layers are
             trainable. If ``None`` is passed (the default) this value is set to 3. Default: None
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.detection.FCOS``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/fcos.py>`_

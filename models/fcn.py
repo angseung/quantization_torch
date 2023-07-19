@@ -187,8 +187,8 @@ def fcn_resnet50(
         aux_loss (bool, optional): If True, it uses an auxiliary loss.
         weights_backbone (:class:`~torchvision.models.ResNet50_Weights`, optional): The pretrained
             weights for the backbone.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.segmentation.fcn.FCN``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/segmentation/fcn.py>`_
@@ -283,8 +283,8 @@ def fcn_resnet101(
         aux_loss (bool, optional): If True, it uses an auxiliary loss.
         weights_backbone (:class:`~torchvision.models.ResNet101_Weights`, optional): The pretrained
             weights for the backbone.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.segmentation.fcn.FCN``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/segmentation/fcn.py>`_

@@ -588,8 +588,8 @@ def fasterrcnn_resnet50_fpn(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) layers starting from
             final block. Valid values are between 0 and 5, with 5 meaning all backbone layers are
             trainable. If ``None`` is passed (the default) this value is set to 3.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.detection.faster_rcnn.FasterRCNN``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/faster_rcnn.py>`_
@@ -700,8 +700,8 @@ def fasterrcnn_resnet50_fpn_v2(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) layers starting from
             final block. Valid values are between 0 and 5, with 5 meaning all backbone layers are
             trainable. If ``None`` is passed (the default) this value is set to 3.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.detection.faster_rcnn.FasterRCNN``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/faster_rcnn.py>`_
@@ -926,8 +926,8 @@ def fasterrcnn_mobilenet_v3_large_320_fpn(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) layers starting from
             final block. Valid values are between 0 and 6, with 6 meaning all backbone layers are
             trainable. If ``None`` is passed (the default) this value is set to 3.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.detection.faster_rcnn.FasterRCNN``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/faster_rcnn.py>`_
@@ -1007,8 +1007,8 @@ def fasterrcnn_mobilenet_v3_large_fpn(
         trainable_backbone_layers (int, optional): number of trainable (not frozen) layers starting from
             final block. Valid values are between 0 and 6, with 6 meaning all backbone layers are
             trainable. If ``None`` is passed (the default) this value is set to 3.
-        quantize
-        is_qat
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.detection.faster_rcnn.FasterRCNN``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/detection/faster_rcnn.py>`_
