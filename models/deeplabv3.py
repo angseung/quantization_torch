@@ -571,10 +571,10 @@ def deeplabv3_mobilenet_v3_large(
             model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
                 backend
             )
-            model.backbone.classifier = torch.ao.quantization.get_default_qat_qconfig(
+            model.classifier.qconfig = torch.ao.quantization.get_default_qat_qconfig(
                 backend
             )
-            model.backbone.aux_classifier = (
+            model.aux_classifier.qconfig = (
                 torch.ao.quantization.get_default_qat_qconfig(backend)
             )
             model.train()

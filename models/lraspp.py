@@ -3,6 +3,7 @@ it overrides torchvision.models.segmentation.lraspp
 """
 
 import copy
+import time
 from collections import OrderedDict
 from functools import partial
 from typing import Any, Dict, Optional
@@ -11,6 +12,7 @@ import torch
 from torch import nn, Tensor
 from torch.nn import functional as F
 from torch.ao.quantization import DeQuantStub, QuantStub
+from torch.ao.nn.quantized import FloatFunctional
 from torchvision.models.quantization.utils import _fuse_modules
 from torchvision.transforms._presets import SemanticSegmentation
 from torchvision.utils import _log_api_usage_once
@@ -26,6 +28,7 @@ from models.mobilenetv3 import (
     mobilenet_v3_large,
     MobileNet_V3_Large_Weights,
     QuantizableMobileNetV3,
+    fuse_mobilenetv3,
 )
 from utils.quantization_utils import get_platform_aware_qconfig
 
@@ -63,8 +66,13 @@ class LRASPP(nn.Module):
         self.classifier = LRASPPHead(
             low_channels, high_channels, num_classes, inter_channels
         )
+        self.quant = QuantStub()
 
-    def forward(self, input: Tensor) -> Dict[str, Tensor]:
+    def fuse_model(self, is_qat: bool = False) -> None:
+        fuse_lraspp(self, is_qat=is_qat)
+
+    def _forward_impl(self, input: Tensor) -> Dict[str, Tensor]:
+        input = self.quant(input)
         features = self.backbone(input)
         out = self.classifier(features)
         out = F.interpolate(
@@ -73,6 +81,11 @@ class LRASPP(nn.Module):
 
         result = OrderedDict()
         result["out"] = out
+
+        return result
+
+    def forward(self, input: Tensor) -> Dict[str, Tensor]:
+        result = self._forward_impl(input)
 
         return result
 
@@ -98,6 +111,9 @@ class LRASPPHead(nn.Module):
         )
         self.low_classifier = nn.Conv2d(low_channels, num_classes, 1)
         self.high_classifier = nn.Conv2d(inter_channels, num_classes, 1)
+        self.skip_add = FloatFunctional()
+        self.skip_mul = FloatFunctional()
+        self.dequant = DeQuantStub()
 
     def forward(self, input: Dict[str, Tensor]) -> Tensor:
         low = input["low"]
@@ -105,10 +121,11 @@ class LRASPPHead(nn.Module):
 
         x = self.cbr(high)
         s = self.scale(high)
-        x = x * s
+        x = self.skip_mul.mul(x, s)
         x = F.interpolate(x, size=low.shape[-2:], mode="bilinear", align_corners=False)
+        x = self.skip_add.add(self.low_classifier(low), self.high_classifier(x))
 
-        return self.low_classifier(low) + self.high_classifier(x)
+        return self.dequant(x)
 
 
 def _lraspp_mobilenetv3(backbone: QuantizableMobileNetV3, num_classes: int) -> LRASPP:
@@ -169,6 +186,8 @@ def lraspp_mobilenet_v3_large(
     weights_backbone: Optional[
         MobileNet_V3_Large_Weights
     ] = MobileNet_V3_Large_Weights.IMAGENET1K_V1,
+    quantize: bool = False,
+    is_qat: bool = False,
     **kwargs: Any,
 ) -> LRASPP:
     """Constructs a Lite R-ASPP Network model with a MobileNetV3-Large backbone from
@@ -188,6 +207,8 @@ def lraspp_mobilenet_v3_large(
         aux_loss (bool, optional): If True, it uses an auxiliary loss.
         weights_backbone (:class:`~torchvision.models.MobileNet_V3_Large_Weights`, optional): The pretrained
             weights for the backbone.
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.segmentation.LRASPP``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/segmentation/lraspp.py>`_
@@ -214,16 +235,81 @@ def lraspp_mobilenet_v3_large(
     elif num_classes is None:
         num_classes = 21
 
-    backbone = mobilenet_v3_large(weights=weights_backbone, dilated=True)
+    backbone = mobilenet_v3_large(
+        weights=weights_backbone,
+        dilated=True,
+        quantize=quantize,
+        is_qat=is_qat,
+        skip_fuse=True,
+    )
     model = _lraspp_mobilenetv3(backbone, num_classes)
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
 
     model.eval()
+    model.fuse_model(is_qat=is_qat)
+
+    if quantize:
+        if is_qat:
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.classifier.qconfig = torch.ao.quantization.get_default_qat_qconfig(
+                backend
+            )
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+
+        else:
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.backbone.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            model.classifier.qconfig = torch.ao.quantization.get_default_qconfig(
+                backend
+            )
+            torch.ao.quantization.prepare(model, inplace=True)
 
     return model
 
 
+def fuse_lraspp(model: nn.Module, is_qat: bool = False) -> None:
+    fuse_mobilenetv3(model.backbone, is_qat=is_qat)
+    _fuse_modules(model.classifier.cbr, [["0", "1", "2"]], is_qat=is_qat, inplace=True)
+
+
 if __name__ == "__main__":
-    dummy_input = torch.randn(1, 3, 224, 224)
+    x = torch.randn(1, 3, 224, 224)
+    model = lraspp_mobilenet_v3_large(
+        weights=LRASPP_MobileNet_V3_Large_Weights.DEFAULT,
+        weights_backbone=MobileNet_V3_Large_Weights.DEFAULT,
+        quantize=True,
+        is_qat=False,
+    )
+    model.eval()
+    model_fp = copy.deepcopy(model)
+    model(x)
+    torch.ao.quantization.convert(model, inplace=True)
+
+    start = time.time()
+    predictions = model(x)
+    elapsed_quant = time.time() - start
+
+    start = time.time()
+    predictions_fp = model_fp(x)
+    elapsed_fp = time.time() - start
+
+    print(f"latency_quant: {elapsed_quant: .2f}, latency_fp: {elapsed_fp: .2f}")
+
+    # torch.onnx.export(
+    #     model_fp,
+    #     x,
+    #     f="../onnx/lraspp_mobilenetv3_fp.onnx",
+    #     opset_version=13,
+    # )  # success
+    # torch.onnx.export(
+    #     model,
+    #     x,
+    #     f="../onnx/lraspp_mobilenetv3_qint8.onnx",
+    #     opset_version=13,
+    # )  # failed

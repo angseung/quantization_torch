@@ -1874,7 +1874,9 @@ def fuse_regnet(model: nn.Module, is_qat: bool = False) -> None:
 
 if __name__ == "__main__":
     models = [
-        regnet_y_400mf(quantize=True, is_qat=False),  # SqueezeExcitation does not support quantization
+        regnet_y_400mf(
+            quantize=True, is_qat=False
+        ),  # SqueezeExcitation does not support quantization
         regnet_y_800mf(quantize=True, is_qat=False),
         regnet_y_1_6gf(quantize=True, is_qat=False),
         regnet_y_3_2gf(quantize=True, is_qat=False),
