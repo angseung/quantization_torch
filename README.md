@@ -37,7 +37,7 @@
 | MNASNet 1.3 | N | Y |
 | ConvNeXt | N | 양자화 미지원 |
 | RegNet X | N | Y |
-| RegNet Y | N | 양자화 미지원 |
+| RegNet Y | N | Y |
 | VGG11 | N | Y |
 | VGG11_BN | N | Y |
 | VGG13 | N | Y |
@@ -48,7 +48,8 @@
 | VGG19_BN | N | Y |
 - EfficientNet 계열: Stride ≠ 1인 Pointwise Convolution의 qint8 연산 미지원
 - ConvNext 계열: GeLU 활성화 함수 및 Layer Normalization의 qint8 연산 미지원
-- RegNet Y 계열: SEBlock의 forward path 중 Tensor-Mul의 qint8 연산 미지원
+- ~~RegNet Y 계열: SEBlock의 forward path 중 Tensor-Mul의 qint8 연산 미지원~~
+    - * 연산자를 FloatFunctional의 mul 메서드로 변경하여 연산 미지원 문제 해결
 
  
 
@@ -73,10 +74,14 @@
 
 | Model | Quantized version is available in torchvision | Implemented Manually |
 | --- | --- | --- |
-| FCN | N |  |
-| DeepLabV3 | N |  |
-| LRASPP | N |  |
-| Mask R-CNN | N |  |
+| FCN_ResNet50 | N | Y |
+| FCN_ResNet101 | N | Y |
+| DeepLabV3_MobileNetV3 | N | Y |
+| DeepLabV3_ResNet50 | N | Y |
+| DeepLabV3_ResNet101 | N | Y |
+| LRASPP_MobileNetV3 | N | Y |
+| Mask R-CNN_ResNet50_FPN | N |  |
+| Mask R-CNN_ResNet50_FPN_V2 | N |  |
 
 ## 1.1.4. Issue
 
@@ -149,7 +154,7 @@ https://github.com/pytorch/pytorch/issues/74540
 | MNASNet 1.3 |  |  |  |
 | ConvNeXt |  | N/A | N/A |
 | RegNet X |  |  |  |
-| RegNet Y |  | N/A | N/A |
+| RegNet Y |  |  |  |
 | VGG11 |  |  |  |
 | VGG11_BN |  |  |  |
 | VGG13 |  |  |  |
@@ -174,8 +179,11 @@ https://github.com/pytorch/pytorch/issues/74540
 
 | model | before (s) | after (s) | ratio |
 | --- | --- | --- | --- |
-| FCN |  |  |  |
-| DeepLabV3 |  |  |  |
+| FCN_ResNet50 |  |  |  |
+| FCN_ResNet101 |  |  |  |
+| DeepLabV3_MobileNetV3 |  |  |  |
+| DeepLabV3_ResNet50 |  |  |  |
+| DeepLabV3_ResNet101 |  |  |  |
 | LRASPP |  |  |  |
 | Mask R-CNN |  |  |  |
 
@@ -228,7 +236,7 @@ https://github.com/pytorch/pytorch/issues/74540
 | MNASNet_1.3 | Y | PTQ, QAT | Y | Y | 13 |
 | ConvNeXt | Y | N | Y | N | 13 |
 | RegNet X | Y | PTQ, QAT | Y | Y | 13 |
-| RegNet Y | Y | N | Y | N | 13 |
+| RegNet Y | Y | PTQ, QAT | Y | N | 13 |
 | RetinaNet_ResNet50_FPN | Y | PTQ, QAT | Y | N | 13 |
 | RetinaNet_ResNet50_FPN_V2 | Y | PTQ, QAT | Y | N | 13 |
 | VGG16 | Y | PTQ, QAT | Y | Y | 13 |
@@ -237,8 +245,10 @@ https://github.com/pytorch/pytorch/issues/74540
 | SSDLite320_MobileNetV3_Large | N | PTQ, QAT | Y | N | 13 |
 | FCOS | Y | PTQ, QAT | Y | N | 13 |
 | Faster R-CNN | Y | PTQ, QAT | Y | N | 13 |
-| FCN | Y | PTQ, QAT | Y | N | 13 |
-| DeepLabV3 |  |  |  |  |  |
-| LRASPP |  |  |  |  |  |
+| FCN_ResNet50 | Y | PTQ, QAT | Y | N | 13 |
+| FCN_ResNet101 | Y | PTQ, QAT | Y | N | 13 |
+| DeepLabV3_MobileNetV3 | Y | PTQ, QAT | Y | N | 13 |
+| DeepLabV3_ResNet50 | Y | PTQ, QAT | Y | N | 13 |
+| DeepLabV3_ResNet101 | Y | PTQ, QAT | Y | N | 13 |
 | Mask R-CNN |  |  |  |  |  |
-- SSDLite: ReLU6 → ReLU로 변경함에 따라 기존 모델 가중치 호환성 이슈 존재
+| LRASPP | Y | PTQ, QAT | Y | N | 13 |
