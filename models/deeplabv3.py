@@ -42,7 +42,7 @@ from utils.segmentation_utils import _QuantizableSimpleSegmentationModel
 
 
 __all__ = [
-    "DeepLabV3",
+    "QuantizableDeepLabV3",
     "DeepLabV3_ResNet50_Weights",
     "DeepLabV3_ResNet101_Weights",
     "DeepLabV3_MobileNet_V3_Large_Weights",
@@ -52,7 +52,7 @@ __all__ = [
 ]
 
 
-class DeepLabV3(_QuantizableSimpleSegmentationModel):
+class QuantizableDeepLabV3(_QuantizableSimpleSegmentationModel):
     """
     Implements DeepLabV3 model from
     `"Rethinking Atrous Convolution for Semantic Image Segmentation"
@@ -102,7 +102,7 @@ class DeepLabV3(_QuantizableSimpleSegmentationModel):
 class QuanttizableDeepLabHead(nn.Sequential):
     def __init__(self, in_channels: int, num_classes: int) -> None:
         super().__init__(
-            ASPP(in_channels, [12, 24, 36]),
+            QuantizableASPP(in_channels, [12, 24, 36]),
             nn.Conv2d(256, 256, 3, padding=1, bias=False),
             nn.BatchNorm2d(256),
             nn.ReLU(),
@@ -110,7 +110,7 @@ class QuanttizableDeepLabHead(nn.Sequential):
         )
 
 
-class ASPPConv(nn.Sequential):
+class QuantizableASPPConv(nn.Sequential):
     def __init__(self, in_channels: int, out_channels: int, dilation: int) -> None:
         modules = [
             nn.Conv2d(
@@ -127,7 +127,7 @@ class ASPPConv(nn.Sequential):
         super().__init__(*modules)
 
 
-class ASPPPooling(nn.Sequential):
+class QuantizableASPPPooling(nn.Sequential):
     def __init__(self, in_channels: int, out_channels: int) -> None:
         super().__init__(
             nn.AdaptiveAvgPool2d(1),
@@ -143,7 +143,7 @@ class ASPPPooling(nn.Sequential):
         return F.interpolate(x, size=size, mode="bilinear", align_corners=False)
 
 
-class ASPP(nn.Module):
+class QuantizableASPP(nn.Module):
     def __init__(
         self, in_channels: int, atrous_rates: List[int], out_channels: int = 256
     ) -> None:
@@ -159,9 +159,9 @@ class ASPP(nn.Module):
 
         rates = tuple(atrous_rates)
         for rate in rates:
-            modules.append(ASPPConv(in_channels, out_channels, rate))
+            modules.append(QuantizableASPPConv(in_channels, out_channels, rate))
 
-        modules.append(ASPPPooling(in_channels, out_channels))
+        modules.append(QuantizableASPPPooling(in_channels, out_channels))
 
         self.convs = nn.ModuleList(modules)
 
@@ -184,7 +184,7 @@ def _deeplabv3_resnet(
     backbone: QuantizableResNet,
     num_classes: int,
     aux: Optional[bool],
-) -> DeepLabV3:
+) -> QuantizableDeepLabV3:
     backend = get_platform_aware_qconfig()
     if backend == "qnnpack":
         torch.backends.quantized.engine = "qnnpack"
@@ -196,7 +196,7 @@ def _deeplabv3_resnet(
 
     aux_classifier = QuantizableFCNHead(1024, num_classes) if aux else None
     classifier = QuanttizableDeepLabHead(2048, num_classes)
-    return DeepLabV3(backbone, classifier, aux_classifier)
+    return QuantizableDeepLabV3(backbone, classifier, aux_classifier)
 
 
 _COMMON_META = {
@@ -276,7 +276,7 @@ def _deeplabv3_mobilenetv3(
     backbone: QuantizableMobileNetV3,
     num_classes: int,
     aux: Optional[bool],
-) -> DeepLabV3:
+) -> QuantizableDeepLabV3:
     backbone = backbone.features
     # Gather the indices of blocks which are strided. These are the locations of C1, ..., Cn-1 blocks.
     # The first and last blocks are always included because they are the C0 (conv1) and Cn.
@@ -296,7 +296,7 @@ def _deeplabv3_mobilenetv3(
 
     aux_classifier = QuantizableFCNHead(aux_inplanes, num_classes) if aux else None
     classifier = QuanttizableDeepLabHead(out_inplanes, num_classes)
-    return DeepLabV3(backbone, classifier, aux_classifier)
+    return QuantizableDeepLabV3(backbone, classifier, aux_classifier)
 
 
 @handle_legacy_interface(
@@ -313,7 +313,7 @@ def deeplabv3_resnet50(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> DeepLabV3:
+) -> QuantizableDeepLabV3:
     """Constructs a DeepLabV3 model with a ResNet-50 backbone.
 
     .. betastatus:: segmentation module
@@ -409,7 +409,7 @@ def deeplabv3_resnet101(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> DeepLabV3:
+) -> QuantizableDeepLabV3:
     """Constructs a DeepLabV3 model with a ResNet-101 backbone.
 
     .. betastatus:: segmentation module
@@ -510,7 +510,7 @@ def deeplabv3_mobilenet_v3_large(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> DeepLabV3:
+) -> QuantizableDeepLabV3:
     """Constructs a DeepLabV3 model with a MobileNetV3-Large backbone.
 
     Reference: `Rethinking Atrous Convolution for Semantic Image Segmentation <https://arxiv.org/abs/1706.05587>`__.
@@ -609,9 +609,9 @@ def fuse_deeplabv3(model: nn.Module, is_qat: bool = False) -> None:
 
 def fuse_deeplabv3_head(model: nn.Module, is_qat: bool = False) -> None:
     for module_name, module in model.named_children():
-        if isinstance(module, ASPPConv):
+        if isinstance(module, QuantizableASPPConv):
             _fuse_modules(module, [["0", "1", "2"]], is_qat=is_qat, inplace=True)
-        elif isinstance(module, ASPPPooling):
+        elif isinstance(module, QuantizableASPPPooling):
             _fuse_modules(module, [["1", "2", "3"]], is_qat=is_qat, inplace=True)
         else:
             fuse_deeplabv3_head(module, is_qat=is_qat)

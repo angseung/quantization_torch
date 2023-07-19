@@ -33,10 +33,14 @@ from models.mobilenetv3 import (
 from utils.quantization_utils import get_platform_aware_qconfig
 
 
-__all__ = ["LRASPP", "LRASPP_MobileNet_V3_Large_Weights", "lraspp_mobilenet_v3_large"]
+__all__ = [
+    "QuantizableLRASPP",
+    "LRASPP_MobileNet_V3_Large_Weights",
+    "lraspp_mobilenet_v3_large",
+]
 
 
-class LRASPP(nn.Module):
+class QuantizableLRASPP(nn.Module):
     """
     Implements a Lite R-ASPP Network for semantic segmentation from
     `"Searching for MobileNetV3"
@@ -63,7 +67,7 @@ class LRASPP(nn.Module):
         super().__init__()
         _log_api_usage_once(self)
         self.backbone = backbone
-        self.classifier = LRASPPHead(
+        self.classifier = QuantizableLRASPPHead(
             low_channels, high_channels, num_classes, inter_channels
         )
         self.quant = QuantStub()
@@ -90,7 +94,7 @@ class LRASPP(nn.Module):
         return result
 
 
-class LRASPPHead(nn.Module):
+class QuantizableLRASPPHead(nn.Module):
     def __init__(
         self,
         low_channels: int,
@@ -128,7 +132,9 @@ class LRASPPHead(nn.Module):
         return self.dequant(x)
 
 
-def _lraspp_mobilenetv3(backbone: QuantizableMobileNetV3, num_classes: int) -> LRASPP:
+def _lraspp_mobilenetv3(
+    backbone: QuantizableMobileNetV3, num_classes: int
+) -> QuantizableLRASPP:
     backbone = backbone.features
     # Gather the indices of blocks which are strided. These are the locations of C1, ..., Cn-1 blocks.
     # The first and last blocks are always included because they are the C0 (conv1) and Cn.
@@ -145,7 +151,7 @@ def _lraspp_mobilenetv3(backbone: QuantizableMobileNetV3, num_classes: int) -> L
         backbone, return_layers={str(low_pos): "low", str(high_pos): "high"}
     )
 
-    return LRASPP(backbone, low_channels, high_channels, num_classes)
+    return QuantizableLRASPP(backbone, low_channels, high_channels, num_classes)
 
 
 class LRASPP_MobileNet_V3_Large_Weights(WeightsEnum):
@@ -189,7 +195,7 @@ def lraspp_mobilenet_v3_large(
     quantize: bool = False,
     is_qat: bool = False,
     **kwargs: Any,
-) -> LRASPP:
+) -> QuantizableLRASPP:
     """Constructs a Lite R-ASPP Network model with a MobileNetV3-Large backbone from
     `Searching for MobileNetV3 <https://arxiv.org/abs/1905.02244>`_ paper.
 
