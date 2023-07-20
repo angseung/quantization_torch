@@ -225,7 +225,7 @@ class LastLevelMaxPool(ExtraFPNBlock):
     """
     Applies a max_pool2d on top of the last feature map
     """
-
+    # TODO: fix this module for QNNPACK backend
     def forward(
         self,
         x: List[Tensor],
@@ -233,7 +233,7 @@ class LastLevelMaxPool(ExtraFPNBlock):
         names: List[str],
     ) -> Tuple[List[Tensor], List[str]]:
         names.append("pool")
-        x.append(F.max_pool2d(x[-1], 1, 2, 0))
+        x.append(F.max_pool2d(x[-1], 1, 2, 0))  # RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED
         return x, names
 
 
