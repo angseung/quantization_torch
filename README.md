@@ -1,3 +1,5 @@
+# Model Quantization with PyTorch
+
 # 1. 양자화 대상 모델
 
 ## 1.1. PyTorch
@@ -46,10 +48,6 @@
 | VGG16_BN | N | Y |
 | VGG19 | N | Y |
 | VGG19_BN | N | Y |
-- EfficientNet 계열: Stride ≠ 1인 Pointwise Convolution의 qint8 연산 미지원
-- ConvNext 계열: GeLU 활성화 함수 및 Layer Normalization의 qint8 연산 미지원
-- ~~RegNet Y 계열: SEBlock의 forward path 중 Tensor-Mul의 qint8 연산 미지원~~
-    - * 연산자를 FloatFunctional의 mul 메서드로 변경하여 연산 미지원 문제 해결
 
  
 
@@ -72,12 +70,6 @@
 | Faster R-CNN_ResNet50_FPN_V2 | N | Y |
 | Faster R-CNN_MobileNetV3_Large_320_FPN | N | Y |
 | Faster R-CNN_MobileNetV3_Large_320 | N | Y |
-- Faster R-CNN 계열: ARM 아키텍쳐에서 양자화 버전 실행 불가
-    - QNNPACK의 Maxpooling 연산 Assertion Error
-
-```bash
-RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED at "/home/***/***/pytorch/aten/src/ATen/native/quantized/cpu/Pooling.cpp":328, please report a bug to PyTorch. failed to create QNNPACK MaxPool operator
-```
 
 ### 1.1.3. Segmentation
 
@@ -91,9 +83,11 @@ RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED
 | LRASPP_MobileNetV3 | N | Y |
 | Mask R-CNN_ResNet50_FPN | N | N |
 | Mask R-CNN_ResNet50_FPN_V2 | N | N |
-- Mask R-CNN의 Transposed Convolution은 qnnpack에서만 양자화 가능하며, 이는 ARM 아키텍쳐에서만 실행 가능함
 
 ## 1.1.4. Issue
+
+- EfficientNet 계열: Stride ≠ 1인 Pointwise Convolution의 qint8 연산 미지원
+- ConvNext 계열: GeLU 활성화 함수 및 Layer Normalization의 qint8 연산 미지원
 
 - Pointwise Convolution에서 qint8 자료형 지원 불가 문제
     - stride ≠ 1인 Pointwise Convolution을 사용하는 EfficientNet, EfficientDet, MobileNetV1 등 모델들은 PyTorch에서 양자화 적용 불가
@@ -102,6 +96,16 @@ RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED
 https://github.com/pytorch/pytorch/issues/74540
 
 - Tensor Element-wise Multiply 연산 미지원 문제
+    - Tensor-Tensor 곱 연산은 FloatFunctional.mul 메서드로 변경하여 해결 가능
+
+- Faster R-CNN 계열: ARM 아키텍쳐에서 양자화 버전 실행 불가
+    - QNNPACK의 Maxpooling 연산 Assertion Error
+
+```bash
+RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED at "/home/***/***/pytorch/aten/src/ATen/native/quantized/cpu/Pooling.cpp":328, please report a bug to PyTorch. failed to create QNNPACK MaxPool operator
+```
+
+- Mask R-CNN의 Transposed Convolution은 qnnpack에서만 양자화 가능하며, 이는 ARM 아키텍쳐에서만 실행 가능함
 
 # 2. 추론시간 벤치마크
 
