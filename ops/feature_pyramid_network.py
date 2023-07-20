@@ -233,7 +233,10 @@ class LastLevelMaxPool(ExtraFPNBlock):
         names: List[str],
     ) -> Tuple[List[Tensor], List[str]]:
         names.append("pool")
-        x.append(F.max_pool2d(x[-1], 1, 2, 0))  # RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED
+        # When this module is processed with QNNPACK,
+        # it raises RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED, if kernel size != 2
+        # x.append(F.max_pool2d(x[-1], 2, 2, 0)) this code works well on QNNPACK.
+        x.append(F.max_pool2d(x[-1], 1, 2, 0))
         return x, names
 
 
