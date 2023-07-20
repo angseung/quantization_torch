@@ -1,3 +1,5 @@
+# Model Quantization with PyTorch
+
 # 1. 양자화 대상 모델
 
 ## 1.1. PyTorch
@@ -46,10 +48,6 @@
 | VGG16_BN | N | Y |
 | VGG19 | N | Y |
 | VGG19_BN | N | Y |
-- EfficientNet 계열: Stride ≠ 1인 Pointwise Convolution의 qint8 연산 미지원
-- ConvNext 계열: GeLU 활성화 함수 및 Layer Normalization의 qint8 연산 미지원
-- ~~RegNet Y 계열: SEBlock의 forward path 중 Tensor-Mul의 qint8 연산 미지원~~
-    - * 연산자를 FloatFunctional의 mul 메서드로 변경하여 연산 미지원 문제 해결
 
  
 
@@ -67,8 +65,11 @@
 | RetinaNet_ResNet50_FPN_V2 | N | Y |
 | SSD300_VGG16 | N | Y |
 | SSDLite320_MobileNetV3_Large | N | Y |
-| FCOS | N | Y |
-| Faster R-CNN | N | Y |
+| FCOS_ResNet50_FPN | N | Y |
+| Faster R-CNN_ResNet50_FPN | N | Y |
+| Faster R-CNN_ResNet50_FPN_V2 | N | Y |
+| Faster R-CNN_MobileNetV3_Large_320_FPN | N | Y |
+| Faster R-CNN_MobileNetV3_Large_320 | N | Y |
 
 ### 1.1.3. Segmentation
 
@@ -79,12 +80,14 @@
 | DeepLabV3_MobileNetV3 | N | Y |
 | DeepLabV3_ResNet50 | N | Y |
 | DeepLabV3_ResNet101 | N | Y |
-| LRASPP_MobileNetV3 | N | Y |
+| LRASPP_MobileNetV3_Large | N | Y |
 | Mask R-CNN_ResNet50_FPN | N | N |
 | Mask R-CNN_ResNet50_FPN_V2 | N | N |
-- R-CNN의 Transposed Convolution은 qnnpack에서만 양자화 가능하며, 이는 ARM 아키텍쳐에서만 실행 가능함
 
 ## 1.1.4. Issue
+
+- EfficientNet 계열: Stride ≠ 1인 Pointwise Convolution의 qint8 연산 미지원
+- ConvNext 계열: GeLU 활성화 함수 및 Layer Normalization의 qint8 연산 미지원
 
 - Pointwise Convolution에서 qint8 자료형 지원 불가 문제
     - stride ≠ 1인 Pointwise Convolution을 사용하는 EfficientNet, EfficientDet, MobileNetV1 등 모델들은 PyTorch에서 양자화 적용 불가
@@ -93,6 +96,16 @@
 https://github.com/pytorch/pytorch/issues/74540
 
 - Tensor Element-wise Multiply 연산 미지원 문제
+    - Tensor-Tensor 곱 연산은 FloatFunctional.mul 메서드로 변경하여 해결 가능
+
+- Faster R-CNN 계열: ARM 아키텍쳐에서 양자화 버전 실행 불가
+    - QNNPACK의 Maxpooling 연산 Assertion Error
+
+```bash
+RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED at "/home/***/***/pytorch/aten/src/ATen/native/quantized/cpu/Pooling.cpp":328, please report a bug to PyTorch. failed to create QNNPACK MaxPool operator
+```
+
+- Mask R-CNN의 Transposed Convolution은 qnnpack에서만 양자화 가능하며, 이는 ARM 아키텍쳐에서만 실행 가능함
 
 # 2. 추론시간 벤치마크
 
@@ -173,8 +186,11 @@ https://github.com/pytorch/pytorch/issues/74540
 | RetinaNet_ResNet50_FPN_V2 | 193.4 | 24.61 |  |
 | SSD300_VGG16 |  |  |  |
 | SSDLite320_MobileNetV3_Large |  |  |  |
-| FCOS |  |  |  |
-| Faster R-CNN |  |  |  |
+| FCOS_ResNet50_FPN |  |  |  |
+| Faster R-CNN_ResNet50_FPN |  | QNNPACK ERROR | - |
+| Faster R-CNN_ResNet50_FPN_V2 |  | QNNPACK ERROR | - |
+| Faster R-CNN_MobileNetV3_Large_320_FPN |  | QNNPACK ERROR | - |
+| Faster R-CNN_MobileNetV3_Large_320 |  | QNNPACK ERROR | - |
 
 - Segmentation 모델
 
@@ -185,9 +201,9 @@ https://github.com/pytorch/pytorch/issues/74540
 | DeepLabV3_MobileNetV3 |  |  |  |
 | DeepLabV3_ResNet50 |  |  |  |
 | DeepLabV3_ResNet101 |  |  |  |
-| LRASPP_MobileNetV3 |  |  |  |
-| Mask R-CNN_ResNet50_FPN |  |  |  |
-| Mask R-CNN_ResNet50_FPN_V2 |  |  |  |
+| LRASPP_MobileNetV3_Large |  |  |  |
+| Mask R-CNN_ResNet50_FPN |  | QNNPACK ERROR | - |
+| Mask R-CNN_ResNet50_FPN_V2 |  | QNNPACK ERROR | - |
 
 # 3. ONNX Export Test
 
@@ -245,8 +261,11 @@ https://github.com/pytorch/pytorch/issues/74540
 | VGG16_BN | Y | PTQ, QAT | Y | Y | 13 |
 | SSD300_VGG16 | Y | PTQ, QAT | Y | N | 13 |
 | SSDLite320_MobileNetV3_Large | N | PTQ, QAT | Y | N | 13 |
-| FCOS | Y | PTQ, QAT | Y | N | 13 |
-| Faster R-CNN | Y | PTQ, QAT | Y | N | 13 |
+| FCOS_ResNet50_FPN | Y | PTQ, QAT | Y | N | 13 |
+| Faster R-CNN_ResNet50_FPN | Y | PTQ, QAT | Y | N | 13 |
+| Faster R-CNN_ResNet50_FPN_V2 | Y | PTQ, QAT | Y | N | 13 |
+| Faster R-CNN_MobileNetV3_Large_320_FPN | Y | PTQ, QAT | Y | N | 13 |
+| Faster R-CNN_MobileNetV3_Large_320 | Y | PTQ, QAT | Y | N | 13 |
 | FCN_ResNet50 | Y | PTQ, QAT | Y | N | 13 |
 | FCN_ResNet101 | Y | PTQ, QAT | Y | N | 13 |
 | DeepLabV3_MobileNetV3 | Y | PTQ, QAT | Y | N | 13 |
@@ -254,6 +273,7 @@ https://github.com/pytorch/pytorch/issues/74540
 | DeepLabV3_ResNet101 | Y | PTQ, QAT | Y | N | 13 |
 | Mask R-CNN_ResNet50_FPN | Y | PTQ, QAT (ARM Only) | Y | N | 13 |
 | Mask R-CNN_ResNet50_FPN_V2 | Y | PTQ, QAT (ARM Only) | Y | N | 13 |
-| LRASPP | Y | PTQ, QAT | Y | N | 13 |
+| LRASPP_MobileNetV3_Large | Y | PTQ, QAT | Y | N | 13 |
 - SSDLite: ReLU6 → ReLU로 변경함에 따라 기존 모델 가중치 호환성 이슈 존재
 - Mask R-CNN 계열: ARM 아키텍쳐에서만 양자화 기능 지원
+    - 단, Faster R-CNN 계열과 마찬가지로 QNNPACK ERROR로 인해 추론 불가

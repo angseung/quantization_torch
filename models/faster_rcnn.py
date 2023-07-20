@@ -1048,11 +1048,11 @@ def fuse_faster_rcnn(model: nn.Module, is_qat: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    # model = fasterrcnn_resnet50_fpn(
-    #     weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT,
-    #     quantize=True,
-    #     is_qat=False,
-    # )
+    model = fasterrcnn_resnet50_fpn(
+        weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT,
+        quantize=True,
+        is_qat=False,
+    )
     # model = fasterrcnn_resnet50_fpn_v2(
     #     weights=FasterRCNN_ResNet50_FPN_V2_Weights.DEFAULT,
     #     quantize=True,
@@ -1063,11 +1063,11 @@ if __name__ == "__main__":
     #     quantize=True,
     #     is_qat=False,
     # )
-    model = fasterrcnn_mobilenet_v3_large_320_fpn(
-        weights=FasterRCNN_MobileNet_V3_Large_320_FPN_Weights.DEFAULT,
-        quantize=True,
-        is_qat=False,
-    )
+    # model = fasterrcnn_mobilenet_v3_large_320_fpn(
+    #     weights=FasterRCNN_MobileNet_V3_Large_320_FPN_Weights.DEFAULT,
+    #     quantize=True,
+    #     is_qat=False,
+    # )
     model.eval()
     model_fp = copy.deepcopy(model)
 
