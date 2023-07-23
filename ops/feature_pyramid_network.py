@@ -225,6 +225,7 @@ class LastLevelMaxPool(ExtraFPNBlock):
     """
     Applies a max_pool2d on top of the last feature map
     """
+
     # TODO: fix this module for QNNPACK backend
     def forward(
         self,

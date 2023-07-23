@@ -37,9 +37,25 @@
 | MNASNet 0.75 | N | Y |
 | MNASNet 1.0 | N | Y |
 | MNASNet 1.3 | N | Y |
-| ConvNeXt | N | 양자화 미지원 |
-| RegNet X | N | Y |
-| RegNet Y | N | Y |
+| ConvNeXt_tiny | N | 양자화 미지원 |
+| ConvNeXt_small | N | 양자화 미지원 |
+| ConvNeXt_base | N | 양자화 미지원 |
+| ConvNeXt_large | N | 양자화 미지원 |
+| RegNet_X_400mf | N | Y |
+| RegNet_X_800mf | N | Y |
+| RegNet_X_1.6gf | N | Y |
+| RegNet_X_3.2gf | N | Y |
+| RegNet_X_8gf | N | Y |
+| RegNet_X_16gf | N | Y |
+| RegNet_X_32gf | N | Y |
+| RegNet_Y_400mf | N | Y |
+| RegNet_Y_800mf | N | Y |
+| RegNet_Y_1.6gf | N | Y |
+| RegNet_Y_3.2gf | N | Y |
+| RegNet_Y_8gf | N | Y |
+| RegNet_Y_16gf | N | Y |
+| RegNet_Y_32gf | N | Y |
+| RegNet_Y_128gf | N | Y |
 | VGG11 | N | Y |
 | VGG11_BN | N | Y |
 | VGG13 | N | Y |
@@ -115,33 +131,33 @@ RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED
     - Fusing이 불가능하며, AArch64에서는 양자화 이후에도 추론시간이 오히려 증가할 수 있음
     - DenseNet은 양자화를 적용하면 ONNX Export가 불가능함
 
-| model | before (s) | after (s) | ratio |
+| Model | before (s) | after (s) | ratio |
 | --- | --- | --- | --- |
-| densenet121 | 1.78 | 1.39 | 0.78 |
-| densenet161 | 2.87 | 2.74 | 0.95 |
-| densenet169 | 2.37 | 1.71 | 0.72 |
-| densenet201 | 2.84 | 2.19 | 0.77 |
+| DenseNet121 | 1.78 | 1.39 | 0.78 |
+| DenseNet161 | 2.87 | 2.74 | 0.95 |
+| DenseNet169 | 2.37 | 1.71 | 0.72 |
+| DenseNet201 | 2.84 | 2.19 | 0.77 |
 
 - ResNet 계열
 
-| model | before (s) | after (s) | ratio |
+| Model | before (s) | after (s) | ratio |
 | --- | --- | --- | --- |
-| resnet18 | 0.58 | 0.35 | 0.61 |
-| resnet34 | 1.07 | 0.52 | 0.49 |
-| resnet50 | 1.27 | 0.6 | 0.47 |
-| resnet101 | 2.19 | 1.05 | 0.48 |
-| resnet152 | 3.02 | 1.38 | 0.46 |
-| resnext50_32x4d | 1.6 | 0.58 | 0.36 |
-| resnext101_32x8d | 4.58 | 1.56 | 0.34 |
-| wide_resnet50_2 | 2.56 | 1.02 | 0.4 |
-| wide_resnet101_2 | 4.81 | 1.91 | 0.4 |
+| ResNet18 | 0.58 | 0.35 | 0.61 |
+| ResNet34 | 1.07 | 0.52 | 0.49 |
+| ResNet50 | 1.27 | 0.6 | 0.47 |
+| ResNet101 | 2.19 | 1.05 | 0.48 |
+| ResNet152 | 3.02 | 1.38 | 0.46 |
+| ResNext50 | 1.6 | 0.58 | 0.36 |
+| ResNext101 | 4.58 | 1.56 | 0.34 |
+| WideResNet50 | 2.56 | 1.02 | 0.4 |
+| WideResNet101 | 4.81 | 1.91 | 0.4 |
 
 - MobileNet 계열
 
-| model | before (s) | after (s) | ratio |
+| Model | before (s) | after (s) | ratio |
 | --- | --- | --- | --- |
-| mobilenet_v2 | 1.42 | 0.75 | 0.53 |
-| mobilenet_v3_large | 1.67 | 0.75 | 0.44 |
+| MobileNetV2 | 1.42 | 0.75 | 0.53 |
+| MobileNetV3 | 1.67 | 0.75 | 0.44 |
 
 - Yolo 계열
 
@@ -158,7 +174,7 @@ RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED
 
 - Classification 모델
 
-| model | before (s) | after (s) | ratio |
+| Model | before (s) | after (s) | ratio |
 | --- | --- | --- | --- |
 | SqueezeNet 1.0 |  |  |  |
 | SqueezeNet 1.1 |  |  |  |
@@ -166,9 +182,25 @@ RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED
 | MNASNet 0,75 |  |  |  |
 | MNASNet 1.0 |  |  |  |
 | MNASNet 1.3 |  |  |  |
-| ConvNeXt |  | N/A | N/A |
-| RegNet X |  |  |  |
-| RegNet Y |  |  |  |
+| ConvNeXt_tiny |  | N/A | N/A |
+| ConvNeXt_small |  | N/A | N/A |
+| ConvNeXt_base |  | N/A | N/A |
+| ConvNeXt_large |  | N/A | N/A |
+| RegNet_X_400mf |  |  |  |
+| RegNet_X_800mf |  |  |  |
+| RegNet_X_1.6gf |  |  |  |
+| RegNet_X_3.2gf |  |  |  |
+| RegNet_X_8gf |  |  |  |
+| RegNet_X_16gf |  |  |  |
+| RegNet_X_32gf |  |  |  |
+| RegNet_Y_400mf |  |  |  |
+| RegNet_Y_800mf |  |  |  |
+| RegNet_Y_1.6gf |  |  |  |
+| RegNet_Y_3.2gf |  |  |  |
+| RegNet_Y_8gf |  |  |  |
+| RegNet_Y_16gf |  |  |  |
+| RegNet_Y_32gf |  |  |  |
+| RegNet_Y_128gf |  |  |  |
 | VGG11 |  |  |  |
 | VGG11_BN |  |  |  |
 | VGG13 |  |  |  |
@@ -180,7 +212,7 @@ RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED
 
 - Detection 모델
 
-| model | before (s) | after (s) | ratio |
+| Model | before (s) | after (s) | ratio |
 | --- | --- | --- | --- |
 | RetinaNet_ResNet50_FPN | 193.8 | 23.73 |  |
 | RetinaNet_ResNet50_FPN_V2 | 193.4 | 24.61 |  |
@@ -194,7 +226,7 @@ RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED
 
 - Segmentation 모델
 
-| model | before (s) | after (s) | ratio |
+| Model | before (s) | after (s) | ratio |
 | --- | --- | --- | --- |
 | FCN_ResNet50 |  |  |  |
 | FCN_ResNet101 |  |  |  |
@@ -252,9 +284,25 @@ RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED
 | MNASNet_0,75 | Y | PTQ, QAT | Y | Y | 13 |
 | MNASNet_1.0 | Y | PTQ, QAT | Y | Y | 13 |
 | MNASNet_1.3 | Y | PTQ, QAT | Y | Y | 13 |
-| ConvNeXt | Y | N | Y | N | 13 |
-| RegNet X | Y | PTQ, QAT | Y | Y | 13 |
-| RegNet Y | Y | PTQ, QAT | Y | N | 13 |
+| ConvNeXt_tiny | Y | N | Y | N | 13 |
+| ConvNeXt_small | Y | N | Y | N | 13 |
+| ConvNeXt_base | Y | N | Y | N | 13 |
+| ConvNeXt_large | Y | N | Y | N | 13 |
+| RegNet_X_400mf | Y | PTQ, QAT | Y | N | 13 |
+| RegNet_X_800mf | Y | PTQ, QAT | Y | N | 13 |
+| RegNet_X_1.6gf | Y | PTQ, QAT | Y | N | 13 |
+| RegNet_X_3.2gf | Y | PTQ, QAT | Y | N | 13 |
+| RegNet_X_8gf | Y | PTQ, QAT | Y | N | 13 |
+| RegNet_X_16gf | Y | PTQ, QAT | Y | N | 13 |
+| RegNet_X_32gf | Y | PTQ, QAT | Y | N | 13 |
+| RegNet_Y_400mf | Y | PTQ, QAT | Y | N | 13 |
+| RegNet_Y_800mf | Y | PTQ, QAT | Y | N | 13 |
+| RegNet_Y_1.6gf | Y | PTQ, QAT | Y | N | 13 |
+| RegNet_Y_3.2gf | Y | PTQ, QAT | Y | N | 13 |
+| RegNet_Y_8gf | Y | PTQ, QAT | Y | N | 13 |
+| RegNet_Y_16gf | Y | PTQ, QAT | Y | N | 13 |
+| RegNet_Y_32gf | Y | PTQ, QAT | Y | N | 13 |
+| RegNet_Y_128gf | Y | PTQ, QAT | Y | N | 13 |
 | RetinaNet_ResNet50_FPN | Y | PTQ, QAT | Y | N | 13 |
 | RetinaNet_ResNet50_FPN_V2 | Y | PTQ, QAT | Y | N | 13 |
 | VGG16 | Y | PTQ, QAT | Y | Y | 13 |
