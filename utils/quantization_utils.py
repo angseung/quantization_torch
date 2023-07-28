@@ -3,6 +3,7 @@ import platform
 from pathlib import Path
 import cv2
 import torch
+from torch import Tensor
 from torch import nn as nn
 from torch.utils.data import Dataset
 from torch.nn.functional import mse_loss
@@ -56,7 +57,7 @@ class QuantizableModel(nn.Module):
 
         return self
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         x = self.quant(x)
         x = self.model(x)
         x = self.dequant(x)
@@ -100,9 +101,7 @@ def get_platform_aware_qconfig() -> str:
     return arch
 
 
-def cal_mse(
-    pred: torch.Tensor, target: torch.Tensor, norm: bool = False
-) -> torch.Tensor:
+def cal_mse(pred: Tensor, target: Tensor, norm: bool = False) -> Tensor:
     if norm:
         mse = mse_loss(target, pred) / mse_loss(target, torch.zeros_like(target))
 
