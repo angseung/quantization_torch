@@ -2,6 +2,10 @@
 it overrides torchvision.models.regnet
 """
 
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import math
 import copy
 from collections import OrderedDict

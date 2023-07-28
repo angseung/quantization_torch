@@ -1,3 +1,11 @@
+"""
+it overrides torchvision.models.resnet
+"""
+
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import copy
 from functools import partial
 from typing import Any, Callable, List, Optional, Type, Union

@@ -1,5 +1,8 @@
-from typing import *
+import os
 import sys
+
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+from typing import *
 from copy import deepcopy
 from pathlib import Path
 from torchvision.models.quantization.utils import _fuse_modules

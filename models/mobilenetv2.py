@@ -2,6 +2,10 @@
 it overrides torchvision.models.quantization.mobilenetv2
 """
 
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import copy
 from functools import partial
 from typing import Any, Optional, Union
