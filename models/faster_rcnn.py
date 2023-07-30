@@ -2,6 +2,10 @@
 it overrides torchvision.models.detection.faster_rcnn
 """
 
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import copy
 import time
 from typing import Any, Callable, List, Optional, Tuple, Union

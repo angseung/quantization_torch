@@ -1,5 +1,8 @@
-from typing import *
+import os
 import sys
+
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+from typing import *
 from copy import deepcopy
 from pathlib import Path
 from torchvision.models.quantization.utils import _fuse_modules
@@ -678,7 +681,7 @@ if __name__ == "__main__":
     calibration_dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
     input = torch.randn(1, 3, 320, 320)
-    fname = os.path.join("models", "yolov5l-qat.yaml")
+    fname = os.path.join("models", "yolov5x-qat.yaml")
     yolo_qint8, yolo_detector = yolo_model(fname, yolo_version=5)
     yolo_fp32 = QuantizableYoloBackbone(fname, yolo_version=5)
 
