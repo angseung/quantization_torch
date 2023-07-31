@@ -15,7 +15,6 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
-import torch
 from torch import nn, Tensor
 from torch.ao.quantization import DeQuantStub, QuantStub
 from torch.ao.nn.quantized import FloatFunctional
