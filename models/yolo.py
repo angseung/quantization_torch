@@ -7,6 +7,7 @@ from copy import deepcopy
 from pathlib import Path
 from torchvision.models.quantization.utils import _fuse_modules
 from torch.utils.data import DataLoader
+from torch import Tensor
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[1]  # root directory
@@ -447,7 +448,7 @@ class QuantizableYoloBackbone(nn.Module):
     def fuse_model(self, is_qat: bool = False) -> None:
         fuse_yolo(self.model, is_qat=is_qat)
 
-    def _forward_impl_v3(self, x: torch.Tensor) -> List[torch.Tensor]:
+    def _forward_impl_v3(self, x: Tensor) -> List[Tensor]:
         x = self.quant(x)
 
         for i, block in self.model.model.named_children():
@@ -490,7 +491,7 @@ class QuantizableYoloBackbone(nn.Module):
 
         return [x27, x22, x15]
 
-    def _forward_impl_v4(self, x: torch.Tensor) -> List[torch.Tensor]:
+    def _forward_impl_v4(self, x: Tensor) -> List[Tensor]:
         x = self.quant(x)
 
         for i, block in self.model.model.named_children():
@@ -536,7 +537,7 @@ class QuantizableYoloBackbone(nn.Module):
 
         return [x30, x33, x36]
 
-    def _forward_impl_v5(self, x: torch.Tensor) -> List[torch.Tensor]:
+    def _forward_impl_v5(self, x: Tensor) -> List[Tensor]:
         x = self.quant(x)
 
         for i, block in self.model.model.named_children():
@@ -583,8 +584,8 @@ class QuantizableYoloBackbone(nn.Module):
         return [x17, x20, x23]
 
     def forward(
-        self, x: Union[torch.Tensor, List[torch.Tensor]]
-    ) -> Union[Tuple[List[torch.Tensor], torch.Tensor], List[torch.Tensor]]:
+        self, x: Union[Tensor, List[Tensor]]
+    ) -> Union[Tuple[List[Tensor], Tensor], List[Tensor]]:
         if self.yolo_version == 3:
             return self._forward_impl_v3(x)
 
@@ -623,8 +624,8 @@ class YoloHead(nn.Module):
         self.model.eval()
 
     def forward(
-        self, x: List[torch.Tensor]
-    ) -> Union[Tuple[List[torch.Tensor], torch.Tensor], List[torch.Tensor]]:
+        self, x: List[Tensor]
+    ) -> Union[Tuple[List[Tensor], Tensor], List[Tensor]]:
         return self.model(x) if self.model.training else self.model(x)[0]
 
 
