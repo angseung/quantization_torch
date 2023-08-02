@@ -13,14 +13,14 @@ from typing import Any, Callable, List, Optional, Type, Union
 import torch
 import torch.nn as nn
 from torch import Tensor
+from torch.ao.quantization import DeQuantStub, QuantStub
+from torch.ao.nn.quantized import FloatFunctional
 
 from torchvision.transforms._presets import ImageClassification
 from torchvision.utils import _log_api_usage_once
 from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
-from torch.ao.quantization import DeQuantStub, QuantStub
-from torch.ao.nn.quantized import FloatFunctional
 from torchvision.models.quantization.utils import _fuse_modules
 
 from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
@@ -353,7 +353,7 @@ def _resnet(
 
     if weights is not None:
         if isinstance(weights, str):
-            model.load_state_dict(ckpt, strict=True)
+            model.load_state_dict(ckpt["model_state_dict"], strict=True)
 
         else:
             model.load_state_dict(weights.get_state_dict(progress=progress))
@@ -797,7 +797,7 @@ def resnet18(
 @handle_legacy_interface(weights=("pretrained", ResNet34_Weights.IMAGENET1K_V1))
 def resnet34(
     *,
-    weights: Optional[ResNet34_Weights] = None,
+    weights: Optional[Union[ResNet34_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = True,
     is_qat: bool = False,
@@ -823,7 +823,8 @@ def resnet34(
     .. autoclass:: torchvision.models.ResNet34_Weights
         :members:
     """
-    weights = ResNet34_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = ResNet34_Weights.verify(weights)
 
     return _resnet(
         QuantizableBasicBlock,
@@ -839,7 +840,7 @@ def resnet34(
 @handle_legacy_interface(weights=("pretrained", ResNet50_Weights.IMAGENET1K_V1))
 def resnet50(
     *,
-    weights: Optional[Union[ResNet18_Weights, str]] = None,
+    weights: Optional[Union[ResNet50_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = True,
     is_qat: bool = False,
@@ -888,7 +889,7 @@ def resnet50(
 @handle_legacy_interface(weights=("pretrained", ResNet101_Weights.IMAGENET1K_V1))
 def resnet101(
     *,
-    weights: Optional[ResNet101_Weights] = None,
+    weights: Optional[Union[ResNet101_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = True,
     is_qat: bool = False,
@@ -920,7 +921,8 @@ def resnet101(
     .. autoclass:: torchvision.models.ResNet101_Weights
         :members:
     """
-    weights = ResNet101_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = ResNet101_Weights.verify(weights)
 
     return _resnet(
         QuantizableBottleneck,
@@ -936,7 +938,7 @@ def resnet101(
 @handle_legacy_interface(weights=("pretrained", ResNet152_Weights.IMAGENET1K_V1))
 def resnet152(
     *,
-    weights: Optional[ResNet152_Weights] = None,
+    weights: Optional[Union[ResNet152_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = True,
     is_qat: bool = False,
@@ -968,7 +970,8 @@ def resnet152(
     .. autoclass:: torchvision.models.ResNet152_Weights
         :members:
     """
-    weights = ResNet152_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = ResNet152_Weights.verify(weights)
 
     return _resnet(
         QuantizableBottleneck,
@@ -984,7 +987,7 @@ def resnet152(
 @handle_legacy_interface(weights=("pretrained", ResNeXt50_32X4D_Weights.IMAGENET1K_V1))
 def resnext50_32x4d(
     *,
-    weights: Optional[ResNeXt50_32X4D_Weights] = None,
+    weights: Optional[Union[ResNeXt50_32X4D_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = True,
     is_qat: bool = False,
@@ -1010,7 +1013,8 @@ def resnext50_32x4d(
     .. autoclass:: torchvision.models.ResNeXt50_32X4D_Weights
         :members:
     """
-    weights = ResNeXt50_32X4D_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = ResNeXt50_32X4D_Weights.verify(weights)
 
     _ovewrite_named_param(kwargs, "groups", 32)
     _ovewrite_named_param(kwargs, "width_per_group", 4)
@@ -1028,7 +1032,7 @@ def resnext50_32x4d(
 @handle_legacy_interface(weights=("pretrained", ResNeXt101_32X8D_Weights.IMAGENET1K_V1))
 def resnext101_32x8d(
     *,
-    weights: Optional[ResNeXt101_32X8D_Weights] = None,
+    weights: Optional[Union[ResNeXt101_32X8D_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = True,
     is_qat: bool = False,
@@ -1054,7 +1058,8 @@ def resnext101_32x8d(
     .. autoclass:: torchvision.models.ResNeXt101_32X8D_Weights
         :members:
     """
-    weights = ResNeXt101_32X8D_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = ResNeXt101_32X8D_Weights.verify(weights)
 
     _ovewrite_named_param(kwargs, "groups", 32)
     _ovewrite_named_param(kwargs, "width_per_group", 8)
@@ -1072,7 +1077,7 @@ def resnext101_32x8d(
 @handle_legacy_interface(weights=("pretrained", ResNeXt101_64X4D_Weights.IMAGENET1K_V1))
 def resnext101_64x4d(
     *,
-    weights: Optional[ResNeXt101_64X4D_Weights] = None,
+    weights: Optional[Union[ResNeXt101_64X4D_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = True,
     is_qat: bool = False,
@@ -1098,7 +1103,8 @@ def resnext101_64x4d(
     .. autoclass:: torchvision.models.ResNeXt101_64X4D_Weights
         :members:
     """
-    weights = ResNeXt101_64X4D_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = ResNeXt101_64X4D_Weights.verify(weights)
 
     _ovewrite_named_param(kwargs, "groups", 64)
     _ovewrite_named_param(kwargs, "width_per_group", 4)
@@ -1116,7 +1122,7 @@ def resnext101_64x4d(
 @handle_legacy_interface(weights=("pretrained", Wide_ResNet50_2_Weights.IMAGENET1K_V1))
 def wide_resnet50_2(
     *,
-    weights: Optional[Wide_ResNet50_2_Weights] = None,
+    weights: Optional[Union[Wide_ResNet50_2_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = True,
     is_qat: bool = False,
@@ -1147,7 +1153,8 @@ def wide_resnet50_2(
     .. autoclass:: torchvision.models.Wide_ResNet50_2_Weights
         :members:
     """
-    weights = Wide_ResNet50_2_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = Wide_ResNet50_2_Weights.verify(weights)
 
     _ovewrite_named_param(kwargs, "width_per_group", 64 * 2)
     return _resnet(
@@ -1164,7 +1171,7 @@ def wide_resnet50_2(
 @handle_legacy_interface(weights=("pretrained", Wide_ResNet101_2_Weights.IMAGENET1K_V1))
 def wide_resnet101_2(
     *,
-    weights: Optional[Wide_ResNet101_2_Weights] = None,
+    weights: Optional[Union[Wide_ResNet101_2_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = True,
     is_qat: bool = False,
@@ -1195,7 +1202,8 @@ def wide_resnet101_2(
     .. autoclass:: torchvision.models.Wide_ResNet101_2_Weights
         :members:
     """
-    weights = Wide_ResNet101_2_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = Wide_ResNet101_2_Weights.verify(weights)
 
     _ovewrite_named_param(kwargs, "width_per_group", 64 * 2)
     return _resnet(
@@ -1247,17 +1255,27 @@ if __name__ == "__main__":
     #     quantize=True,
     #     is_qat=False,
     #     num_classes=6,
-    #     weights="../weights/resnet50_torch2.0.1_torchvision0.15.2.pth",
+    #     weights="../weights/resnet18.pth",
     # )
     # model = resnet34(quantize=True, is_qat=True)
-    model = resnet50(
+    # model = resnet50(
+    #     quantize=True,
+    #     is_qat=False,
+    #     num_classes=6,
+    #     weights="../weights/resnet50.pth",
+    # )
+    # model = resnet101(
+    #     quantize=True,
+    #     is_qat=False,
+    #     num_classes=6,
+    #     weights="../weights/resnet101.pth",
+    # )
+    model = resnet152(
         quantize=True,
         is_qat=False,
         num_classes=6,
-        weights="../weights/resnet50_torch2.0.1_torchvision0.15.2.pth",
+        weights="../weights/resnet152.pth",
     )
-    # model = resnet101(quantize=True, is_qat=True)
-    # model = resnet152(quantize=True, is_qat=True)
     # model = resnext50_32x4d(quantize=True, is_qat=True)
     # model = resnext101_32x8d(quantize=True, is_qat=True)
     # model = wide_resnet50_2(quantize=True, is_qat=True)

@@ -418,19 +418,28 @@ def _efficientnet(
     skip_fuse: Optional[bool] = False,
     **kwargs: Any,
 ) -> QuantizableEfficientNet:
-    if weights is not None:
-        _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
-
     backend = get_platform_aware_qconfig()
     if backend == "qnnpack":
         torch.backends.quantized.engine = "qnnpack"
+
+    if weights is not None:
+        if isinstance(weights, str):
+            ckpt = torch.load(weights, map_location="cpu")
+        else:
+            _ovewrite_named_param(
+                kwargs, "num_classes", len(weights.meta["categories"])
+            )
 
     model = QuantizableEfficientNet(
         inverted_residual_setting, dropout, last_channel=last_channel, **kwargs
     )
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        if isinstance(weights, str):
+            model.load_state_dict(ckpt["model_state_dict"], strict=True)
+
+        else:
+            model.load_state_dict(weights.get_state_dict(progress=progress))
 
     model.eval()
 
@@ -863,7 +872,7 @@ class EfficientNet_V2_L_Weights(WeightsEnum):
 @handle_legacy_interface(weights=("pretrained", EfficientNet_B0_Weights.IMAGENET1K_V1))
 def efficientnet_b0(
     *,
-    weights: Optional[EfficientNet_B0_Weights] = None,
+    weights: Optional[Union[EfficientNet_B0_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = False,
     is_qat: bool = False,
@@ -889,7 +898,8 @@ def efficientnet_b0(
     .. autoclass:: torchvision.models.EfficientNet_B0_Weights
         :members:
     """
-    weights = EfficientNet_B0_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = EfficientNet_B0_Weights.verify(weights)
 
     inverted_residual_setting, last_channel = _efficientnet_conf(
         "efficientnet_b0", width_mult=1.0, depth_mult=1.0
@@ -909,7 +919,7 @@ def efficientnet_b0(
 @handle_legacy_interface(weights=("pretrained", EfficientNet_B1_Weights.IMAGENET1K_V1))
 def efficientnet_b1(
     *,
-    weights: Optional[EfficientNet_B1_Weights] = None,
+    weights: Optional[Union[EfficientNet_B1_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = False,
     is_qat: bool = False,
@@ -935,7 +945,8 @@ def efficientnet_b1(
     .. autoclass:: torchvision.models.EfficientNet_B1_Weights
         :members:
     """
-    weights = EfficientNet_B1_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = EfficientNet_B1_Weights.verify(weights)
 
     inverted_residual_setting, last_channel = _efficientnet_conf(
         "efficientnet_b1", width_mult=1.0, depth_mult=1.1
@@ -955,7 +966,7 @@ def efficientnet_b1(
 @handle_legacy_interface(weights=("pretrained", EfficientNet_B2_Weights.IMAGENET1K_V1))
 def efficientnet_b2(
     *,
-    weights: Optional[EfficientNet_B2_Weights] = None,
+    weights: Optional[Union[EfficientNet_B2_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = False,
     is_qat: bool = False,
@@ -981,7 +992,8 @@ def efficientnet_b2(
     .. autoclass:: torchvision.models.EfficientNet_B2_Weights
         :members:
     """
-    weights = EfficientNet_B2_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = EfficientNet_B2_Weights.verify(weights)
 
     inverted_residual_setting, last_channel = _efficientnet_conf(
         "efficientnet_b2", width_mult=1.1, depth_mult=1.2
@@ -1397,7 +1409,18 @@ def fuse_efficientnet(blocks: nn.Module, is_qat: bool = False):
 
 
 if __name__ == "__main__":
-    model = efficientnet_b0(quantize=True, is_qat=False)
+    model = efficientnet_b0(
+        quantize=True,
+        is_qat=False,
+        num_classes=6,
+        weights="../weights/efficientnet_b0.pth",
+    )
+    # model = efficientnet_b1(
+    #     quantize=True,
+    #     is_qat=False,
+    #     num_classes=6,
+    #     weights="../weights/efficientnet_b1.pth",
+    # )
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
     model(input)  # Calibration codes here...
