@@ -29,7 +29,7 @@ setup(
         'timm',
     ],
     packages=find_packages(exclude=[]),
-    package_data={'quantization_torch': ['*.py'],
+    package_data={'main': ['main/*.py'],
                   'data': ['data/*', 'data/hyps/*.yaml'],
                   'fonts': ['fonts/*'],
                   },
