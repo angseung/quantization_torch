@@ -1409,18 +1409,18 @@ def fuse_efficientnet(blocks: nn.Module, is_qat: bool = False):
 
 
 if __name__ == "__main__":
-    model = efficientnet_b0(
-        quantize=True,
-        is_qat=False,
-        num_classes=6,
-        weights="../weights/efficientnet_b0.pth",
-    )
-    # model = efficientnet_b1(
-    #     quantize=True,
+    # model = efficientnet_b0(
+    #     quantize=False,
     #     is_qat=False,
     #     num_classes=6,
-    #     weights="../weights/efficientnet_b1.pth",
+    #     weights="../weights/efficientnet_b0.pth",
     # )
+    model = efficientnet_b1(
+        quantize=False,
+        is_qat=False,
+        num_classes=6,
+        weights="../weights/efficientnet_b1.pth",
+    )
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
     model(input)  # Calibration codes here...
