@@ -330,7 +330,7 @@ class QuantizableResNet(nn.Module):
 def _resnet(
     block: Type[Union[QuantizableBasicBlock, QuantizableBottleneck]],
     layers: List[int],
-    weights: Optional[WeightsEnum],
+    weights: Optional[Union[WeightsEnum, str]],
     progress: bool,
     quantize: bool,
     is_qat: bool,
@@ -342,12 +342,21 @@ def _resnet(
         torch.backends.quantized.engine = "qnnpack"
 
     if weights is not None:
-        _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
+        if isinstance(weights, str):
+            ckpt = torch.load(weights, map_location="cpu")
+        else:
+            _ovewrite_named_param(
+                kwargs, "num_classes", len(weights.meta["categories"])
+            )
 
     model = QuantizableResNet(block, layers, **kwargs)
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        if isinstance(weights, str):
+            model.load_state_dict(ckpt, strict=True)
+
+        else:
+            model.load_state_dict(weights.get_state_dict(progress=progress))
 
     model.eval()
 
@@ -745,7 +754,7 @@ class Wide_ResNet101_2_Weights(WeightsEnum):
 @handle_legacy_interface(weights=("pretrained", ResNet18_Weights.IMAGENET1K_V1))
 def resnet18(
     *,
-    weights: Optional[ResNet18_Weights] = None,
+    weights: Optional[Union[ResNet18_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = True,
     is_qat: bool = False,
@@ -771,7 +780,8 @@ def resnet18(
     .. autoclass:: torchvision.models.ResNet18_Weights
         :members:
     """
-    weights = ResNet18_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = ResNet18_Weights.verify(weights)
 
     return _resnet(
         QuantizableBasicBlock,
@@ -829,7 +839,7 @@ def resnet34(
 @handle_legacy_interface(weights=("pretrained", ResNet50_Weights.IMAGENET1K_V1))
 def resnet50(
     *,
-    weights: Optional[ResNet50_Weights] = None,
+    weights: Optional[Union[ResNet18_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = True,
     is_qat: bool = False,
@@ -861,7 +871,8 @@ def resnet50(
     .. autoclass:: torchvision.models.ResNet50_Weights
         :members:
     """
-    weights = ResNet50_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = ResNet50_Weights.verify(weights)
 
     return _resnet(
         QuantizableBottleneck,
@@ -1232,9 +1243,19 @@ def fuse_resnet(model: nn.Module, is_qat: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    model = resnet18(quantize=True, is_qat=False)
+    # model = resnet18(
+    #     quantize=True,
+    #     is_qat=False,
+    #     num_classes=6,
+    #     weights="../weights/resnet50_torch2.0.1_torchvision0.15.2.pth",
+    # )
     # model = resnet34(quantize=True, is_qat=True)
-    # model = resnet50(quantize=True, is_qat=True)
+    model = resnet50(
+        quantize=True,
+        is_qat=False,
+        num_classes=6,
+        weights="../weights/resnet50_torch2.0.1_torchvision0.15.2.pth",
+    )
     # model = resnet101(quantize=True, is_qat=True)
     # model = resnet152(quantize=True, is_qat=True)
     # model = resnext50_32x4d(quantize=True, is_qat=True)
