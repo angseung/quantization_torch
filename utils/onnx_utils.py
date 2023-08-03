@@ -10,7 +10,7 @@ def convert_onnx(
     input_size: Optional[Union[None, Tuple[int, int, int, int]]] = None,
 ):
     if opset is None:
-        opset = check_optimized_opset(model)
+        opset = 13
 
     if input_size is not None:
         if len(input_size) != 4:
