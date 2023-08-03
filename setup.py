@@ -11,7 +11,7 @@ setup(
         'matplotlib',
         'numpy',
         'opencv-python',
-        'Pillow',
+        'Pillow <= 9.5.0',
         'PyYAML',
         'requests',
         'scipy',

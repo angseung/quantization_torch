@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from pathlib import Path
 
 import cv2
@@ -13,7 +14,7 @@ from PIL import ImageFont, ImageDraw, Image
 
 
 FILE = Path(__file__).resolve()
-ROOT = FILE.parents[0]  # root directory
+ROOT = FILE.parent.parent  # root directory
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
@@ -369,7 +370,7 @@ def parse_opt():
     parser.add_argument(
         "--weights",
         type=str,
-        default="weights/yolov5m-qat.pt",
+        default="weights/best.pt",
         help="model path(s)",
     )
     parser.add_argument(
