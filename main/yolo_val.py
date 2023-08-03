@@ -2,6 +2,8 @@ import argparse
 import json
 import os
 import sys
+
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from pathlib import Path
 from threading import Thread
 
@@ -10,7 +12,7 @@ import torch
 from tqdm import tqdm
 
 FILE = Path(__file__).resolve()
-ROOT = FILE.parents[0]  # root directory
+ROOT = FILE.parent.parent  # root directory
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
@@ -439,7 +441,7 @@ def run(
 def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--data", type=str, default=ROOT / "data/yperv2.yaml", help="dataset.yaml path"
+        "--data", type=str, default=ROOT / "data/coco128.yaml", help="dataset.yaml path"
     )
     parser.add_argument(
         "--weights",

@@ -7,9 +7,10 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import re
+import copy
 from collections import OrderedDict
 from functools import partial
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -22,6 +23,7 @@ from torchvision.utils import _log_api_usage_once
 from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
+
 from utils.quantization_utils import get_platform_aware_qconfig, cal_mse
 
 __all__ = [
@@ -302,17 +304,26 @@ def _densenet(
     skip_fuse: Optional[bool] = False,
     **kwargs: Any,
 ) -> QuantizableDenseNet:
-    if weights is not None:
-        _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
-
     backend = get_platform_aware_qconfig()
     if backend == "qnnpack":
         torch.backends.quantized.engine = "qnnpack"
 
+    if weights is not None:
+        if isinstance(weights, str):
+            ckpt = torch.load(weights, map_location="cpu")
+        else:
+            _ovewrite_named_param(
+                kwargs, "num_classes", len(weights.meta["categories"])
+            )
+
     model = QuantizableDenseNet(growth_rate, block_config, num_init_features, **kwargs)
 
     if weights is not None:
-        _load_state_dict(model=model, weights=weights, progress=progress)
+        if isinstance(weights, str):
+            model.load_state_dict(ckpt["model_state_dict"], strict=True)
+
+        else:
+            model.load_state_dict(weights.get_state_dict(progress=progress))
 
     model.eval()
 
@@ -423,7 +434,7 @@ class DenseNet201_Weights(WeightsEnum):
 @handle_legacy_interface(weights=("pretrained", DenseNet121_Weights.IMAGENET1K_V1))
 def densenet121(
     *,
-    weights: Optional[DenseNet121_Weights] = None,
+    weights: Optional[Union[DenseNet121_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = False,
     is_qat: bool = False,
@@ -449,7 +460,8 @@ def densenet121(
     .. autoclass:: torchvision.models.DenseNet121_Weights
         :members:
     """
-    weights = DenseNet121_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = DenseNet121_Weights.verify(weights)
 
     return _densenet(
         32, (6, 12, 24, 16), 64, weights, progress, quantize, is_qat, **kwargs
@@ -459,7 +471,7 @@ def densenet121(
 @handle_legacy_interface(weights=("pretrained", DenseNet161_Weights.IMAGENET1K_V1))
 def densenet161(
     *,
-    weights: Optional[DenseNet161_Weights] = None,
+    weights: Optional[Union[DenseNet161_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = False,
     is_qat: bool = False,
@@ -475,6 +487,8 @@ def densenet161(
             more details, and possible values. By default, no pre-trained
             weights are used.
         progress (bool, optional): If True, displays a progress bar of the download to stderr. Default is True.
+        quantize (bool): If True, returned model is prepared for PTQ or QAT
+        is_qat (bool): If quantize and is_qat are both True, returned model is prepared for QAT
         **kwargs: parameters passed to the ``torchvision.models.densenet.DenseNet``
             base class. Please refer to the `source code
             <https://github.com/pytorch/vision/blob/main/torchvision/models/densenet.py>`_
@@ -483,7 +497,8 @@ def densenet161(
     .. autoclass:: torchvision.models.DenseNet161_Weights
         :members:
     """
-    weights = DenseNet161_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = DenseNet161_Weights.verify(weights)
 
     return _densenet(
         48, (6, 12, 36, 24), 96, weights, progress, quantize, is_qat, **kwargs
@@ -493,7 +508,7 @@ def densenet161(
 @handle_legacy_interface(weights=("pretrained", DenseNet169_Weights.IMAGENET1K_V1))
 def densenet169(
     *,
-    weights: Optional[DenseNet169_Weights] = None,
+    weights: Optional[Union[DenseNet169_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = False,
     is_qat: bool = False,
@@ -519,7 +534,8 @@ def densenet169(
     .. autoclass:: torchvision.models.DenseNet169_Weights
         :members:
     """
-    weights = DenseNet169_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = DenseNet169_Weights.verify(weights)
 
     return _densenet(
         32, (6, 12, 32, 32), 64, weights, progress, quantize, is_qat, **kwargs
@@ -529,7 +545,7 @@ def densenet169(
 @handle_legacy_interface(weights=("pretrained", DenseNet201_Weights.IMAGENET1K_V1))
 def densenet201(
     *,
-    weights: Optional[DenseNet201_Weights] = None,
+    weights: Optional[Union[DenseNet201_Weights, str]] = None,
     progress: bool = True,
     quantize: bool = False,
     is_qat: bool = False,
@@ -555,7 +571,8 @@ def densenet201(
     .. autoclass:: torchvision.models.DenseNet201_Weights
         :members:
     """
-    weights = DenseNet201_Weights.verify(weights)
+    if not isinstance(weights, str):
+        weights = DenseNet201_Weights.verify(weights)
 
     return _densenet(
         32, (6, 12, 48, 32), 64, weights, progress, quantize, is_qat, **kwargs
@@ -563,12 +580,20 @@ def densenet201(
 
 
 if __name__ == "__main__":
-    import copy
-
     # model = densenet121(quantize=True, is_qat=False)
-    # model = densenet161(quantize=True, is_qat=False)
+    model = densenet161(
+        quantize=True,
+        is_qat=False,
+        num_classes=6,
+        weights="../weights/densenet161.pth",
+    )
     # model = densenet169(quantize=True, is_qat=False)
-    model = densenet201(quantize=True, is_qat=False)
+    # model = densenet201(
+    #     quantize=True,
+    #     is_qat=False,
+    #     num_classes=6,
+    #     weights="../weights/densenet201.pth",
+    # )
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
     model(input)

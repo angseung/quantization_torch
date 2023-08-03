@@ -1908,8 +1908,3 @@ if __name__ == "__main__":
         dummy_output_fp = model_fp(input)
         mse = cal_mse(dummy_output, dummy_output_fp, norm=False)
         print(f"mse: {mse: .6f}")
-
-        # from utils.onnx_utils import convert_onnx
-        #
-        # convert_onnx(model, f"../onnx/regnet_{i: 03d}_qint8.onnx", opset=13)
-        # convert_onnx(model_fp, f"../onnx/regnet_{i: 03d}_fp32.onnx", opset=13)

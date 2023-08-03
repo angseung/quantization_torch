@@ -289,7 +289,7 @@ def fuse_mobilenetv3(model: nn.Module, is_qat: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    model = mobilenet_v3_large(quantize=True, is_qat=True)
+    model = mobilenet_v3_large(quantize=True, is_qat=False)
     model_fp = copy.deepcopy(model)
     input = torch.randn(1, 3, 224, 224)
     model(input)  # Calibration codes here...
