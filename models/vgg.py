@@ -888,10 +888,3 @@ if __name__ == "__main__":
 
     mse = cal_mse(dummy_output_bn, dummy_output_bn_fp, norm=True)
     mse_bn = cal_mse(dummy_output, dummy_output_fp, norm=True)
-
-    # from utils.onnx_utils import convert_onnx
-
-    # convert_onnx(model_bn, "../onnx/vgg_bn_qint8.onnx", opset=13)  # success
-    # convert_onnx(model_bn_fp, "../onnx/vgg_bn_fp32.onnx", opset=13)  # success
-    # convert_onnx(model, "../onnx/vgg_qint8.onnx", opset=13)  # success
-    # convert_onnx(model_fp, "../onnx/vgg_fp32.onnx", opset=13)  # success

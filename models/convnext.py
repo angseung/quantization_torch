@@ -498,8 +498,3 @@ if __name__ == "__main__":
     dummy_output = model(input)
     dummy_output_fp = model_fp(input)
     mse = cal_mse(dummy_output, dummy_output_fp, norm=False)
-
-    from utils.onnx_utils import convert_onnx
-
-    convert_onnx(model, "../onnx/convnext_qint8.onnx", opset=13)
-    convert_onnx(model_fp, "../onnx/convnext_fp32.onnx", opset=13)
