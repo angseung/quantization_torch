@@ -1,15 +1,6 @@
 from typing import Union, Optional, Tuple
 import torch
 import torch.nn as nn
-from models.__init__ import (
-    QuantizableResNet,
-    QuantizableDenseNet,
-    QuantizableYoloBackbone,
-    QuantizableMobileNetV2,
-    QuantizableMobileNetV3,
-    QuantizableEfficientNet,
-    QuantizableSqueezeNet,
-)
 
 
 def convert_onnx(
@@ -36,22 +27,3 @@ def convert_onnx(
         f"{fname}",
         opset_version=opset,
     )
-
-
-def check_optimized_opset(model: nn.Module) -> int:
-    if type(model) in [
-        QuantizableResNet,
-        QuantizableMobileNetV2,
-        QuantizableMobileNetV3,
-        QuantizableYoloBackbone,
-        QuantizableSqueezeNet,
-    ]:
-        return 13
-
-    elif model in [QuantizableEfficientNet, QuantizableDenseNet]:
-        raise TypeError(f"{type(model)} can not be exported to onnx format. ")
-
-    else:
-        raise TypeError(
-            f"An optimal opset for {type(model)} is not yet defined in this function. "
-        )
