@@ -8,6 +8,7 @@ from pathlib import Path
 from torchvision.models.quantization.utils import _fuse_modules
 from torch.utils.data import DataLoader
 from torch import Tensor
+from torch import nn as nn
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[1]  # root directory

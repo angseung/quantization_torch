@@ -12,6 +12,13 @@ from torch.ao.nn.quantized import FloatFunctional
 from torchvision.ops.misc import Conv2dNormActivation
 from torchvision.utils import _log_api_usage_once
 
+__all__ = [
+    "ExtraFPNBlock",
+    "FeaturePyramidNetwork",
+    "LastLevelMaxPool",
+    "LastLevelP6P7",
+]
+
 
 class ExtraFPNBlock(nn.Module):
     """

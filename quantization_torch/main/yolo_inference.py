@@ -19,7 +19,7 @@ ROOT = FILE.parent.parent  # root directory
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
-fontpath = "fonts/NanumBarunGothic.ttf"
+fontpath = "../fonts/NanumBarunGothic.ttf"
 font = ImageFont.truetype(fontpath, 36)
 
 from quantization_torch.models.common import DetectMultiBackend
