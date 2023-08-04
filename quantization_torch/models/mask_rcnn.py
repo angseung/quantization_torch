@@ -28,7 +28,10 @@ from quantization_torch.models.faster_rcnn import (
     QuantizableFastRCNNConvFCHead,
     QuantizableRPNHead,
 )
-from quantization_torch.utils.backbone_utils import _resnet_fpn_extractor, _validate_trainable_layers
+from quantization_torch.utils.backbone_utils import (
+    _resnet_fpn_extractor,
+    _validate_trainable_layers,
+)
 from quantization_torch.utils.quantization_utils import get_platform_aware_qconfig
 
 

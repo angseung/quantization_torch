@@ -37,7 +37,10 @@ from quantization_torch.utils.backbone_utils import (
     _validate_trainable_layers,
 )
 from quantization_torch.models.roi_heads import QuantizableRoIHeads
-from quantization_torch.models.rpn import QuantizableRegionProposalNetwork, QuantizableRPNHead
+from quantization_torch.models.rpn import (
+    QuantizableRegionProposalNetwork,
+    QuantizableRPNHead,
+)
 from quantization_torch.utils.quantization_utils import get_platform_aware_qconfig
 
 

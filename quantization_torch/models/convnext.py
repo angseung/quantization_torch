@@ -23,7 +23,10 @@ from torch.ao.nn.quantized import FloatFunctional
 from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
-from quantization_torch.utils.quantization_utils import cal_mse, get_platform_aware_qconfig
+from quantization_torch.utils.quantization_utils import (
+    cal_mse,
+    get_platform_aware_qconfig,
+)
 
 
 __all__ = [

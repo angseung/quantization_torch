@@ -27,7 +27,10 @@ from torchvision.models.quantization.mobilenetv3 import (
     MobileNetV3,
 )
 from torchvision.models.quantization.utils import _fuse_modules, _replace_relu
-from quantization_torch.utils.quantization_utils import get_platform_aware_qconfig, cal_mse
+from quantization_torch.utils.quantization_utils import (
+    get_platform_aware_qconfig,
+    cal_mse,
+)
 
 __all__ = [
     "QuantizableMobileNetV3",
