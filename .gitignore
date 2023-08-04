@@ -27,10 +27,10 @@
 
 storage.googleapis.com
 runs/*
-data/*
-!data/hyps/*
-!data/images/zidane.jpg
-!data/images/bus.jpg
+quantization_torch/data/*
+!quantization_torch/data/hyps/*
+!quantization_torch/data/images/zidane.jpg
+!quantization_torch/data/images/bus.jpg
 !data/*.sh
 
 results*.csv
