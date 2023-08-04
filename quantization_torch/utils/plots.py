@@ -118,8 +118,7 @@ class Annotator:
             self.im = im if isinstance(im, Image.Image) else Image.fromarray(im)
             self.draw = ImageDraw.Draw(self.im)
             self.font = check_font(
-                # font="Arial.Unicode.ttf" if is_chinese(example) else font,
-                font="fonts/NanumBarunGothic.ttf" if is_chinese(example) else font,
+                font="../fonts/NanumBarunGothic.ttf" if is_chinese(example) else font,
                 size=font_size or max(round(sum(self.im.size) / 2 * 0.035), 12),
             )
         else:  # use cv2
