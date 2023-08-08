@@ -6,7 +6,7 @@ setup(
     description="model quantization module for AIS",
     author="swim",
     author_email="swim@surromind.ai",
-    url="https://github.com/angseung/quantization_torch",
+    url="https://gitlab.surromind.ai/smartedgeai/quantization_torch",
     install_requires=[
         "matplotlib",
         "numpy",
