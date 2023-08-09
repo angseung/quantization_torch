@@ -30,9 +30,7 @@ setup(
     ],
     packages=find_packages(exclude=[]),
     package_data={
-        "main": ["main/*.py"],
-        "data": ["data/*", "data/hyps/*.yaml"],
-        "fonts": ["fonts/*"],
+        "quantization_torch": ["fonts/*", "main/*.py", "data/*", "data/hyps/*.yaml"],
     },
     include_package_data=True,
     keywords=["quantization", "pypi"],
