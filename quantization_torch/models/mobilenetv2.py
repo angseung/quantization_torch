@@ -28,7 +28,10 @@ from torchvision.models.quantization.utils import (
     _replace_relu,
 )
 
-from quantization_torch.utils.quantization_utils import get_platform_aware_qconfig, cal_mse
+from quantization_torch.utils.quantization_utils import (
+    get_platform_aware_qconfig,
+    cal_mse,
+)
 
 
 __all__ = [

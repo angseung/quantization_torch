@@ -28,7 +28,10 @@ from torchvision.models._utils import (
     handle_legacy_interface,
 )
 
-from quantization_torch.utils.quantization_utils import cal_mse, get_platform_aware_qconfig
+from quantization_torch.utils.quantization_utils import (
+    cal_mse,
+    get_platform_aware_qconfig,
+)
 
 __all__ = [
     "RegNet",

@@ -42,7 +42,9 @@ from quantization_torch.models.resnet import (
 )
 from quantization_torch.models.fcn import QuantizableFCNHead
 from quantization_torch.utils.quantization_utils import get_platform_aware_qconfig
-from quantization_torch.utils.segmentation_utils import _QuantizableSimpleSegmentationModel
+from quantization_torch.utils.segmentation_utils import (
+    _QuantizableSimpleSegmentationModel,
+)
 
 
 __all__ = [

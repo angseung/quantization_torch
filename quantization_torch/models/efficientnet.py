@@ -27,7 +27,10 @@ from torchvision.models._utils import (
     handle_legacy_interface,
 )
 
-from quantization_torch.utils.quantization_utils import get_platform_aware_qconfig, cal_mse
+from quantization_torch.utils.quantization_utils import (
+    get_platform_aware_qconfig,
+    cal_mse,
+)
 
 
 __all__ = [

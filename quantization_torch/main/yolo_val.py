@@ -39,7 +39,12 @@ from quantization_torch.utils.general import (
 )
 from quantization_torch.utils.metrics import ConfusionMatrix, ap_per_class
 from quantization_torch.utils.plots import output_to_target, plot_images, plot_val_study
-from quantization_torch.utils.torch_utils import select_device, time_sync, normalizer, to_grayscale
+from quantization_torch.utils.torch_utils import (
+    select_device,
+    time_sync,
+    normalizer,
+    to_grayscale,
+)
 
 
 def save_one_txt(predn, save_conf, shape, file):

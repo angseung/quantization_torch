@@ -34,7 +34,10 @@ from torchvision.models.detection.anchor_utils import AnchorGenerator
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
 
 from quantization_torch.models.resnet import resnet50, fuse_resnet
-from quantization_torch.utils.backbone_utils import _resnet_fpn_extractor, _validate_trainable_layers
+from quantization_torch.utils.backbone_utils import (
+    _resnet_fpn_extractor,
+    _validate_trainable_layers,
+)
 from quantization_torch.utils.quantization_utils import get_platform_aware_qconfig
 from quantization_torch.ops.feature_pyramid_network import LastLevelP6P7
 

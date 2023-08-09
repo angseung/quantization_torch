@@ -23,7 +23,12 @@ fontpath = "../fonts/NanumBarunGothic.ttf"
 font = ImageFont.truetype(fontpath, 36)
 
 from quantization_torch.models.common import DetectMultiBackend
-from quantization_torch.utils.datasets import IMG_FORMATS, VID_FORMATS, LoadImages, LoadStreams
+from quantization_torch.utils.datasets import (
+    IMG_FORMATS,
+    VID_FORMATS,
+    LoadImages,
+    LoadStreams,
+)
 from quantization_torch.utils.general import (
     LOGGER,
     check_file,
@@ -40,7 +45,12 @@ from quantization_torch.utils.general import (
 )
 
 from quantization_torch.utils.plots import Annotator, colors, save_one_box
-from quantization_torch.utils.torch_utils import select_device, time_sync, normalizer, to_grayscale
+from quantization_torch.utils.torch_utils import (
+    select_device,
+    time_sync,
+    normalizer,
+    to_grayscale,
+)
 from quantization_torch.utils.augment_utils import auto_canny
 from quantization_torch.utils.quantization_utils import CalibrationDataLoader
 from quantization_torch.models.yolo import yolo_model
