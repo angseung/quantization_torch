@@ -13,18 +13,31 @@
 | ResNet50 | Y | Y |
 | ResNet101 | N | Y |
 | ResNet152 | N | Y |
+| DenseNet121 | N | Y |# 1. 양자화 대상 모델
+
+## 1.1. PyTorch
+
+### 1.1.1. Classification
+
+| Model | Quantized version is available in torchvision | Implemented Manually |
+| --- | --- | --- |
+| ResNet18 | Y | Y |
+| ResNet34 | N | Y |
+| ResNet50 | Y | Y |
+| ResNet101 | N | Y |
+| ResNet152 | N | Y |
 | DenseNet121 | N | Y |
 | DenseNet161 | N | Y |
 | DenseNet169 | N | Y |
 | DenseNet201 | N | Y |
-| EfficientNetB0 | N | 양자화 미지원 |
-| EfficientNetB1 | N | 양자화 미지원 |
-| EfficientNetB2 | N | 양자화 미지원 |
-| EfficientNetB3 | N | 양자화 미지원 |
-| EfficientNetB4 | N | 양자화 미지원 |
-| EfficientNetB5 | N | 양자화 미지원 |
-| EfficientNetB6 | N | 양자화 미지원 |
-| EfficientNetB7 | N | 양자화 미지원 |
+| EfficientNetB0 | N | forward error |
+| EfficientNetB1 | N | forward error |
+| EfficientNetB2 | N | forward error |
+| EfficientNetB3 | N | forward error |
+| EfficientNetB4 | N | forward error |
+| EfficientNetB5 | N | forward error |
+| EfficientNetB6 | N | forward error |
+| EfficientNetB7 | N | forward error |
 | MobileNetV2 | Y | Y |
 | MobileNetV3 | Y | Y |
 | WideResNet50 | N | Y |
@@ -37,10 +50,10 @@
 | MNASNet 0.75 | N | Y |
 | MNASNet 1.0 | N | Y |
 | MNASNet 1.3 | N | Y |
-| ConvNeXt_tiny | N | 양자화 미지원 |
-| ConvNeXt_small | N | 양자화 미지원 |
-| ConvNeXt_base | N | 양자화 미지원 |
-| ConvNeXt_large | N | 양자화 미지원 |
+| ConvNeXt_tiny | N | forward error |
+| ConvNeXt_small | N | forward error |
+| ConvNeXt_base | N | forward error |
+| ConvNeXt_large | N | forward error |
 | RegNet_X_400mf | N | Y |
 | RegNet_X_800mf | N | Y |
 | RegNet_X_1.6gf | N | Y |
@@ -102,11 +115,11 @@
 
 ## 1.1.4. Issue
 
-- EfficientNet 계열: Stride ≠ 1인 Pointwise Convolution의 qint8 연산 미지원
-- ConvNext 계열: GeLU 활성화 함수 및 Layer Normalization의 qint8 연산 미지원
+- EfficientNet 계열: Stride ≠ 1인 Pointwise Convolution의 qint8 연산 미지원 (forward error)
+- ConvNext 계열: GeLU 활성화 함수 및 Layer Normalization의 qint8 연산 미지원 (forward error)
 
-- Pointwise Convolution에서 qint8 자료형 지원 불가 문제
-    - stride ≠ 1인 Pointwise Convolution을 사용하는 EfficientNet, EfficientDet, MobileNetV1 등 모델들은 PyTorch에서 양자화 적용 불가
+- Pointwise Convolution에서 qint8 자료형 지원 불가 문제 (forward error)
+    - stride ≠ 1인 Pointwise Convolution을 사용하는 EfficientNet, EfficientDet, MobileNetV1 등 모델들은 PyTorch에서 양자화 적용 후 추론 불가
     - Depthwise Convolution은 stride에 관계 없이 양자화 및 Fusing 가능
 
 https://github.com/pytorch/pytorch/issues/74540
@@ -171,6 +184,11 @@ RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED
 | YoloV5x |  |  |  |
 
 ## 2.2. 2차 양자화 대상 모델 추론시간 비교
+
+| Target | Intel core i5-12500 |
+| --- | --- |
+| Arch | x86-64 |
+| OS | Windows 11 |
 
 - Classification 모델
 
