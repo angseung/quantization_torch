@@ -189,7 +189,9 @@ if __name__ == "__main__":
     input_np = np.random.randn(1, 1, 224, 224).astype(np.float32)
     dummy_input = torch.from_numpy(input_np)
     dummy_output = model(dummy_input)
-    input_names = ["actual_input_1"] + ["learned_%d" % i for i in range(len(list(model.named_children())))]
+    input_names = ["actual_input_1"] + [
+        "learned_%d" % i for i in range(len(list(model.named_children())))
+    ]
     output_names = ["output1"]
 
     torch.onnx.export(
