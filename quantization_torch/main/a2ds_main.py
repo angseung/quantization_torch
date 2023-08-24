@@ -8,7 +8,9 @@ from quantization_torch.models.a2ds import resnet18, CRNN, RNNBase
 from quantization_torch.utils.quantization_utils import cal_mse
 
 
-def convert_cnn(input_shape: Tuple[int, int, int] = (1, 224, 224), num_classes: int = 1000):
+def convert_cnn(
+    input_shape: Tuple[int, int, int] = (1, 224, 224), num_classes: int = 1000
+):
     model = resnet18(num_classes=num_classes).eval()
     input_np = np.random.randn(1, *input_shape).astype(np.float32)
     dummy_input = torch.from_numpy(input_np)
@@ -40,7 +42,9 @@ def convert_cnn(input_shape: Tuple[int, int, int] = (1, 224, 224), num_classes: 
 
 
 def convert_rnn(input_shape: int = 256, num_classes: int = 87, rnn_type: str = "lstm"):
-    model = RNNBase(input_size=input_shape, batch_size=1, rnn_type=rnn_type, num_classes=num_classes).eval()
+    model = RNNBase(
+        input_size=input_shape, batch_size=1, rnn_type=rnn_type, num_classes=num_classes
+    ).eval()
     input_np = np.random.randn(1, 1, input_shape).astype(np.float32)
     dummy_input = torch.from_numpy(input_np)
     dummy_output = model(dummy_input)
