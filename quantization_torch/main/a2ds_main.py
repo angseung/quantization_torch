@@ -39,8 +39,8 @@ def convert_cnn(input_shape: Tuple[int, int, int] = (1, 224, 224)):
     print(f"[CNN] ONNX - TORCH PRECISION ERROR : {mse: .6f}")
 
 
-def convert_rnn(input_shape: int = 256):
-    model = RNNBase(input_size=input_shape, batch_size=1, rnn_type="lstm", num_classes=100).eval()
+def convert_rnn(input_shape: int = 256, num_classes: int = 87, rnn_type: str = "lstm"):
+    model = RNNBase(input_size=input_shape, batch_size=1, rnn_type=rnn_type, num_classes=num_classes).eval()
     input_np = np.random.randn(1, 1, input_shape).astype(np.float32)
     dummy_input = torch.from_numpy(input_np)
     dummy_output = model(dummy_input)
@@ -50,16 +50,16 @@ def convert_rnn(input_shape: int = 256):
     torch.onnx.export(
         model,
         dummy_input,
-        "../../onnx/a2ds_rnn.onnx",
+        f"../../onnx/a2ds_rnn_{rnn_type}.onnx",
         verbose=True,
         input_names=input_names,
         output_names=output_names,
     )
 
-    onnx_model = onnx.load("../../onnx/a2ds_rnn.onnx")
+    onnx_model = onnx.load(f"../../onnx/a2ds_rnn_{rnn_type}.onnx")
     onnx.checker.check_model(onnx_model)
 
-    ort_session = ort.InferenceSession("../../onnx/a2ds_rnn.onnx")
+    ort_session = ort.InferenceSession(f"../../onnx/a2ds_rnn_{rnn_type}.onnx")
     onnx_output = ort_session.run(
         None,
         {"input": input_np},
@@ -68,8 +68,8 @@ def convert_rnn(input_shape: int = 256):
     print(f"[RNN] ONNX - TORCH PRECISION ERROR : {mse: .6f}")
 
 
-def convert_crnn(input_shape: Tuple[int] = (128, 256)):
-    model = CRNN(num_classes=87, input_size=input_shape, batch_size=1).eval()
+def convert_crnn(input_shape: Tuple[int, int] = (128, 256), num_classes: int = 87):
+    model = CRNN(num_classes=num_classes, input_size=input_shape, batch_size=1).eval()
     input_np = np.random.randn(1, 1, *input_shape).astype(np.float32)
     dummy_input = torch.from_numpy(input_np)
     dummy_output = model(dummy_input)
@@ -98,6 +98,7 @@ def convert_crnn(input_shape: Tuple[int] = (128, 256)):
 
 
 if __name__ == "__main__":
-    convert_cnn()
-    convert_crnn()
-    convert_rnn()
+    convert_cnn(input_shape=(1, 224, 224))
+    convert_crnn(input_shape=(128, 256), num_classes=87)
+    convert_rnn(input_shape=256, num_classes=87, rnn_type="lstm")
+    # convert_rnn(input_shape=256, num_classes=87, rnn_type="gru")
