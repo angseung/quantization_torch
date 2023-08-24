@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 from torchvision.models.resnet import ResNet, BasicBlock
 
+from quantization_torch.utils.quantization_utils import cal_mse
+
 
 class SingleChannelResNet(ResNet):
     """Modified ResNet to take just one channel as convolutional input"""
@@ -185,19 +187,19 @@ class RNNBase(nn.Module):
 
 
 if __name__ == "__main__":
+    # from torchvision.models.resnet import resnet18
     model = resnet18(num_classes=1000).eval()
     input_np = np.random.randn(1, 1, 224, 224).astype(np.float32)
     dummy_input = torch.from_numpy(input_np)
     dummy_output = model(dummy_input)
-    input_names = ["actual_input_1"] + [
-        "learned_%d" % i for i in range(len(list(model.named_children())))
-    ]
-    output_names = ["output1"]
+    input_names = ["input"]
+    output_names = ["output"]
 
     torch.onnx.export(
         model,
         dummy_input,
         "../../onnx/a2ds_resnet18.onnx",
+        do_constant_folding=True,
         verbose=True,
         input_names=input_names,
         output_names=output_names,
@@ -209,5 +211,6 @@ if __name__ == "__main__":
     ort_session = ort.InferenceSession("../../onnx/a2ds_resnet18.onnx")
     onnx_output = ort_session.run(
         None,
-        {"actual_input_1": input_np},
+        {"input": input_np},
     )
+    mse = cal_mse(torch.from_numpy(onnx_output[0]), dummy_output, norm=False)
