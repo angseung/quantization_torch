@@ -39,9 +39,9 @@ def convert_cnn(input_shape: Tuple[int, int, int] = (1, 224, 224)):
     print(f"[CNN] ONNX - TORCH PRECISION ERROR : {mse: .6f}")
 
 
-def convert_rnn(input_shape: Tuple[int, int, int] = (256, 32, 1)):
-    model = RNNBase(num_classes=87, input_size=224, batch_size=1).eval()
-    input_np = np.random.randn(1, *input_shape).astype(np.float32)
+def convert_rnn(input_shape: int = 256):
+    model = RNNBase(input_size=input_shape, batch_size=1, rnn_type="lstm", num_classes=100).eval()
+    input_np = np.random.randn(1, 1, input_shape).astype(np.float32)
     dummy_input = torch.from_numpy(input_np)
     dummy_output = model(dummy_input)
     input_names = ["input"]
@@ -94,9 +94,10 @@ def convert_crnn(input_shape: Tuple[int] = (128, 256)):
         {"input": input_np},
     )
     mse = cal_mse(torch.from_numpy(onnx_output[0]), dummy_output, norm=False)
-    print(f"[RCNN] ONNX - TORCH PRECISION ERROR : {mse: .12f}")
+    print(f"[RCNN] ONNX - TORCH PRECISION ERROR : {mse: .6f}")
 
 
 if __name__ == "__main__":
-    # convert_cnn()
+    convert_cnn()
     convert_crnn()
+    convert_rnn()
