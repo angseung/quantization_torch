@@ -98,7 +98,7 @@ def convert_crnn(input_shape: Tuple[int, int] = (128, 256), num_classes: int = 8
         {"input": input_np},
     )
     mse = cal_mse(torch.from_numpy(onnx_output[0]), dummy_output, norm=False)
-    print(f"[RCNN] ONNX - TORCH PRECISION ERROR : {mse: .6f}")
+    print(f"[CRNN] ONNX - TORCH PRECISION ERROR : {mse: .6f}")
 
 
 if __name__ == "__main__":
