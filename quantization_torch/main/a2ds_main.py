@@ -11,6 +11,9 @@ from quantization_torch.utils.quantization_utils import cal_mse
 def convert_cnn(
     input_shape: Tuple[int, int, int] = (1, 224, 224), num_classes: int = 1000
 ):
+    if input_shape[0] == 3:
+        from torchvision.models.resnet import resnet18
+
     model = resnet18(num_classes=num_classes).eval()
     input_np = np.random.randn(1, *input_shape).astype(np.float32)
     dummy_input = torch.from_numpy(input_np)
