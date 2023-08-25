@@ -343,3 +343,180 @@ RuntimeError: createStatus == pytorch_qnnp_status_success INTERNAL ASSERT FAILED
 - SSDLite: ReLU6 → ReLU로 변경함에 따라 기존 모델 가중치 호환성 이슈 존재
 - Mask R-CNN 계열: ARM 아키텍쳐에서만 양자화 기능 지원
     - 단, Faster R-CNN 계열과 마찬가지로 QNNPACK ERROR로 인해 추론 불가
+
+# 4. Quantizable Model Class
+
+```python
+class QuantizableSomeModel(SomeModel):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.block= Block()
+        self.quant = QuantStub()
+        self.dequant = DeQuantStub()
+		
+		def _forward_impl(self, x: Tensor) -> Tensor:
+        x = self.block(x)
+        return x
+
+    def forward(self, x: Tensor) -> Tensor:
+        x = self.quant(x)
+        x = self._forward_impl(x)
+        x = self.dequant(x)
+        return x
+
+    def fuse_model(self, is_qat: bool = False) -> None:
+				_fuse_modules(model, modules_to_fuse, is_qat=is_qat, inplace=True)
+
+```
+
+- 양자화 가능한 네트워크인 SomeModel의 양자화를 위한 모델 클래스명은 QuantizableSomeModel로 하고, SomeModel을 상속한다.
+    - QuantizableSomeModel 인스턴스라 할지라도, torch.ao.quantization.convert 함수를 통해 양자화를 수행하지 않으면 실수형 모델이다.
+    - QuantStub, DeQuantStub이 forward를 감싸고 있어도, convert를 하지 않으면 양자화 하지 않은 SomeModel과 완전히 동등한 결과를 얻는다.
+- FP32타입의 input-output을 위해 forward 메서드에서 quant, dequant를 통과한다.
+- fuse_model 메서드는 모델의 구조에 따라 각각 구현하여야 하므로, SomeModel을 상속한 QuantizableSomeModel 클래스의 메서드로 따로 구현한다.
+
+# 5. Model Parser Function
+
+```python
+def somemodel(
+    *,
+    weights: = None,
+    progress: bool = True,
+    quantize: bool = False,
+    is_qat: bool = False,
+    **kwargs: Any,
+) -> SomeModel:
+
+    return _somemodel(
+				*,
+        weights,
+        progress,
+        quantize,
+        is_qat,
+        **kwargs,
+    )
+```
+
+- 동일한 모델이라도 Config에 따라 다양한 크기의 모델을 얻을 수 있다.
+    - ex) ResNet 계열에서는 ResNet18, ResNet34, ResNet52 등 다양한 크기의 모델이 있다.
+- Model Parser는 funtion이며, somemodel로 명명한다.
+- Model Config을 받아 Model을 Build하는 function은 _somemodel()로 분리한다.
+
+# 6. Model Builder Function
+
+```python
+def _somemodel(
+		*,
+    weights: Optional[WeightsEnum],
+    progress: bool,
+    quantize: bool,
+    is_qat: bool,
+    skip_fuse: Optional[bool],
+    **kwargs: Any,
+) -> SomeModel:
+		
+    backend = get_platform_aware_qconfig()
+    if backend == "qnnpack":
+        torch.backends.quantized.engine = "qnnpack"
+
+    model = SomeModel(
+				*args,
+        **kwargs,
+    )
+
+    if weights is not None:
+        model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
+
+    model.eval()
+
+		if not skip_fuse:
+	    model.fuse_model(is_qat=is_qat)
+
+   if quantize:
+        if is_qat:
+            model.qconfig = torch.ao.quantization.get_default_qat_qconfig(backend)
+            model.train()
+            torch.ao.quantization.prepare_qat(model, inplace=True)
+
+        else:
+            model.qconfig = torch.ao.quantization.get_default_qconfig(backend)
+            torch.ao.quantization.prepare(model, inplace=True)
+
+    return model
+```
+
+- Model Builder는 Config을 읽어 모델 인스턴스를 반환한다.
+- Quantizable 모델을 위해 quantize, is_qat를 Args로 받는다.
+    - quantize: PTQ 또는 QAT를 할 때 True로 set
+        - QAT를 할 때 is_qat를 True로 set
+        - PTQ를 할 때 is_qat를 False로 set
+    - fuse_module 함수 및 prepare 메서드가 QAT일 때와 PTQ일 때 동작이 다르기 때문에 PTQ와 QAT를 구별해야 한다.
+- Load Weights → Fusing → Prepare 순서로 수행한다.
+    - torchvision에서 자체적으로 Quantized Model을 지원하지 않는 경우에는 Fusing한 모델과 weight 파일의 호환성이 없으므로 Load할 수 없다.
+    - 단, Quantized Weights를 제공하는 경우에는 기존처럼 Weights Load 후 Fusing한다.
+    - FP32 모델의 state_dict에는 Quantization Observer 등 일부 레이어가 누락되어 있으므로, load_state_dict의 strict arg를 False로 하여 레이어의 Key-Value 쌍이 완벽히 맞지 않아도 Weights가 Load 될 수 있도록 한다.
+- Detection 모델의 Backbone으로 사용되는 등, Fusing이 수행되면 안되는 경우에는 skip_fuse Arg를 True로 하여 Layer Fusing을 스킵 할 수 있다.
+    - Skip한 이후 Fusing은 해당 모델을 호출하는 함수에서 별도로 수행한다.
+    - 아래 예시는 ResNet50을 Backbone으로 사용하는 FCOS Detection 모델에서, Backbone Build시에 fuse_model 메서드 실행을 Skip하는 것을 나타난다.
+
+```python
+# Example of skip_fuse option
+backbone = resnet50(
+        progress=progress,
+        norm_layer=norm_layer,
+        quantize=quantize,
+        is_qat=is_qat,
+        skip_fuse=True,  # skips fusing when building backbone model
+    )
+backbone = _resnet_fpn_extractor(
+    backbone,
+    trainable_backbone_layers,
+    returned_layers=[2, 3, 4],
+    extra_blocks=LastLevelP6P7(256, 256),
+)
+model = QuantizableFCOS(backbone, num_classes, **kwargs)
+
+if weights is not None:
+    model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
+
+model.eval()
+fuse_fcos(model, is_qat=is_qat)  # fuses later
+
+...
+```
+
+# 7. 모델 양자화 시퀀스
+
+- PTQ
+
+```python
+# build full-precision model and prepare for PTQ
+model = somemodel(*args, **kwargs, quantize=True, is_qat=False)
+
+# prepare dataloader for calibration
+input = torch.randn(1, 3, 224, 224)
+model(input)  # Calibration codes here...
+
+# Quantize model after calibration
+torch.ao.quantization.convert(model, inplace=True)
+
+# get prediction
+dummy_output = model(input)
+```
+
+- QAT
+
+```python
+# build full-precision model and prepare for QAT
+model = somemodel(config, quantize=True, is_qat=True)
+
+# train the model, this is Quantization Aware Training with fake quantization observers
+train(model, dataset)
+
+# Quantize model after training
+# QAT does not require calibration
+torch.ao.quantization.convert(model, inplace=True)
+
+# get prediction
+dummy_output = model(input)
+```
