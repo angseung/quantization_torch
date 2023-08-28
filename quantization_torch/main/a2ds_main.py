@@ -92,7 +92,7 @@ def convert_crnn(input_shape: Tuple[int, int] = (128, 256), num_classes: int = 8
     torch.onnx.export(
         model,
         dummy_input,
-        "../../onnx/a2ds_rcnn.onnx",
+        "../../onnx/a2ds_crnn.onnx",
         opset_version=13,
         do_constant_folding=False,
         verbose=False,
@@ -100,10 +100,10 @@ def convert_crnn(input_shape: Tuple[int, int] = (128, 256), num_classes: int = 8
         output_names=output_names,
     )
 
-    onnx_model = onnx.load("../../onnx/a2ds_rcnn.onnx")
+    onnx_model = onnx.load("../../onnx/a2ds_crnn.onnx")
     onnx.checker.check_model(onnx_model)
 
-    ort_session = ort.InferenceSession("../../onnx/a2ds_rcnn.onnx")
+    ort_session = ort.InferenceSession("../../onnx/a2ds_crnn.onnx")
     onnx_output = ort_session.run(
         None,
         {"input": input_np},
@@ -113,7 +113,7 @@ def convert_crnn(input_shape: Tuple[int, int] = (128, 256), num_classes: int = 8
 
 
 if __name__ == "__main__":
-    convert_cnn(input_shape=(3, 224, 224), num_classes=1000)
-    convert_crnn(input_shape=(128, 256), num_classes=87)
+    convert_cnn(input_shape=(1, 224, 224), num_classes=50)
+    convert_crnn(input_shape=(128, 256), num_classes=50)
     convert_rnn(input_shape=256, num_classes=87, rnn_type="lstm")
     convert_rnn(input_shape=256, num_classes=87, rnn_type="gru")
