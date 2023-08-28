@@ -12,9 +12,13 @@ def convert_cnn(
     input_shape: Tuple[int, int, int] = (1, 224, 224), num_classes: int = 1000
 ):
     if input_shape[0] == 3:
-        from torchvision.models.resnet import resnet18
+        # overrides resnet18
+        from torchvision.models.resnet import resnet18 as resnet18_ori
 
-    model = resnet18(num_classes=num_classes).eval()
+        model = resnet18_ori(num_classes=num_classes).eval()
+    else:
+        model = resnet18(num_classes=num_classes).eval()
+
     input_np = np.random.randn(1, *input_shape).astype(np.float32)
     dummy_input = torch.from_numpy(input_np)
     dummy_output = model(dummy_input)
@@ -26,8 +30,8 @@ def convert_cnn(
         dummy_input,
         "../../onnx/a2ds_resnet18.onnx",
         opset_version=13,
-        do_constant_folding=True,
-        verbose=True,
+        do_constant_folding=False,
+        verbose=False,
         input_names=input_names,
         output_names=output_names,
     )
@@ -58,7 +62,9 @@ def convert_rnn(input_shape: int = 256, num_classes: int = 87, rnn_type: str = "
         model,
         dummy_input,
         f"../../onnx/a2ds_rnn_{rnn_type}.onnx",
-        verbose=True,
+        opset_version=13,
+        do_constant_folding=False,
+        verbose=False,
         input_names=input_names,
         output_names=output_names,
     )
@@ -87,7 +93,9 @@ def convert_crnn(input_shape: Tuple[int, int] = (128, 256), num_classes: int = 8
         model,
         dummy_input,
         "../../onnx/a2ds_rcnn.onnx",
-        verbose=True,
+        opset_version=13,
+        do_constant_folding=False,
+        verbose=False,
         input_names=input_names,
         output_names=output_names,
     )
@@ -105,7 +113,7 @@ def convert_crnn(input_shape: Tuple[int, int] = (128, 256), num_classes: int = 8
 
 
 if __name__ == "__main__":
-    convert_cnn(input_shape=(1, 224, 224), num_classes=1000)
+    convert_cnn(input_shape=(3, 224, 224), num_classes=1000)
     convert_crnn(input_shape=(128, 256), num_classes=87)
     convert_rnn(input_shape=256, num_classes=87, rnn_type="lstm")
-    # convert_rnn(input_shape=256, num_classes=87, rnn_type="gru")
+    convert_rnn(input_shape=256, num_classes=87, rnn_type="gru")
