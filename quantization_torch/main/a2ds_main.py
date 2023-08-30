@@ -9,7 +9,7 @@ from quantization_torch.utils.quantization_utils import cal_mse
 
 
 def convert_cnn(
-    input_shape: Tuple[int, int, int] = (1, 224, 224), num_classes: int = 1000
+    input_shape: Tuple[int, int, int] = (1, 224, 224), num_classes: int = 1000, weights: str = None,
 ):
     if input_shape[0] == 3:
         # overrides resnet18
@@ -18,6 +18,10 @@ def convert_cnn(
         model = resnet18_ori(num_classes=num_classes).eval()
     else:
         model = resnet18(num_classes=num_classes).eval()
+
+    if weights is not None:
+        ckpt = torch.load(weights)
+        model.load_state_dict(ckpt["model_state_dict"])
 
     input_np = np.random.randn(1, *input_shape).astype(np.float32)
     dummy_input = torch.from_numpy(input_np)
@@ -48,10 +52,15 @@ def convert_cnn(
     print(f"[CNN] ONNX - TORCH PRECISION ERROR : {mse: .6f}")
 
 
-def convert_rnn(input_shape: int = 256, num_classes: int = 87, rnn_type: str = "lstm"):
+def convert_rnn(input_shape: int = 256, num_classes: int = 87, rnn_type: str = "lstm", weights: str = None):
     model = RNNBase(
         input_size=input_shape, batch_size=1, rnn_type=rnn_type, num_classes=num_classes
     ).eval()
+
+    if weights is not None:
+        ckpt = torch.load(weights)
+        model.load_state_dict(ckpt["model_state_dict"])
+
     input_np = np.random.randn(1, 1, input_shape).astype(np.float32)
     dummy_input = torch.from_numpy(input_np)
     dummy_output = model(dummy_input)
@@ -81,8 +90,13 @@ def convert_rnn(input_shape: int = 256, num_classes: int = 87, rnn_type: str = "
     print(f"[RNN] ONNX - TORCH PRECISION ERROR : {mse: .6f}")
 
 
-def convert_crnn(input_shape: Tuple[int, int] = (128, 256), num_classes: int = 87):
+def convert_crnn(input_shape: Tuple[int, int] = (128, 256), num_classes: int = 87, weights: str = None):
     model = CRNN(num_classes=num_classes, input_size=input_shape, batch_size=1).eval()
+
+    if weights is not None:
+        ckpt = torch.load(weights)
+        model.load_state_dict(ckpt["model_state_dict"])
+
     input_np = np.random.randn(1, 1, *input_shape).astype(np.float32)
     dummy_input = torch.from_numpy(input_np)
     dummy_output = model(dummy_input)
