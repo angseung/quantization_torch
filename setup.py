@@ -2,11 +2,11 @@ from setuptools import setup, find_packages
 
 setup(
     name="quantization_torch",
-    version="0.0.1",
+    version="0.0.2",
     description="model quantization module for AIS",
-    author="swim",
-    author_email="swim@surromind.ai",
-    url="https://gitlab.surromind.ai/smartedgeai/quantization_torch",
+    author="angseung",
+    author_email="angseung@vueron.org",
+    url="https://github.com/angseung/quantization_torch.git",
     install_requires=[
         "matplotlib",
         "numpy",
@@ -15,8 +15,8 @@ setup(
         "PyYAML",
         "requests",
         "scipy",
-        "torch==2.0.1",
-        "torchvision==0.15.2",
+        "torch>=2.0.1",
+        "torchvision>=0.15.2",
         "tqdm",
         "tensorboard",
         "pandas",
