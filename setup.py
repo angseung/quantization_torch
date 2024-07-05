@@ -5,7 +5,7 @@ setup(
     version="0.0.2",
     description="model quantization module for AIS",
     author="angseung",
-    author_email="angseung@vueron.org",
+    author_email="angseung@vueron.com",
     url="https://github.com/angseung/quantization_torch.git",
     install_requires=[
         "matplotlib",
